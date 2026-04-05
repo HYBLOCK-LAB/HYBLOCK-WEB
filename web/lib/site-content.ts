@@ -27,6 +27,12 @@ export const navItems: NavItem[] = [
   { href: '/attendance', label: '출석 체크' },
 ];
 
+export const adminNavItems: NavItem[] = [
+  { href: '/admin/members', label: '멤버 관리' },
+  { href: '/admin/activities', label: '활동 관리' },
+  { href: '/admin/attendance', label: '출석 관리' },
+];
+
 export const noticeCategories = ['전체', '학술', '이벤트', '운영'] as const;
 
 export const notices = [

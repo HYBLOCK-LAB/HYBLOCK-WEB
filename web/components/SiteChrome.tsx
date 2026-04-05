@@ -8,7 +8,7 @@ import { Bell, CheckCircle2, Compass, Home } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
-import { brandMenuItems, navItems } from '@/lib/site-content';
+import { adminNavItems, brandMenuItems, navItems } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 
 type SiteChromeProps = {
@@ -33,6 +33,8 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
   const address = useWalletSessionStore((state) => state.address);
   const chainName = useWalletSessionStore((state) => state.chainName);
   const isConnected = useWalletSessionStore((state) => state.isConnected);
+  const isAdmin = activePath.startsWith('/admin');
+  const headerNavItems = isAdmin ? adminNavItems : navItems;
 
   const handleHeaderWalletClick = async () => {
     if (isConnected && address) {
@@ -68,54 +70,56 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
             setHeaderHoverActive(false);
           }}
         >
-          <div className="flex h-20 items-center justify-between">
+          <div className="flex h-24 items-center justify-between">
             <div className="flex items-center gap-12">
               <Link href="/" className="flex items-center">
                 <Image
                   src="/logo_name.png"
                   alt="HYBLOCK"
-                  width={170}
-                  height={66}
-                  className="h-12 w-auto object-contain"
+                  width={186}
+                  height={72}
+                  className="h-14 w-auto object-contain"
                   priority
                 />
               </Link>
               <nav className="hidden items-center gap-8 md:flex">
-                <div
-                  className="relative"
-                  onMouseEnter={() => {
-                    setBrandMenuOpen(true);
-                    setHeaderHoverActive(true);
-                  }}
-                  onFocus={() => {
-                    setBrandMenuOpen(true);
-                    setHeaderHoverActive(true);
-                  }}
-                >
-                  <Link
-                    href="/about"
-                    className={[
-                      'flex h-12 items-center gap-1 rounded-md px-3 font-display text-[15px] font-medium tracking-tight transition-colors',
-                      isBrandMenuActive(activePath)
-                        ? 'bg-monolith-surfaceLow text-monolith-primaryContainer'
-                        : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow hover:text-monolith-primaryContainer',
-                    ].join(' ')}
+                {!isAdmin ? (
+                  <div
+                    className="relative"
+                    onMouseEnter={() => {
+                      setBrandMenuOpen(true);
+                      setHeaderHoverActive(true);
+                    }}
+                    onFocus={() => {
+                      setBrandMenuOpen(true);
+                      setHeaderHoverActive(true);
+                    }}
                   >
-                    하이블록
-                    <ChevronDown className={['h-4 w-4 transition-transform', brandMenuOpen ? 'rotate-180' : ''].join(' ')} />
-                  </Link>
-                </div>
-                {navItems.map((item) => (
+                    <Link
+                      href="/about"
+                      className={[
+                        'flex h-13 items-center gap-1 rounded-md px-3 font-display text-[17px] font-medium tracking-tight transition-colors',
+                        isBrandMenuActive(activePath)
+                          ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
+                          : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
+                      ].join(' ')}
+                    >
+                      하이블록
+                      <ChevronDown className={['h-4 w-4 transition-transform', brandMenuOpen ? 'rotate-180' : ''].join(' ')} />
+                    </Link>
+                  </div>
+                ) : null}
+                {headerNavItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onMouseEnter={() => setHeaderHoverActive(true)}
                     onFocus={() => setHeaderHoverActive(true)}
                     className={[
-                      'flex h-12 items-center rounded-md px-3 font-display text-[15px] font-medium tracking-tight transition-colors',
+                      'flex h-13 items-center rounded-md px-3 font-display text-[16px] font-medium tracking-tight transition-colors',
                       isActive(activePath, item.href)
-                        ? 'bg-monolith-surfaceLow text-monolith-primaryContainer'
-                        : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow hover:text-monolith-primaryContainer',
+                        ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
+                        : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
                     ].join(' ')}
                   >
                     {item.label}
@@ -160,7 +164,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
           <div
             className={[
               'hidden overflow-hidden transition-all duration-300 ease-out md:block',
-              brandMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0',
+              !isAdmin && brandMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0',
             ].join(' ')}
             onMouseEnter={() => {
               setBrandMenuOpen(true);
@@ -178,10 +182,10 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     key={item.href}
                     href={item.href}
                     className={[
-                      'rounded-md px-3 py-2 font-display text-lg font-semibold tracking-tight transition-colors',
+                      'rounded-md px-3 py-2 font-display text-xl font-semibold tracking-tight transition-colors',
                       isActive(activePath, item.href)
-                        ? 'bg-monolith-surfaceLow text-monolith-primaryContainer'
-                        : 'text-monolith-onSurface hover:bg-monolith-surfaceLow hover:text-monolith-primaryContainer',
+                        ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
+                        : 'text-monolith-onSurface hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
                     ].join(' ')}
                   >
                     {item.label}
@@ -240,30 +244,53 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-monolith-outlineVariant/40 bg-monolith-surfaceLowest/95 px-3 py-3 backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-around">
-          <Link href="/" className={mobileNavClass(activePath === '/')}>
-            <Home className="h-5 w-5" />
-            <span>홈</span>
-          </Link>
-          <Link href="/about" className={mobileNavClass(activePath.startsWith('/about'))}>
-            <span className="text-sm font-bold">소</span>
-            <span>소개</span>
-          </Link>
-          <Link href="/bylaws" className={mobileNavClass(activePath.startsWith('/bylaws'))}>
-            <span className="text-sm font-bold">규</span>
-            <span>회칙</span>
-          </Link>
-          <Link href="/notices" className={mobileNavClass(activePath.startsWith('/notices'))}>
-            <Bell className="h-5 w-5" />
-            <span>공지</span>
-          </Link>
-          <Link href="/activities" className={mobileNavClass(activePath.startsWith('/activities'))}>
-            <Compass className="h-5 w-5" />
-            <span>활동</span>
-          </Link>
-          <Link href="/attendance" className={mobileNavClass(activePath.startsWith('/attendance'))}>
-            <CheckCircle2 className="h-5 w-5" />
-            <span>출석</span>
-          </Link>
+          {isAdmin ? (
+            <>
+              <Link href="/admin" className={mobileNavClass(activePath === '/admin')}>
+                <Home className="h-5 w-5" />
+                <span>관리</span>
+              </Link>
+              <Link href="/admin/members" className={mobileNavClass(activePath.startsWith('/admin/members'))}>
+                <span className="text-sm font-bold">멤</span>
+                <span>멤버</span>
+              </Link>
+              <Link href="/admin/activities" className={mobileNavClass(activePath.startsWith('/admin/activities'))}>
+                <Compass className="h-5 w-5" />
+                <span>활동</span>
+              </Link>
+              <Link href="/admin/attendance" className={mobileNavClass(activePath.startsWith('/admin/attendance'))}>
+                <CheckCircle2 className="h-5 w-5" />
+                <span>출석</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/" className={mobileNavClass(activePath === '/')}>
+                <Home className="h-5 w-5" />
+                <span>홈</span>
+              </Link>
+              <Link href="/about" className={mobileNavClass(activePath.startsWith('/about'))}>
+                <span className="text-sm font-bold">소</span>
+                <span>소개</span>
+              </Link>
+              <Link href="/bylaws" className={mobileNavClass(activePath.startsWith('/bylaws'))}>
+                <span className="text-sm font-bold">규</span>
+                <span>회칙</span>
+              </Link>
+              <Link href="/notices" className={mobileNavClass(activePath.startsWith('/notices'))}>
+                <Bell className="h-5 w-5" />
+                <span>공지</span>
+              </Link>
+              <Link href="/activities" className={mobileNavClass(activePath.startsWith('/activities'))}>
+                <Compass className="h-5 w-5" />
+                <span>활동</span>
+              </Link>
+              <Link href="/attendance" className={mobileNavClass(activePath.startsWith('/attendance'))}>
+                <CheckCircle2 className="h-5 w-5" />
+                <span>출석</span>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </div>

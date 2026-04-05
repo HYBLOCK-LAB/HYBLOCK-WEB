@@ -15,6 +15,8 @@ type SessionRow = {
 type MemberRow = {
   id: number;
   name: string;
+  cohort?: number;
+  is_active?: boolean;
 };
 
 type AttendanceRow = {
@@ -350,6 +352,65 @@ export async function getAttendanceData() {
     return Array.from(rowsByMemberId.values());
   } catch (error) {
     console.error('getAttendanceData error:', error);
+    return [];
+  }
+}
+
+export async function getAdminMembers() {
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('member')
+      .select('id, name, cohort, is_active')
+      .order('cohort', { ascending: true })
+      .order('name', { ascending: true })
+      .returns<Array<{ id: number; name: string; cohort: number | null; is_active: boolean | null }>>();
+
+    if (error) throw error;
+
+    return (data ?? []).map((member) => ({
+      id: member.id,
+      name: member.name,
+      cohort: member.cohort ?? DEFAULT_COHORT,
+      isActive: Boolean(member.is_active),
+    }));
+  } catch (error) {
+    console.error('getAdminMembers error:', error);
+    return [];
+  }
+}
+
+export async function getAdminExternalActivities() {
+  try {
+    const supabase = getSupabase();
+    const sessions = await getSessions();
+    const sessionNameById = new Map(sessions.map((session) => [session.session_id, session.content?.trim() ?? null]));
+
+    const { data, error } = await supabase
+      .from('external_activity')
+      .select('activity_id, wallet_address, session_id, evidence_url, created_at')
+      .order('created_at', { ascending: false })
+      .returns<
+        Array<{
+          activity_id: string;
+          wallet_address: string;
+          session_id: string;
+          evidence_url: string;
+          created_at: string;
+        }>
+      >();
+
+    if (error) throw error;
+
+    return (data ?? []).map((activity) => ({
+      activityId: activity.activity_id,
+      walletAddress: activity.wallet_address,
+      sessionName: sessionNameById.get(activity.session_id) ?? null,
+      evidenceUrl: activity.evidence_url,
+      createdAt: activity.created_at,
+    }));
+  } catch (error) {
+    console.error('getAdminExternalActivities error:', error);
     return [];
   }
 }

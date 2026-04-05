@@ -8,7 +8,11 @@ import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/w
 import { textContent } from '@/lib/text-content';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 
-export default function WalletLoginSection() {
+type WalletLoginSectionProps = {
+  redirectTo?: string;
+};
+
+export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSectionProps) {
   const router = useRouter();
   const { openWalletConnectModal } = useWalletConnectModal();
   const { address, chain, isConnected } = useAccount();
@@ -18,9 +22,9 @@ export default function WalletLoginSection() {
 
   useEffect(() => {
     if (isConnected && address) {
-      router.replace('/');
+      router.replace(redirectTo);
     }
-  }, [address, isConnected, router]);
+  }, [address, isConnected, redirectTo, router]);
 
   const handleOpenConnectModal = async () => {
     setError(null);

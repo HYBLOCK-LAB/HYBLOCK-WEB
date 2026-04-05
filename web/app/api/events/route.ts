@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ events, attendanceData, activeEvent, categories });
   } catch (error) {
     console.error('Events GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+    return NextResponse.json({ error: '출석 데이터를 불러오지 못했습니다.' }, { status: 500 });
   }
 }
 
@@ -29,12 +29,12 @@ export async function POST(request: Request) {
     }
 
     if (!eventName) {
-      return NextResponse.json({ error: 'Event name is required' }, { status: 400 });
+      return NextResponse.json({ error: '이벤트 이름을 입력해주세요.' }, { status: 400 });
     }
     await addEvent(eventName, category || '세션');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Events POST error:', error);
-    return NextResponse.json({ error: 'Failed to update event' }, { status: 500 });
+    return NextResponse.json({ error: '이벤트를 업데이트하지 못했습니다.' }, { status: 500 });
   }
 }

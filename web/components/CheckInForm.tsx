@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
-import members from '@/lib/members.json';
 import { decodeEvent } from '@/lib/utils';
 
 const translateEvent = (eventName: string | null) => {
@@ -86,11 +85,6 @@ export default function CheckInForm() {
     }
 
     const trimmedName = name.trim();
-    if (!members.includes(trimmedName)) {
-      setMessage({ type: 'error', text: '등록되지 않은 이름입니다. 관리자에게 문의하세요.' });
-      setLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch('/api/check-in', {

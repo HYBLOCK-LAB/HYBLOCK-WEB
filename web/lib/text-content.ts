@@ -6,7 +6,7 @@ export const textContent = {
     aboutBlueprint: 'The Society Blueprint',
   },
   activities: {
-    intro: '함께 배우고 성장하는 HYBLOCK은 다양한 활동 기록입니다.',
+    intro: '함께 배우고 성장하는 HYBLOCK의 다양한 활동 기록입니다.',
   },
   notices: {
     description: 'HYBLOCK 학술회의 주요 소식과 공지사항을 확인하세요. 운영, 학술, 이벤트 공지를 한 곳에서 관리합니다.',

@@ -1,0 +1,355 @@
+import { getSupabase } from '@/lib/supabase';
+
+type SessionRow = {
+  session_id: string;
+  cohort: number;
+  session_type: 'basic' | 'advanced' | 'external';
+  content: string | null;
+  session_start_time: string;
+  session_end_time: string | null;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  created_at?: string;
+  updated_at?: string;
+};
+
+type AttendanceRow = {
+  wallet_address: string;
+  name: string;
+  status: 'present' | 'late' | 'absent' | null;
+  session_id: string;
+};
+
+const DEFAULT_COHORT = Number(process.env.DEFAULT_SESSION_COHORT ?? '1');
+
+const categoryToSessionType = (category: string): SessionRow['session_type'] => {
+  if (category === '대외활동') return 'external';
+  if (category === '팀세션') return 'advanced';
+  return 'basic';
+};
+
+const sessionTypeToCategory = (sessionType: SessionRow['session_type']): string => {
+  if (sessionType === 'external') return '대외활동';
+  if (sessionType === 'advanced') return '팀세션';
+  return '세션';
+};
+
+const attendanceLabelMap: Record<NonNullable<AttendanceRow['status']>, string> = {
+  present: 'Attendence',
+  late: 'Late',
+  absent: 'Absence',
+};
+
+function requireContent(session: Pick<SessionRow, 'content' | 'session_id'>): string {
+  if (!session.content || session.content.trim() === '') {
+    throw new Error(`Session ${session.session_id} is missing content.`);
+  }
+  return session.content;
+}
+
+async function getSessionByEventName(eventName: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('session')
+    .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
+    .eq('content', eventName)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<SessionRow>();
+
+  if (error) throw error;
+  return data;
+}
+
+async function getSessions() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('session')
+    .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
+    .order('created_at', { ascending: true })
+    .returns<SessionRow[]>();
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
+  const lateBoundary = new Date(new Date(sessionStartTime).getTime() + 10 * 60 * 1000);
+  return attendedAt <= lateBoundary ? 'present' : 'late';
+}
+
+export async function getActiveEvent() {
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('session')
+      .select('session_id, content, updated_at')
+      .eq('status', 'in_progress')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{ session_id: string; content: string | null; updated_at: string | null }>();
+
+    if (error) throw error;
+    if (!data?.content) return null;
+
+    return {
+      name: data.content,
+      activatedAt: data.updated_at,
+    };
+  } catch (error) {
+    console.error('getActiveEvent error:', error);
+    return null;
+  }
+}
+
+export async function setActiveEvent(eventName: string) {
+  const supabase = getSupabase();
+  const session = await getSessionByEventName(eventName);
+  if (!session) {
+    throw new Error(`Event not found: ${eventName}`);
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: deactivateError } = await supabase
+    .from('session')
+    .update({ status: 'scheduled', updated_at: now })
+    .eq('status', 'in_progress')
+    .neq('session_id', session.session_id);
+
+  if (deactivateError) throw deactivateError;
+
+  const { error } = await supabase
+    .from('session')
+    .update({
+      status: 'in_progress',
+      session_start_time: now,
+      updated_at: now,
+    })
+    .eq('session_id', session.session_id);
+
+  if (error) throw error;
+}
+
+export async function deactivateActiveEvent() {
+  const supabase = getSupabase();
+  const { data: activeSession, error: activeSessionError } = await supabase
+    .from('session')
+    .select('session_id, cohort, content')
+    .eq('status', 'in_progress')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ session_id: string; cohort: number; content: string | null }>();
+
+  if (activeSessionError) throw activeSessionError;
+  if (!activeSession) return;
+
+  const now = new Date().toISOString();
+
+  const { error: sessionUpdateError } = await supabase
+    .from('session')
+    .update({
+      status: 'completed',
+      session_end_time: now,
+      updated_at: now,
+    })
+    .eq('session_id', activeSession.session_id);
+
+  if (sessionUpdateError) throw sessionUpdateError;
+
+  const { data: members, error: membersError } = await supabase
+    .from('personal_info')
+    .select('wallet_address, name')
+    .eq('cohort', activeSession.cohort)
+    .eq('is_active', true)
+    .returns<Array<{ wallet_address: string; name: string }>>();
+
+  if (membersError) throw membersError;
+
+  const { data: existingAttendance, error: existingAttendanceError } = await supabase
+    .from('attendance')
+    .select('wallet_address')
+    .eq('session_id', activeSession.session_id)
+    .returns<Array<{ wallet_address: string }>>();
+
+  if (existingAttendanceError) throw existingAttendanceError;
+
+  const existingWallets = new Set((existingAttendance ?? []).map((entry) => entry.wallet_address));
+  const absentRows = (members ?? [])
+    .filter((member) => !existingWallets.has(member.wallet_address))
+    .map((member) => ({
+      session_id: activeSession.session_id,
+      wallet_address: member.wallet_address,
+      name: member.name,
+      student_id: '',
+      attended_at: null,
+      status: 'absent',
+    }));
+
+  if (absentRows.length > 0) {
+    const { error: insertError } = await supabase.from('attendance').insert(absentRows);
+    if (insertError) throw insertError;
+  }
+}
+
+export async function getEvents() {
+  try {
+    const sessions = await getSessions();
+    return sessions
+      .map((session) => session.content?.trim())
+      .filter((content): content is string => Boolean(content));
+  } catch (error: any) {
+    console.error('getEvents error:', error.message);
+    throw new Error(`Failed to fetch events: ${error.message}`);
+  }
+}
+
+export async function getEventCategories() {
+  try {
+    const sessions = await getSessions();
+    return sessions.reduce<Record<string, string>>((acc, session) => {
+      if (session.content) {
+        acc[session.content] = sessionTypeToCategory(session.session_type);
+      }
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('getEventCategories error:', error);
+    return {};
+  }
+}
+
+export async function addEvent(eventName: string, category: string) {
+  try {
+    const supabase = getSupabase();
+    const existing = await getSessionByEventName(eventName);
+    if (existing) {
+      throw new Error(`Event already exists: ${eventName}`);
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('session').insert({
+      cohort: DEFAULT_COHORT,
+      session_type: categoryToSessionType(category),
+      content: eventName,
+      session_start_time: now,
+      status: 'scheduled',
+      updated_at: now,
+    });
+
+    if (error) throw error;
+  } catch (error: any) {
+    console.error('addEvent error:', error.message);
+    throw new Error(`Failed to add event: ${error.message}`);
+  }
+}
+
+export async function checkIn(name: string, event: string) {
+  try {
+    const supabase = getSupabase();
+    const session = await getSessionByEventName(event);
+    if (!session) {
+      throw new Error(`Invalid event: ${event}`);
+    }
+
+    const { data: members, error: memberError } = await supabase
+      .from('personal_info')
+      .select('wallet_address, name')
+      .eq('name', name)
+      .eq('is_active', true)
+      .returns<Array<{ wallet_address: string; name: string }>>();
+
+    if (memberError) throw memberError;
+    if (!members || members.length === 0) {
+      return { success: false };
+    }
+    if (members.length > 1) {
+      throw new Error(`Multiple active members found with name: ${name}`);
+    }
+
+    const member = members[0];
+
+    const { data: existingAttendance, error: attendanceLookupError } = await supabase
+      .from('attendance')
+      .select('attendance_id')
+      .eq('session_id', session.session_id)
+      .eq('wallet_address', member.wallet_address)
+      .maybeSingle<{ attendance_id: string }>();
+
+    if (attendanceLookupError) throw attendanceLookupError;
+    if (existingAttendance) {
+      return { success: true, alreadyCheckedIn: true };
+    }
+
+    const attendedAt = new Date();
+    const status = calculateAttendanceStatus(session.session_start_time, attendedAt);
+
+    const { error: insertError } = await supabase.from('attendance').insert({
+      session_id: session.session_id,
+      wallet_address: member.wallet_address,
+      name: member.name,
+      student_id: '',
+      attended_at: attendedAt.toISOString(),
+      status,
+    });
+
+    if (insertError) throw insertError;
+    return { success: true, alreadyCheckedIn: false };
+  } catch (error: any) {
+    console.error('checkIn error:', error.message);
+    throw error;
+  }
+}
+
+export async function getAttendanceData() {
+  try {
+    const supabase = getSupabase();
+    const sessions = await getSessions();
+    const sessionNameById = new Map<string, string>();
+    const orderedEventNames: string[] = [];
+
+    for (const session of sessions) {
+      const eventName = requireContent(session);
+      sessionNameById.set(session.session_id, eventName);
+      orderedEventNames.push(eventName);
+    }
+
+    const { data: members, error: membersError } = await supabase
+      .from('personal_info')
+      .select('wallet_address, name')
+      .order('name', { ascending: true })
+      .returns<Array<{ wallet_address: string; name: string }>>();
+
+    if (membersError) throw membersError;
+
+    const { data: attendanceRows, error: attendanceError } = await supabase
+      .from('attendance')
+      .select('wallet_address, name, status, session_id')
+      .returns<AttendanceRow[]>();
+
+    if (attendanceError) throw attendanceError;
+
+    const rowsByWallet = new Map<string, Record<string, string>>();
+
+    for (const member of members ?? []) {
+      const row: Record<string, string> = { Name: member.name };
+      for (const eventName of orderedEventNames) {
+        row[eventName] = '';
+      }
+      rowsByWallet.set(member.wallet_address, row);
+    }
+
+    for (const attendance of attendanceRows ?? []) {
+      const eventName = sessionNameById.get(attendance.session_id);
+      if (!eventName) continue;
+
+      const row = rowsByWallet.get(attendance.wallet_address) ?? { Name: attendance.name };
+      row[eventName] = attendance.status ? attendanceLabelMap[attendance.status] ?? '' : '';
+      rowsByWallet.set(attendance.wallet_address, row);
+    }
+
+    return Array.from(rowsByWallet.values());
+  } catch (error) {
+    console.error('getAttendanceData error:', error);
+    return [];
+  }
+}

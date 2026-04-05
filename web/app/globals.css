@@ -1,13 +1,33 @@
+@import "tailwindcss";
+
 :root {
-  --primary-color: #0e4a84;
-  --primary-dark: #0a3661;
-  --accent-color: #60a5fa;
-  --text-primary: #ffffff;
-  --text-secondary: #cbd5e1;
-  --bg-gradient: linear-gradient(135deg, #0e4a84 0%, #061e35 100%);
-  --card-bg: #0e4a84; /* EXACT match for logo background */
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --monolith-primary: #003361;
+  --monolith-primary-container: #0e4a84;
+  --monolith-on-primary: #ffffff;
+  --monolith-surface: #f9f9fe;
+  --monolith-surface-low: #f3f3f9;
+  --monolith-surface-container: #ededf3;
+  --monolith-surface-high: #e7e8ed;
+  --monolith-surface-lowest: #ffffff;
+  --monolith-on-surface: #191c20;
+  --monolith-on-surface-muted: #53637c;
+  --monolith-outline-variant: #c2c6d1;
+  --monolith-secondary-container: #d0e1fe;
+  --monolith-on-secondary-container: #53637c;
+  --monolith-primary-fixed: #d4e3ff;
+  --monolith-error: #ba1a1a;
+  --monolith-error-container: #ffdad6;
+
+  --primary-color: var(--monolith-primary-container);
+  --primary-dark: var(--monolith-primary);
+  --accent-color: var(--monolith-primary-fixed);
+  --text-primary: var(--monolith-on-primary);
+  --text-secondary: var(--monolith-on-surface-muted);
+  --bg-gradient: linear-gradient(135deg, var(--monolith-primary) 0%, var(--monolith-primary-container) 100%);
+  --card-bg: color-mix(in srgb, var(--monolith-primary-container) 90%, white 10%);
+  --glass-border: rgb(194 198 209 / 0.15);
+  --shadow: 0 0 40px rgb(25 28 32 / 0.06);
+  --ghost-border: rgb(194 198 209 / 0.15);
 }
 
 * {
@@ -18,14 +38,16 @@
 
 html {
   height: 100%;
-  background-color: #0e4a84;
-  background: var(--bg-gradient);
+  background-color: var(--monolith-surface);
+  background:
+    radial-gradient(circle at top left, rgb(212 227 255 / 0.6), transparent 30%),
+    linear-gradient(180deg, var(--monolith-surface) 0%, var(--monolith-surface-low) 100%);
   background-attachment: fixed;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: var(--text-primary);
+  font-family: var(--font-manrope), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--monolith-on-surface);
   min-height: 100dvh;
   display: flex;
   align-items: center;
@@ -48,38 +70,39 @@ body {
 h1 {
   font-size: 2rem;
   font-weight: 800;
-  color: white;
+  color: var(--monolith-on-primary);
   margin-bottom: 2rem;
   text-align: center;
   letter-spacing: -0.025em;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-shadow: 0 2px 4px rgb(0 0 0 / 0.12);
+  font-family: var(--font-space-grotesk), sans-serif;
 }
 
 h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: white;
+  color: var(--monolith-on-primary);
   margin-bottom: 1.25rem;
+  font-family: var(--font-space-grotesk), sans-serif;
 }
 
 .card {
-  background: var(--card-bg);
-  /* Apply opacity to the ENTIRE card so logo and box background change together */
-  opacity: 0.92;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.05)),
+    var(--bg-gradient);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid var(--glass-border);
+  border: 1px solid transparent;
   padding: 3.5rem 2.5rem;
-  border-radius: 32px;
+  border-radius: 0.5rem;
   box-shadow: var(--shadow);
-  color: white;
+  color: var(--monolith-on-primary);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
-  opacity: 1;
   transform: translateY(-4px);
-  box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 30px 50px rgb(25 28 32 / 0.1);
 }
 
 .logo-container {
@@ -90,7 +113,6 @@ h3 {
 .logo {
   max-width: 180px;
   height: auto;
-  /* No individual opacity - it must match the card background exactly */
   display: block;
   margin: 0 auto;
 }
@@ -98,120 +120,148 @@ h3 {
 label {
   display: block;
   margin-bottom: 8px;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--monolith-primary-fixed);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-space-grotesk), sans-serif;
 }
 
 input, select {
   padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
+  background: var(--monolith-surface-high);
+  border: none;
+  border-bottom: 2px solid var(--monolith-primary);
+  border-radius: 0.375rem 0.375rem 0 0;
   width: 100%;
   font-size: 1rem;
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
-  color: white;
+  color: var(--monolith-on-surface);
+  font-family: var(--font-manrope), sans-serif;
 }
 
 input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgb(83 99 124 / 0.7);
 }
 
 input:focus, select:focus {
   outline: none;
-  border-color: var(--accent-color);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+  background: var(--monolith-surface-lowest);
+  box-shadow: inset 0 -2px 0 0 var(--monolith-primary-container);
 }
 
 button {
   cursor: pointer;
   padding: 16px 24px;
   border: none;
-  border-radius: 16px;
-  background: white;
-  color: var(--primary-color);
+  border-radius: 0.375rem;
+  background: var(--monolith-primary-container);
+  color: var(--monolith-on-primary);
   font-size: 1.1rem;
   font-weight: 800;
   width: 100%;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 2px 0 rgb(212 227 255 / 0.42),
+    0 12px 28px rgb(25 28 32 / 0.1);
+  font-family: var(--font-space-grotesk), sans-serif;
 }
 
 button:hover {
-  background: #f8fafc;
-  transform: scale(1.02);
+  background: #0c4378;
+  transform: translateY(-1px);
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 button:disabled {
-  background: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.4);
+  background: rgb(14 74 132 / 0.45);
+  color: rgb(255 255 255 / 0.7);
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .success {
-  background: rgba(16, 185, 129, 0.2);
-  color: #a7f3d0;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: color-mix(in srgb, var(--monolith-primary-fixed) 35%, white 65%);
+  color: var(--monolith-primary);
+  border: 1px solid transparent;
   padding: 1.25rem;
-  border-radius: 16px;
+  border-radius: 0.5rem;
   margin-bottom: 2rem;
   font-weight: 600;
   text-align: center;
 }
 
 .error {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fecaca;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--monolith-error-container);
+  color: var(--monolith-error);
+  border: 1px solid transparent;
   padding: 1.25rem;
-  border-radius: 16px;
+  border-radius: 0.5rem;
   margin-bottom: 2rem;
   font-weight: 600;
   text-align: center;
 }
 
-/* Table styling for Admin - Unified Glass Mode */
 .card table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0;
+  border-spacing: 0 10px;
   margin-top: 1.5rem;
 }
 
 .card th {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(255 255 255 / 0.06);
   padding: 16px;
   font-weight: 700;
   text-align: left;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-  color: white;
+  border-bottom: none;
+  color: var(--monolith-on-primary);
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .card td {
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
+  border-bottom: none;
+  color: rgb(255 255 255 / 0.84);
 }
 
 .card tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(212 227 255 / 0.08);
   color: white;
 }
 
 .event-label {
   display: inline-block;
   padding: 4px 12px;
-  background: rgba(96, 165, 250, 0.15);
-  color: var(--accent-color);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  background: var(--monolith-secondary-container);
+  color: var(--monolith-on-secondary-container);
+  border-radius: 9999px;
+  font-size: 0.75rem;
   font-weight: 700;
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: 0.04em;
+}
+
+@layer utilities {
+  .bg-monolith-gradient {
+    background-image: linear-gradient(135deg, var(--monolith-primary) 0%, var(--monolith-primary-container) 100%);
+  }
+
+  .glass-monolith {
+    background-color: rgb(249 249 254 / 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ghost-border {
+    border: 1px solid var(--ghost-border);
+  }
 }

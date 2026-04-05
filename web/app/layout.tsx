@@ -1,5 +1,18 @@
 import type { Metadata, Viewport } from 'next'
+import { Manrope, Space_Grotesk } from 'next/font/google'
 import './globals.css'
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Participation Status Check',
@@ -25,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body className={`${spaceGrotesk.variable} ${manrope.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>

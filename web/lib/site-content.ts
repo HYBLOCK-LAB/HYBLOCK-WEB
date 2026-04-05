@@ -3,6 +3,19 @@ export type NavItem = {
   label: string;
 };
 
+export type WalletLinkPageContent = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  cardTitle: string;
+  cardDescription: string;
+  steps: string[];
+  highlights: Array<{
+    title: string;
+    description: string;
+  }>;
+};
+
 export const brandMenuItems: NavItem[] = [
   { href: '/about', label: '소개' },
   { href: '/bylaws', label: '회칙' },
@@ -97,6 +110,33 @@ export const aboutVision =
 export const aboutHeroImage = {
   src: '',
   alt: 'HYBLOCK 활동 사진',
+};
+
+export const walletLinkPageContent: WalletLinkPageContent = {
+  eyebrow: 'Wallet',
+  title: '지갑 연동',
+  description: '계정에 지갑을 연결합니다.',
+  cardTitle: '지갑 연결',
+  cardDescription: '원하는 지갑을 연결하고 계정에 저장하세요.',
+  steps: [
+    '로그인',
+    '지갑 연결',
+    '서명 확인',
+  ],
+  highlights: [
+    {
+      title: '선택 사항',
+      description: '회원가입 중 건너뛰고 나중에 연결할 수 있습니다.',
+    },
+    {
+      title: '재연동 가능',
+      description: '로그인 후 다시 연결하거나 변경할 수 있습니다.',
+    },
+    {
+      title: '커스텀 가능',
+      description: '문구와 레이아웃은 분리된 컴포넌트로 관리됩니다.',
+    },
+  ],
 };
 
 export const aboutValues = [

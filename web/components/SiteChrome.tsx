@@ -3,9 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, LogOut, Wallet } from 'lucide-react';
 import { Bell, CheckCircle2, Compass, Home } from 'lucide-react';
+import { useDisconnect } from 'wagmi';
+import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
+import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 import { brandMenuItems, navItems } from '@/lib/site-content';
+import { textContent } from '@/lib/text-content';
 
 type SiteChromeProps = {
   activePath: string;
@@ -24,6 +28,20 @@ function isBrandMenuActive(activePath: string) {
 export default function SiteChrome({ activePath, children }: SiteChromeProps) {
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
   const [headerHoverActive, setHeaderHoverActive] = useState(false);
+  const { openWalletAccountModal, openWalletConnectModal } = useWalletConnectModal();
+  const { disconnect } = useDisconnect();
+  const address = useWalletSessionStore((state) => state.address);
+  const chainName = useWalletSessionStore((state) => state.chainName);
+  const isConnected = useWalletSessionStore((state) => state.isConnected);
+
+  const handleHeaderWalletClick = async () => {
+    if (isConnected && address) {
+      await openWalletAccountModal();
+      return;
+    }
+
+    await openWalletConnectModal();
+  };
 
   return (
     <div className="min-h-screen bg-transparent text-monolith-onSurface">
@@ -56,9 +74,9 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 <Image
                   src="/logo_name.png"
                   alt="HYBLOCK"
-                  width={148}
-                  height={58}
-                  className="h-9 w-auto object-contain"
+                  width={170}
+                  height={66}
+                  className="h-12 w-auto object-contain"
                   priority
                 />
               </Link>
@@ -105,12 +123,38 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 ))}
               </nav>
             </div>
-            <Link
-              href="/dashboard"
-              className="rounded-md border border-monolith-primaryContainer/40 bg-monolith-primary text-sm font-semibold text-white transition-colors hover:bg-monolith-primaryContainer px-5 py-2"
-            >
-              로그인
-            </Link>
+            {isConnected && address ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleHeaderWalletClick}
+                  className="interactive-soft flex items-center gap-3 rounded-md border border-monolith-primaryContainer/20 bg-monolith-surfaceLow px-2 py-1 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-monolith-primaryFixed text-monolith-primary">
+                    <Wallet className="h-4 w-4" />
+                  </span>
+                  <span className="flex flex-col items-start leading-tight text-sm">
+                    <span>{shortenAddress(address)}</span>
+                    <span className="text-[10px] font-medium text-monolith-onSurfaceMuted">{chainName ?? 'Wallet'}</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => disconnect()}
+                  className="interactive-soft flex h-11 w-11 items-center justify-center rounded-md border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest text-monolith-onSurfaceMuted transition-colors hover:bg-monolith-surface hover:text-monolith-onSurface"
+                  aria-label="로그아웃"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="interactive-soft rounded-md border border-monolith-primaryContainer/40 bg-monolith-primary px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-monolith-primaryContainer"
+              >
+                로그인
+              </Link>
+            )}
           </div>
 
           <div
@@ -162,7 +206,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 height={28}
                 className="h-7 w-7 object-contain"
               />
-              <p className="text-sm text-monolith-onSurfaceMuted">© 2026 HYBLOCK Academic Club. All rights reserved.</p>
+              <p className="text-sm text-monolith-onSurfaceMuted">{textContent.footer.copyright}</p>
             </div>
           </div>
           <div className="flex gap-6 text-sm text-monolith-onSurfaceMuted">
@@ -231,4 +275,8 @@ function mobileNavClass(active: boolean) {
     'flex flex-col items-center gap-1 text-[10px] font-bold',
     active ? 'text-monolith-primaryContainer' : 'text-monolith-onSurfaceMuted',
   ].join(' ');
+}
+
+function shortenAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

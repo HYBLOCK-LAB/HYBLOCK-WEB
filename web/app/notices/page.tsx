@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pin } from 'lucide-react';
 import SiteChrome from '@/components/SiteChrome';
 import { noticeCategories, notices } from '@/lib/site-content';
+import { textContent } from '@/lib/text-content';
 
 export default function NoticesPage() {
   return (
@@ -12,7 +13,7 @@ export default function NoticesPage() {
           </span>
           <h1 className="text-5xl font-bold tracking-[-0.06em] text-monolith-primary md:text-6xl">공지사항</h1>
           <p className="mt-4 max-w-xl text-lg text-monolith-onSurfaceMuted">
-            HYBLOCK 학술회의 주요 소식과 공지사항을 확인하세요. 운영, 학술, 이벤트 공지를 한 곳에서 관리합니다.
+            {textContent.notices.description}
           </p>
         </header>
 

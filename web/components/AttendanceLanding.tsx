@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { CalendarDays, CheckCircle2, Clock3, Lock, QrCode } from 'lucide-react';
 import { encodeEvent } from '@/lib/utils';
 import CheckInForm from '@/components/CheckInForm';
+import { textContent } from '@/lib/text-content';
 
 type AttendanceLandingProps = {
   events: string[];
-  activeEvent: { name: string; activatedAt: string } | null;
+  activeEvent: { name: string; activatedAt: string | null } | null;
   categories: Record<string, string>;
 };
 
@@ -33,7 +34,7 @@ export default function AttendanceLanding({
             세션 출석 체크
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-onSurfaceMuted md:text-lg">
-            진행 중인 세션을 확인하고 QR 또는 수동 입력으로 출석을 완료할 수 있습니다.
+            {textContent.attendance.description}
           </p>
         </div>
 
@@ -78,7 +79,7 @@ export default function AttendanceLanding({
                         {isActive ? 'Active' : 'Upcoming'}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">Session #{String(index + 1).padStart(2, '0')}</p>
+                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">{textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}</p>
                   </div>
 
                   <div className="col-span-3">
@@ -88,7 +89,7 @@ export default function AttendanceLanding({
                     </div>
                     <p className="ml-6 mt-1 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
                       <Clock3 className="h-3.5 w-3.5" />
-                      {isActive ? '지금 출석 가능' : '오픈 전'}
+                      {isActive ? textContent.attendance.activeStatusHint : textContent.attendance.pendingStatusHint}
                     </p>
                   </div>
 
@@ -119,21 +120,21 @@ export default function AttendanceLanding({
 
           <aside className="space-y-6">
             <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-gradient p-6 text-monolith-onPrimary shadow-monolith">
-              <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryFixed">Live Session</p>
+              <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryFixed">{textContent.attendance.liveSessionLabel}</p>
               <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em]">
-                {activeEvent?.name ?? '진행 중인 세션 없음'}
+                {activeEvent?.name ?? textContent.attendance.liveSessionFallback}
               </h2>
               <p className="mt-4 text-sm leading-6 text-monolith-primaryFixed">
-                현재 활성 세션만 출석 처리할 수 있습니다. 운영진이 세션을 열면 아래 입력 폼이 즉시 활성화됩니다.
+                {textContent.attendance.liveSessionDescription}
               </p>
             </div>
 
             <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
               <div className="mb-5">
                 <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
-                  Manual Check-In
+                  {textContent.attendance.manualCheckInLabel}
                 </p>
-                <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">수동 출석</h2>
+                <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">{textContent.attendance.manualCheckInTitle}</h2>
               </div>
               <CheckInForm />
             </div>

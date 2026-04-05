@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import SiteChrome from '@/components/SiteChrome';
 import { aboutHistory, aboutValues, bylaws } from '@/lib/site-content';
+import { textContent } from '@/lib/text-content';
 
 export default function BylawsPage() {
   return (
@@ -11,7 +12,7 @@ export default function BylawsPage() {
           <div className="relative mx-auto flex min-h-[420px] max-w-7xl items-end px-6 py-16 sm:min-h-[480px] lg:min-h-[520px] lg:px-8 lg:py-20">
             <div>
               <span className="mb-4 block font-display text-sm font-bold uppercase tracking-[0.18em] text-monolith-primaryFixed">
-                Academic Society
+                Academic Club
               </span>
               <h1 className="text-5xl font-black leading-none tracking-[-0.08em] text-white sm:text-6xl md:text-8xl">
                 BYLAWS
@@ -42,7 +43,7 @@ export default function BylawsPage() {
                   />
                 </div>
                 <p className="mt-6 text-lg leading-8 text-monolith-onSurfaceMuted">
-                  HYBLOCK은 학술적 탐구와 실천적 개발을 통해 블록체인 생태계의 미래를 선도하는 공동체입니다.
+                  {textContent.bylaws.intro}
                 </p>
               </div>
             </div>
@@ -52,7 +53,7 @@ export default function BylawsPage() {
                 <h3 className="text-3xl font-bold uppercase tracking-tight text-monolith-primary">Mission</h3>
                 <div className="mt-8 rounded-r-xl border-l-8 border-monolith-primaryContainer bg-monolith-surfaceLow p-12">
                   <p className="text-xl font-light italic leading-snug text-monolith-primary sm:text-2xl">
-                    "블록체인 기술의 대중화와 학술적 깊이를 더하여, 투명하고 공정한 디지털 사회의 초석을 다진다."
+                    {textContent.bylaws.missionQuote}
                   </p>
                 </div>
               </section>
@@ -95,7 +96,7 @@ export default function BylawsPage() {
           <div className="mx-auto max-w-4xl">
             <div className="mb-20 text-center">
               <h2 className="text-5xl font-black uppercase tracking-[-0.08em] text-monolith-primary">Society Bylaws</h2>
-              <p className="mt-4 font-display text-sm uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">Last Updated: January 2024</p>
+              <p className="mt-4 font-display text-sm uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">{textContent.bylaws.updatedAt}</p>
             </div>
             <div className="space-y-12 text-monolith-onSurfaceMuted">
               {bylaws.map((chapter) => (
@@ -113,7 +114,7 @@ export default function BylawsPage() {
             </div>
             <div className="mt-20 rounded-lg border-t-2 border-monolith-primaryContainer bg-monolith-surfaceLow p-12">
               <p className="text-center text-sm text-monolith-onSurfaceMuted">
-                이상의 회칙은 공포한 날로부터 즉시 시행하며, 개정 시 전체 회원의 2/3 이상의 출석과 과반수 찬성을 필요로 합니다.
+                {textContent.bylaws.closingNote}
               </p>
             </div>
           </div>

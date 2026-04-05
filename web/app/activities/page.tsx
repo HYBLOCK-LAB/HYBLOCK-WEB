@@ -1,5 +1,6 @@
 import SiteChrome from '@/components/SiteChrome';
 import { activities, activityFilters } from '@/lib/site-content';
+import { textContent } from '@/lib/text-content';
 
 export default function ActivitiesPage() {
   return (
@@ -13,7 +14,7 @@ export default function ActivitiesPage() {
             Activity Gallery
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-monolith-onSurfaceMuted">
-            블록체인 생태계의 혁신을 선도하는 HYBLOCK의 학술 세션, 프로젝트, 외부 활동 기록입니다.
+            {textContent.activities.intro}
           </p>
         </div>
 

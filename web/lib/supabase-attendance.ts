@@ -12,9 +12,13 @@ type SessionRow = {
   updated_at?: string;
 };
 
-type AttendanceRow = {
-  wallet_address: string;
+type MemberRow = {
+  id: number;
   name: string;
+};
+
+type AttendanceRow = {
+  member_id: number;
   status: 'present' | 'late' | 'absent' | null;
   session_id: string;
 };
@@ -49,7 +53,7 @@ function requireContent(session: Pick<SessionRow, 'content' | 'session_id'>): st
 async function getSessionByEventName(eventName: string) {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from('session')
+    .from('attendance_session')
     .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
     .eq('content', eventName)
     .order('created_at', { ascending: false })
@@ -63,7 +67,7 @@ async function getSessionByEventName(eventName: string) {
 async function getSessions() {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from('session')
+    .from('attendance_session')
     .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
     .order('created_at', { ascending: true })
     .returns<SessionRow[]>();
@@ -81,7 +85,7 @@ export async function getActiveEvent() {
   try {
     const supabase = getSupabase();
     const { data, error } = await supabase
-      .from('session')
+      .from('attendance_session')
       .select('session_id, content, updated_at')
       .eq('status', 'in_progress')
       .order('updated_at', { ascending: false })
@@ -111,7 +115,7 @@ export async function setActiveEvent(eventName: string) {
   const now = new Date().toISOString();
 
   const { error: deactivateError } = await supabase
-    .from('session')
+    .from('attendance_session')
     .update({ status: 'scheduled', updated_at: now })
     .eq('status', 'in_progress')
     .neq('session_id', session.session_id);
@@ -119,7 +123,7 @@ export async function setActiveEvent(eventName: string) {
   if (deactivateError) throw deactivateError;
 
   const { error } = await supabase
-    .from('session')
+    .from('attendance_session')
     .update({
       status: 'in_progress',
       session_start_time: now,
@@ -133,7 +137,7 @@ export async function setActiveEvent(eventName: string) {
 export async function deactivateActiveEvent() {
   const supabase = getSupabase();
   const { data: activeSession, error: activeSessionError } = await supabase
-    .from('session')
+    .from('attendance_session')
     .select('session_id, cohort, content')
     .eq('status', 'in_progress')
     .order('updated_at', { ascending: false })
@@ -146,7 +150,7 @@ export async function deactivateActiveEvent() {
   const now = new Date().toISOString();
 
   const { error: sessionUpdateError } = await supabase
-    .from('session')
+    .from('attendance_session')
     .update({
       status: 'completed',
       session_end_time: now,
@@ -157,36 +161,34 @@ export async function deactivateActiveEvent() {
   if (sessionUpdateError) throw sessionUpdateError;
 
   const { data: members, error: membersError } = await supabase
-    .from('personal_info')
-    .select('wallet_address, name')
+    .from('member')
+    .select('id, name')
     .eq('cohort', activeSession.cohort)
     .eq('is_active', true)
-    .returns<Array<{ wallet_address: string; name: string }>>();
+    .returns<MemberRow[]>();
 
   if (membersError) throw membersError;
 
   const { data: existingAttendance, error: existingAttendanceError } = await supabase
-    .from('attendance')
-    .select('wallet_address')
+    .from('attendance_record')
+    .select('member_id')
     .eq('session_id', activeSession.session_id)
-    .returns<Array<{ wallet_address: string }>>();
+    .returns<Array<{ member_id: number }>>();
 
   if (existingAttendanceError) throw existingAttendanceError;
 
-  const existingWallets = new Set((existingAttendance ?? []).map((entry) => entry.wallet_address));
+  const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
   const absentRows = (members ?? [])
-    .filter((member) => !existingWallets.has(member.wallet_address))
+    .filter((member) => !existingMemberIds.has(member.id))
     .map((member) => ({
       session_id: activeSession.session_id,
-      wallet_address: member.wallet_address,
-      name: member.name,
-      student_id: '',
+      member_id: member.id,
       attended_at: null,
       status: 'absent',
     }));
 
   if (absentRows.length > 0) {
-    const { error: insertError } = await supabase.from('attendance').insert(absentRows);
+    const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
     if (insertError) throw insertError;
   }
 }
@@ -227,7 +229,7 @@ export async function addEvent(eventName: string, category: string) {
     }
 
     const now = new Date().toISOString();
-    const { error } = await supabase.from('session').insert({
+    const { error } = await supabase.from('attendance_session').insert({
       cohort: DEFAULT_COHORT,
       session_type: categoryToSessionType(category),
       content: eventName,
@@ -252,11 +254,11 @@ export async function checkIn(name: string, event: string) {
     }
 
     const { data: members, error: memberError } = await supabase
-      .from('personal_info')
-      .select('wallet_address, name')
+      .from('member')
+      .select('id, name')
       .eq('name', name)
       .eq('is_active', true)
-      .returns<Array<{ wallet_address: string; name: string }>>();
+      .returns<MemberRow[]>();
 
     if (memberError) throw memberError;
     if (!members || members.length === 0) {
@@ -269,10 +271,10 @@ export async function checkIn(name: string, event: string) {
     const member = members[0];
 
     const { data: existingAttendance, error: attendanceLookupError } = await supabase
-      .from('attendance')
+      .from('attendance_record')
       .select('attendance_id')
       .eq('session_id', session.session_id)
-      .eq('wallet_address', member.wallet_address)
+      .eq('member_id', member.id)
       .maybeSingle<{ attendance_id: string }>();
 
     if (attendanceLookupError) throw attendanceLookupError;
@@ -283,11 +285,9 @@ export async function checkIn(name: string, event: string) {
     const attendedAt = new Date();
     const status = calculateAttendanceStatus(session.session_start_time, attendedAt);
 
-    const { error: insertError } = await supabase.from('attendance').insert({
+    const { error: insertError } = await supabase.from('attendance_record').insert({
       session_id: session.session_id,
-      wallet_address: member.wallet_address,
-      name: member.name,
-      student_id: '',
+      member_id: member.id,
       attended_at: attendedAt.toISOString(),
       status,
     });
@@ -314,40 +314,40 @@ export async function getAttendanceData() {
     }
 
     const { data: members, error: membersError } = await supabase
-      .from('personal_info')
-      .select('wallet_address, name')
+      .from('member')
+      .select('id, name')
       .order('name', { ascending: true })
-      .returns<Array<{ wallet_address: string; name: string }>>();
+      .returns<MemberRow[]>();
 
     if (membersError) throw membersError;
 
     const { data: attendanceRows, error: attendanceError } = await supabase
-      .from('attendance')
-      .select('wallet_address, name, status, session_id')
+      .from('attendance_record')
+      .select('member_id, status, session_id')
       .returns<AttendanceRow[]>();
 
     if (attendanceError) throw attendanceError;
 
-    const rowsByWallet = new Map<string, Record<string, string>>();
+    const rowsByMemberId = new Map<number, Record<string, string>>();
 
     for (const member of members ?? []) {
       const row: Record<string, string> = { Name: member.name };
       for (const eventName of orderedEventNames) {
         row[eventName] = '';
       }
-      rowsByWallet.set(member.wallet_address, row);
+      rowsByMemberId.set(member.id, row);
     }
 
     for (const attendance of attendanceRows ?? []) {
       const eventName = sessionNameById.get(attendance.session_id);
       if (!eventName) continue;
 
-      const row = rowsByWallet.get(attendance.wallet_address) ?? { Name: attendance.name };
+      const row = rowsByMemberId.get(attendance.member_id);
+      if (!row) continue;
       row[eventName] = attendance.status ? attendanceLabelMap[attendance.status] ?? '' : '';
-      rowsByWallet.set(attendance.wallet_address, row);
     }
 
-    return Array.from(rowsByWallet.values());
+    return Array.from(rowsByMemberId.values());
   } catch (error) {
     console.error('getAttendanceData error:', error);
     return [];

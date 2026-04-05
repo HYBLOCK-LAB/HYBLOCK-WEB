@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Manrope, Space_Grotesk } from 'next/font/google'
+import AppProviders from '@/providers/AppProviders'
 import './globals.css'
 
 const spaceGrotesk = Space_Grotesk({
@@ -48,7 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${spaceGrotesk.variable} ${manrope.variable}`} suppressHydrationWarning>
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   )

@@ -5,6 +5,7 @@ import SiteChrome from '@/components/SiteChrome';
 import AttendanceLanding from '@/components/AttendanceLanding';
 import { getActiveEvent, getEventCategories, getEvents } from '@/lib/supabase-attendance';
 import { aboutValues, aboutVision, homeNotices, upcomingActivities } from '@/lib/site-content';
+import { textContent } from '@/lib/text-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <div className="relative mx-auto grid min-h-[760px] max-w-7xl items-center gap-12 px-6 py-20 md:grid-cols-12 lg:px-8 lg:py-24">
             <div className="md:col-span-8">
               <span className="inline-block rounded-full bg-monolith-primaryFixed px-4 py-1 font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary">
-                Academic Society
+                Academic Club
               </span>
               <h1 className="mt-8 text-5xl font-black uppercase leading-[0.9] tracking-[-0.08em] sm:text-6xl md:text-8xl">
                 Share Insight,
@@ -48,7 +49,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <br />
                 <span className="text-monolith-primaryFixed">in Web3.</span>
               </h1>
-              <p className="mt-8 max-w-2xl text-lg leading-8 text-monolith-primaryFixed md:text-xl md:leading-9">
+              <p className="mt-8 max-w-[132rem] break-keep text-lg leading-8 text-monolith-primaryFixed md:text-xl md:leading-9">
                 {aboutVision}
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
@@ -61,7 +62,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </div>
             </div>
             <div className="md:col-span-4">
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-6 shadow-2xl backdrop-blur sm:p-8">
+              <div className="rounded-[28px] border border-white/10 bg-white/8 p-6 sm:p-8">
                 <Image
                   src="/logo_name.png"
                   alt="HYBLOCK"
@@ -82,7 +83,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 About Us
               </h2>
               <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.2em] text-monolith-onSurfaceMuted">
-                The Society Blueprint
+                {textContent.home.aboutBlueprint}
               </p>
             </div>
             <div className="md:col-span-8">

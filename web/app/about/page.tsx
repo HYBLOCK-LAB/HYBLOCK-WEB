@@ -1,45 +1,30 @@
 import Image from 'next/image';
 import SiteChrome from '@/components/SiteChrome';
-import { aboutHeroImage, aboutHistory, aboutValues, aboutVision } from '@/lib/site-content';
+import { aboutHistory, aboutValues, aboutVision } from '@/lib/site-content';
 
 export default function AboutPage() {
   return (
     <SiteChrome activePath="/about">
       <main className="min-h-screen">
         <section className="relative overflow-hidden bg-monolith-primary">
-          {aboutHeroImage.src ? (
-            <div className="absolute inset-0">
-              <Image
-                src={aboutHeroImage.src}
-                alt={aboutHeroImage.alt}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          ) : (
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(7,34,78,0.18),rgba(7,34,78,0.04))]">
-              <div className="mx-auto flex h-full max-w-7xl items-center justify-end px-6 lg:px-8">
-                <div className="rounded-[2rem] border border-white/20 bg-white/10 px-8 py-10 text-right backdrop-blur-sm">
-                  <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-white/70">
-                    Photo Slot
-                  </p>
-                  <p className="mt-4 max-w-sm text-lg font-semibold text-white">
-                    `site-content.ts`의 `aboutHeroImage.src`에 사진 경로를 넣으면 이 배경에 표시됩니다.
-                  </p>
-                </div>
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,#0b3276_0%,#08275f_38%,#061d49_68%,#051638_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_28%,rgba(255,255,255,0)_60%)]" />
+          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:120px_120px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(0,0,0,0.12)_55%,rgba(0,0,0,0.28)_100%)]" />
+          <div className="relative mx-auto flex min-h-[420px] max-w-7xl items-center justify-center px-6 py-20 text-center sm:min-h-[500px] lg:min-h-[580px] lg:px-8">
+            <div className="flex max-w-3xl flex-col items-center">
+              <div className="relative h-28 w-24 sm:h-36 sm:w-32 md:h-44 md:w-40">
+                <Image src="/logo.png" alt="HYBLOCK logo" fill className="object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.4)]" priority />
               </div>
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-monolith-primary via-monolith-primary/78 to-monolith-primary/20" />
-          <div className="relative mx-auto flex min-h-[420px] max-w-7xl items-end px-6 py-16 sm:min-h-[480px] lg:min-h-[520px] lg:px-8 lg:py-20">
-            <div>
-              <span className="mb-4 block font-display text-sm font-bold uppercase tracking-[0.18em] text-monolith-primaryFixed">
-                Academic Society
-              </span>
-              <h1 className="text-5xl font-black leading-none tracking-[-0.08em] text-white sm:text-6xl md:text-8xl">
-                ABOUT
-              </h1>
+              <div className="relative mt-5 h-12 w-[210px] sm:h-16 sm:w-[280px] md:h-20 md:w-[360px]">
+                <Image src="/logo_name.png" alt="HYBLOCK" fill className="object-contain drop-shadow-[0_16px_34px_rgba(0,0,0,0.35)]" priority />
+              </div>
+              <p className="mt-6 font-display text-sm font-bold uppercase tracking-[0.28em] text-white/70">
+                Academic Club
+              </p>
+              <p className="mt-4 text-lg font-light italic tracking-[0.01em] text-white/72 sm:text-2xl">
+                "Beyond the Chain, Higher Block"
+              </p>
             </div>
           </div>
         </section>

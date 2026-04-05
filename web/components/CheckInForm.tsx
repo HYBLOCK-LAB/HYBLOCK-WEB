@@ -26,7 +26,7 @@ export default function CheckInForm() {
   const encodedParam = searchParams.get('event');
   const event = encodedParam ? decodeEvent(encodedParam) : null;
   
-  const [activeEvent, setActiveEvent] = useState<{ name: string, activatedAt: string } | null>(null);
+  const [activeEvent, setActiveEvent] = useState<{ name: string, activatedAt: string | null } | null>(null);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,10 +51,11 @@ export default function CheckInForm() {
   }, []);
 
   useEffect(() => {
-    if (!activeEvent?.activatedAt) return;
+    const activatedAtValue = activeEvent?.activatedAt;
+    if (!activatedAtValue) return;
 
     const timer = setInterval(() => {
-      const activatedAt = new Date(activeEvent.activatedAt).getTime();
+      const activatedAt = new Date(activatedAtValue).getTime();
       const now = new Date().getTime();
       const diff = (activatedAt + 15 * 60 * 1000) - now;
 

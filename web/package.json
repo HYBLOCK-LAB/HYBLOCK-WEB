@@ -21,11 +21,17 @@
   "homepage": "https://github.com/HYBLOCK-LAB/ParticipationStatusCheck#readme",
   "description": "",
   "dependencies": {
+    "@base-org/account": "^2.5.3",
+    "@coinbase/wallet-sdk": "^4.3.7",
+    "@metamask/connect-evm": "^0.9.1",
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-wagmi": "^1.8.19",
     "@supabase/supabase-js": "^2.101.1",
     "@tanstack/react-query": "^5.96.2",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@walletconnect/ethereum-provider": "^2.23.9",
     "lucide-react": "^1.6.0",
     "next": "^16.2.1",
     "qrcode.react": "^4.2.0",
@@ -33,7 +39,8 @@
     "react-dom": "^19.2.4",
     "typescript": "^6.0.2",
     "viem": "^2.47.10",
-    "wagmi": "^3.6.0"
+    "wagmi": "^3.6.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",

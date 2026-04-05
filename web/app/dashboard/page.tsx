@@ -256,14 +256,14 @@ export default function DashboardPage() {
                   <button onClick={() => setViewingQR(viewingQR === event ? null : event)} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9rem' }}>
                     {viewingQR === event ? 'QR 닫기' : 'QR 보기'}
                   </button>
-                  <a href={`${baseUrl}/?event=${encodeURIComponent(encodeEvent(event))}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <a href={`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(event))}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                     <button style={{ background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.9rem', width: '100%' }}>링크 테스트</button>
                   </a>
                 </div>
 
                 {viewingQR === event && (
                   <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '16px', textAlign: 'center' }}>
-                    <QRCodeSVG value={`${baseUrl}/?event=${encodeURIComponent(encodeEvent(event))}`} size={180} includeMargin={true} />
+                    <QRCodeSVG value={`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(event))}`} size={180} includeMargin={true} />
                   </div>
                 )}
               </div>

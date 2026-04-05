@@ -15,8 +15,8 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
-  title: 'Participation Status Check',
-  description: 'QR-based attendance system',
+  title: 'HYBLOCK Official',
+  description: 'HYBLOCK 공식 웹사이트입니다.',
   icons: {
     icon: '/logo.png',
   },
@@ -38,6 +38,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+          integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
+        />
+      </head>
       <body className={`${spaceGrotesk.variable} ${manrope.variable}`} suppressHydrationWarning>
         {children}
       </body>

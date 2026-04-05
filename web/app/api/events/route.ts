@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getEvents, getAttendanceData, addEvent, getActiveEvent, setActiveEvent, getEventCategories, deactivateActiveEvent } from '@/lib/google-sheets';
+import { getEvents, getAttendanceData, addEvent, getActiveEvent, setActiveEvent, getEventCategories, deactivateActiveEvent } from '@/lib/supabase-attendance';
 
 export async function GET() {
   try {

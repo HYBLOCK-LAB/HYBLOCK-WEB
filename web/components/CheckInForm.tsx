@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
 import members from '@/lib/members.json';
 import { decodeEvent } from '@/lib/utils';
 
@@ -116,41 +117,63 @@ export default function CheckInForm() {
     }
   };
 
-  if (loadingEvents) return <div style={{ textAlign: 'center', padding: '20px' }}>이벤트 정보 확인 중...</div>;
+  if (loadingEvents) {
+    return <div className="py-6 text-center text-sm text-monolith-onSurfaceMuted">이벤트 정보 확인 중...</div>;
+  }
 
   return (
-    <>
+    <div>
       {!isEventOpen ? (
-        <div className="error">
+        <div className="mb-5 rounded-xl border border-monolith-error/15 bg-monolith-errorContainer px-4 py-3 text-sm font-semibold text-monolith-error">
           현재 세션 또는 이벤트가 존재하지 않습니다.
         </div>
       ) : (
-        <p style={{ marginBottom: '20px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-          <span className="event-label">{translateEvent(event)}</span>
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-monolith-secondaryContainer px-3 py-1 font-display text-xs font-bold tracking-[0.12em] text-monolith-onSecondaryContainer">
+            {translateEvent(event)}
+          </span>
           {timeLeft && (
-            <span style={{ 
-              fontSize: '0.9rem', 
-              color: timeLeft === '00:00' ? '#ef4444' : '#fbbf24',
-              background: 'rgba(0,0,0,0.2)',
-              padding: '4px 10px',
-              borderRadius: '8px',
-              fontFamily: 'monospace'
-            }}>
+            <span
+              className={[
+                'inline-flex items-center gap-1 rounded-lg px-3 py-1 font-mono text-sm',
+                timeLeft === '00:00'
+                  ? 'bg-monolith-errorContainer text-monolith-error'
+                  : 'bg-monolith-primaryFixed text-monolith-primary',
+              ].join(' ')}
+            >
+              <Clock3 className="h-3.5 w-3.5" />
               {timeLeft}
             </span>
           )}
-        </p>
+        </div>
       )}
       
       {message && (
-        <div className={message.type}>
-          {message.text}
+        <div
+          className={[
+            'mb-5 flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-semibold',
+            message.type === 'success'
+              ? 'bg-monolith-primaryFixed text-monolith-primary'
+              : 'bg-monolith-errorContainer text-monolith-error',
+          ].join(' ')}
+        >
+          {message.type === 'success' ? (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          ) : (
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          )}
+          <span>{message.text}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="name" style={{ display: 'block', marginBottom: '5px' }}>이름을 입력하세요</label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="name"
+            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer"
+          >
+            이름을 입력하세요
+          </label>
           <input
             id="name"
             type="text"
@@ -159,12 +182,17 @@ export default function CheckInForm() {
             placeholder="예: 홍길동"
             required
             disabled={loading || !isEventOpen}
+            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition placeholder:text-monolith-onSurfaceMuted focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
           />
         </div>
-        <button type="submit" style={{ width: '100%' }} disabled={loading || !isEventOpen}>
+        <button
+          type="submit"
+          disabled={loading || !isEventOpen}
+          className="w-full rounded-lg bg-monolith-primaryContainer px-5 py-3 font-display text-base font-bold text-monolith-onPrimary transition hover:bg-monolith-primary disabled:cursor-not-allowed disabled:bg-monolith-primaryContainer/45"
+        >
           {loading ? '처리 중...' : '출석하기'}
         </button>
       </form>
-    </>
+    </div>
   );
 }

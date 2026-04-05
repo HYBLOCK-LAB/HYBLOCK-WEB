@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { checkIn } from '@/lib/google-sheets';
+import { checkIn } from '@/lib/supabase-attendance';
 
 export async function POST(request: Request) {
   try {

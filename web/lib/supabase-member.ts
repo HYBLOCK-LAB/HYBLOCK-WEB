@@ -9,7 +9,19 @@ export type MemberProfile = {
   cohort: number;
   role: string;
   is_active: boolean;
+  is_admin: boolean;
 };
+
+type MemberRow = Omit<MemberProfile, 'is_admin'>;
+
+const MEMBER_SELECT_COLUMNS = 'id, wallet_address, name, major, affiliation, cohort, role, is_active';
+
+function toMemberProfile(member: MemberRow): MemberProfile {
+  return {
+    ...member,
+    is_admin: false,
+  };
+}
 
 function normalizeWalletAddress(walletAddress: string) {
   return walletAddress.trim().toLowerCase();
@@ -20,11 +32,11 @@ export async function getMemberByWallet(walletAddress: string): Promise<MemberPr
   const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
   const { data, error } = await supabase
     .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort, role, is_active')
+    .select(MEMBER_SELECT_COLUMNS)
     .ilike('wallet_address', normalizedWalletAddress)
     .order('is_active', { ascending: false })
     .order('id', { ascending: true })
-    .returns<MemberProfile[]>();
+    .returns<MemberRow[]>();
 
   if (error) throw error;
 
@@ -35,18 +47,19 @@ export async function getMemberByWallet(walletAddress: string): Promise<MemberPr
   const exactMatch =
     data.find((member) => member.wallet_address && normalizeWalletAddress(member.wallet_address) === normalizedWalletAddress) ?? null;
 
-  return exactMatch ?? data[0] ?? null;
+  const matchedMember = exactMatch ?? data[0] ?? null;
+  return matchedMember ? toMemberProfile(matchedMember) : null;
 }
 
 export async function getMemberByName(name: string): Promise<MemberProfile | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort, role, is_active')
+    .select(MEMBER_SELECT_COLUMNS)
     .eq('name', name)
     .eq('is_active', true)
     .limit(2)
-    .returns<MemberProfile[]>();
+    .returns<MemberRow[]>();
 
   if (error) throw error;
   if (!data || data.length === 0) return null;
@@ -54,7 +67,7 @@ export async function getMemberByName(name: string): Promise<MemberProfile | nul
     throw new Error(`Multiple active members found with name: ${name}`);
   }
 
-  return data[0];
+  return toMemberProfile(data[0]);
 }
 
 export async function createMember(params: {
@@ -83,9 +96,9 @@ export async function createMember(params: {
       period_start: new Date().toISOString(),
       is_active: true,
     })
-    .select('id, wallet_address, name, major, affiliation, cohort, role, is_active')
-    .single<MemberProfile>();
+    .select(MEMBER_SELECT_COLUMNS)
+    .single<MemberRow>();
 
   if (error) throw error;
-  return data;
+  return toMemberProfile(data);
 }

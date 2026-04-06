@@ -35,6 +35,9 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
   const isConnected = useWalletSessionStore((state) => state.isConnected);
   const isAdmin = activePath.startsWith('/admin');
   const headerNavItems = isAdmin ? adminNavItems : navItems;
+  const visibleHeaderNavItems = isAdmin
+    ? [...headerNavItems, { href: '/admin/certificates', label: '증명 관리' }]
+    : headerNavItems;
 
   const handleHeaderWalletClick = async () => {
     if (isConnected && address) {
@@ -109,7 +112,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     </Link>
                   </div>
                 ) : null}
-                {headerNavItems.map((item) => (
+                {visibleHeaderNavItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -261,6 +264,10 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               <Link href="/admin/attendance" className={mobileNavClass(activePath.startsWith('/admin/attendance'))}>
                 <CheckCircle2 className="h-5 w-5" />
                 <span>출석</span>
+              </Link>
+              <Link href="/admin/certificates" className={mobileNavClass(activePath.startsWith('/admin/certificates'))}>
+                <span className="text-sm font-bold">증</span>
+                <span>증명</span>
               </Link>
             </>
           ) : (

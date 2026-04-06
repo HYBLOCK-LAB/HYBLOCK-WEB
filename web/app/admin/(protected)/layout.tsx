@@ -1,18 +1,16 @@
-'use client';
-
 import SiteChrome from '@/components/SiteChrome';
-import AdminAuthGuard from '@/components/admin/AdminAuthGuard';
+import { requireAdminPageAccess } from '@/lib/admin-auth';
 
 type ProtectedAdminLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function ProtectedAdminLayout({ children }: ProtectedAdminLayoutProps) {
+export default async function ProtectedAdminLayout({ children }: ProtectedAdminLayoutProps) {
+  await requireAdminPageAccess('/admin');
+
   return (
     <SiteChrome activePath="/admin">
-      <main>
-        <AdminAuthGuard>{children}</AdminAuthGuard>
-      </main>
+      <main>{children}</main>
     </SiteChrome>
   );
 }

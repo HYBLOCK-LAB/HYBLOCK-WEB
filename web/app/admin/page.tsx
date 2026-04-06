@@ -1,6 +1,7 @@
 import SiteChrome from '@/components/SiteChrome';
 import Link from 'next/link';
 import { ArrowRight, CalendarDays, FileCheck, FolderKanban, Users } from 'lucide-react';
+import { requireAdminPageAccess } from '@/lib/admin-auth';
 
 const adminQuickLinks = [
   {
@@ -29,7 +30,9 @@ const adminQuickLinks = [
   },
 ];
 
-export default function AdminEntryPage() {
+export default async function AdminEntryPage() {
+  await requireAdminPageAccess('/admin');
+
   return (
     <SiteChrome activePath="/admin">
       <main>

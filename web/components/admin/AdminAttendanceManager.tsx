@@ -18,6 +18,7 @@ type EventPayload = {
   events: string[];
   attendanceData: AttendanceRow[];
   activeEvent: { name: string; activatedAt: string; checkInCode?: string | null } | null;
+  activeEvents: Array<{ name: string; activatedAt: string; checkInCode?: string | null }>;
   categories: Record<string, string>;
   contents: Record<string, string | null>;
   statuses: Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>;
@@ -125,17 +126,17 @@ export default function AdminAttendanceManager() {
     }
   };
 
-  const handleDeactivate = async () => {
+  const handleDeactivate = async (eventName: string) => {
     if (!window.confirm('세션을 마감하시겠습니까? 남은 인원은 자동으로 결석 처리됩니다.')) {
       return;
     }
 
-    setProcessingEvent('deactivating');
+    setProcessingEvent(`deactivate:${eventName}`);
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deactivate: true }),
+        body: JSON.stringify({ eventName, deactivate: true }),
       });
 
       if (!response.ok) {
@@ -256,11 +257,24 @@ export default function AdminAttendanceManager() {
       <AdminAttendanceScanner />
 
       <div className="rounded-2xl bg-monolith-surfaceLow p-6">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 세션</p>
-        <p className="mt-3 text-2xl font-black tracking-tight text-monolith-onSurface">{data?.activeEvent?.name ?? '없음'}</p>
-        <p className="mt-2 text-sm font-semibold text-monolith-onSurfaceMuted">
-          현재 출석 코드: <span className="font-mono text-monolith-primaryContainer">{data?.activeEvent?.checkInCode ?? '-'}</span>
-        </p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 활성 세션</p>
+        {data?.activeEvents?.length ? (
+          <div className="mt-3 space-y-2">
+            {data.activeEvents.map((activeEvent) => (
+              <div
+                key={activeEvent.name}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-monolith-surfaceLowest px-4 py-3"
+              >
+                <p className="text-lg font-black tracking-tight text-monolith-onSurface">{activeEvent.name}</p>
+                <p className="text-sm font-semibold text-monolith-onSurfaceMuted">
+                  출석 코드: <span className="font-mono text-monolith-primaryContainer">{activeEvent.checkInCode ?? '-'}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-2xl font-black tracking-tight text-monolith-onSurface">없음</p>
+        )}
         <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">활동 생성은 활동 관리 화면에서 처리하고, 이 화면에서는 기존 세션의 활성화, 마감, QR 생성만 수행합니다.</p>
       </div>
 
@@ -292,9 +306,10 @@ export default function AdminAttendanceManager() {
       <div className="grid gap-4 md:grid-cols-2">
         {filteredEvents.map((event) => {
           const stats = getStats(event);
-          const isActive = event === data?.activeEvent?.name;
+          const isActive = Boolean(data?.activeEvents?.some((activeEvent) => activeEvent.name === event));
           const isProcessing = event === processingEvent;
           const isStatusProcessing = processingEvent === `status:${event}`;
+          const isDeactivateProcessing = processingEvent === `deactivate:${event}`;
           const eventLink = `${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(event))}`;
           const statusMeta = getStatusMeta(data?.statuses[event]);
 
@@ -348,18 +363,18 @@ export default function AdminAttendanceManager() {
                 {isActive ? (
                   <button
                     type="button"
-                    onClick={handleDeactivate}
-                    disabled={processingEvent === 'deactivating'}
+                    onClick={() => void handleDeactivate(event)}
+                    disabled={isDeactivateProcessing}
                     className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl bg-[#c62828] px-4 py-3 text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:opacity-60"
                   >
                     <CheckCircle2 className="h-4 w-4" />
-                    {processingEvent === 'deactivating' ? '마감 중...' : '세션 마감'}
+                    {isDeactivateProcessing ? '마감 중...' : '세션 마감'}
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => handleSetActive(event)}
-                    disabled={Boolean(data?.activeEvent) || isProcessing}
+                    disabled={isProcessing}
                     className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.22)] transition-all hover:brightness-105 disabled:opacity-60"
                   >
                     {isProcessing ? '처리 중...' : '세션 활성화'}

@@ -219,7 +219,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 alt="HYBLOCK logo"
                 width={28}
                 height={28}
-                className="h-7 w-7 object-contain"
+                className="h-10 w-10 object-contain"
               />
               <p className="text-sm text-monolith-onSurfaceMuted">{textContent.footer.copyright}</p>
             </div>
@@ -231,7 +231,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-instagram text-base" aria-hidden="true" />
+              <i className="fa-brands fa-instagram text-lg" aria-hidden="true" />
             </a>
             <a
               href="https://www.linkedin.com/company/hyblock/"
@@ -239,7 +239,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-linkedin text-base" aria-hidden="true" />
+              <i className="fa-brands fa-linkedin text-lg" aria-hidden="true" />
             </a>
             <a
               href="https://x.com/hyblock_kr"
@@ -247,7 +247,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-x-twitter text-base" aria-hidden="true" />
+              <i className="fa-brands fa-x-twitter text-lg" aria-hidden="true" />
             </a>
           </div>
         </div>

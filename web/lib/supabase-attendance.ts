@@ -3,7 +3,8 @@ import { getSupabase } from '@/lib/supabase';
 type SessionRow = {
   session_id: string;
   cohort: number;
-  session_type: 'basic' | 'advanced' | 'external';
+  session_type: 'basic' | 'advanced' | 'misc' | 'external' | 'hackathon';
+  title: string;
   content: string | null;
   session_start_time: string;
   session_end_time: string | null;
@@ -28,15 +29,19 @@ type AttendanceRow = {
 const DEFAULT_COHORT = Number(process.env.DEFAULT_SESSION_COHORT ?? '1');
 
 const categoryToSessionType = (category: string): SessionRow['session_type'] => {
-  if (category === '대외활동') return 'external';
-  if (category === '팀세션') return 'advanced';
+  if (category === '심화 세션') return 'advanced';
+  if (category === '기타 활동') return 'misc';
+  if (category === '외부 활동') return 'external';
+  if (category === '해커톤') return 'hackathon';
   return 'basic';
 };
 
 const sessionTypeToCategory = (sessionType: SessionRow['session_type']): string => {
-  if (sessionType === 'external') return '대외활동';
-  if (sessionType === 'advanced') return '팀세션';
-  return '세션';
+  if (sessionType === 'advanced') return '심화 세션';
+  if (sessionType === 'misc') return '기타 활동';
+  if (sessionType === 'external') return '외부 활동';
+  if (sessionType === 'hackathon') return '해커톤';
+  return '기본 세션';
 };
 
 const attendanceLabelMap: Record<NonNullable<AttendanceRow['status']>, string> = {
@@ -45,19 +50,19 @@ const attendanceLabelMap: Record<NonNullable<AttendanceRow['status']>, string> =
   absent: 'Absence',
 };
 
-function requireContent(session: Pick<SessionRow, 'content' | 'session_id'>): string {
-  if (!session.content || session.content.trim() === '') {
-    throw new Error(`Session ${session.session_id} is missing content.`);
+function requireTitle(session: Pick<SessionRow, 'title' | 'session_id'>): string {
+  if (!session.title || session.title.trim() === '') {
+    throw new Error(`Session ${session.session_id} is missing title.`);
   }
-  return session.content;
+  return session.title;
 }
 
 async function getSessionByEventName(eventName: string) {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('attendance_session')
-    .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
-    .eq('content', eventName)
+    .select('session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at')
+    .eq('title', eventName)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle<SessionRow>();
@@ -70,7 +75,7 @@ async function getSessions() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('attendance_session')
-    .select('session_id, cohort, session_type, content, session_start_time, session_end_time, status, created_at, updated_at')
+    .select('session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at')
     .order('created_at', { ascending: true })
     .returns<SessionRow[]>();
 
@@ -88,17 +93,17 @@ export async function getActiveEvent() {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('attendance_session')
-      .select('session_id, content, updated_at')
+      .select('session_id, title, updated_at')
       .eq('status', 'in_progress')
       .order('updated_at', { ascending: false })
       .limit(1)
-      .maybeSingle<{ session_id: string; content: string | null; updated_at: string | null }>();
+      .maybeSingle<{ session_id: string; title: string; updated_at: string | null }>();
 
     if (error) throw error;
-    if (!data?.content) return null;
+    if (!data?.title) return null;
 
     return {
-      name: data.content,
+      name: data.title,
       activatedAt: data.updated_at,
     };
   } catch (error) {
@@ -140,11 +145,11 @@ export async function deactivateActiveEvent() {
   const supabase = getSupabase();
   const { data: activeSession, error: activeSessionError } = await supabase
     .from('attendance_session')
-    .select('session_id, cohort, content')
+    .select('session_id, cohort, title')
     .eq('status', 'in_progress')
     .order('updated_at', { ascending: false })
     .limit(1)
-    .maybeSingle<{ session_id: string; cohort: number; content: string | null }>();
+    .maybeSingle<{ session_id: string; cohort: number; title: string }>();
 
   if (activeSessionError) throw activeSessionError;
   if (!activeSession) return;
@@ -199,8 +204,8 @@ export async function getEvents() {
   try {
     const sessions = await getSessions();
     return sessions
-      .map((session) => session.content?.trim())
-      .filter((content): content is string => Boolean(content));
+      .map((session) => session.title?.trim())
+      .filter((title): title is string => Boolean(title));
   } catch (error: any) {
     console.error('getEvents error:', error.message);
     throw new Error(`Failed to fetch events: ${error.message}`);
@@ -211,8 +216,8 @@ export async function getEventCategories() {
   try {
     const sessions = await getSessions();
     return sessions.reduce<Record<string, string>>((acc, session) => {
-      if (session.content) {
-        acc[session.content] = sessionTypeToCategory(session.session_type);
+      if (session.title) {
+        acc[session.title] = sessionTypeToCategory(session.session_type);
       }
       return acc;
     }, {});
@@ -234,7 +239,8 @@ export async function addEvent(eventName: string, category: string) {
     const { error } = await supabase.from('attendance_session').insert({
       cohort: DEFAULT_COHORT,
       session_type: categoryToSessionType(category),
-      content: eventName,
+      title: eventName,
+      content: null,
       session_start_time: now,
       status: 'scheduled',
       updated_at: now,
@@ -310,7 +316,7 @@ export async function getAttendanceData() {
     const orderedEventNames: string[] = [];
 
     for (const session of sessions) {
-      const eventName = requireContent(session);
+      const eventName = requireTitle(session);
       sessionNameById.set(session.session_id, eventName);
       orderedEventNames.push(eventName);
     }
@@ -384,16 +390,16 @@ export async function getAdminExternalActivities() {
   try {
     const supabase = getSupabase();
     const sessions = await getSessions();
-    const sessionNameById = new Map(sessions.map((session) => [session.session_id, session.content?.trim() ?? null]));
+    const sessionNameById = new Map(sessions.map((session) => [session.session_id, session.title?.trim() ?? null]));
 
     const { data, error } = await supabase
       .from('external_activity')
-      .select('activity_id, wallet_address, session_id, evidence_url, created_at')
+      .select('activity_id, member_id, session_id, evidence_url, created_at')
       .order('created_at', { ascending: false })
       .returns<
         Array<{
           activity_id: string;
-          wallet_address: string;
+          member_id: number;
           session_id: string;
           evidence_url: string;
           created_at: string;
@@ -402,9 +408,20 @@ export async function getAdminExternalActivities() {
 
     if (error) throw error;
 
+    const memberIds = Array.from(new Set((data ?? []).map((activity) => activity.member_id)));
+    const { data: members, error: memberError } = await supabase
+      .from('member')
+      .select('id, wallet_address')
+      .in('id', memberIds)
+      .returns<Array<{ id: number; wallet_address: string | null }>>();
+
+    if (memberError) throw memberError;
+
+    const walletByMemberId = new Map((members ?? []).map((member) => [member.id, member.wallet_address]));
+
     return (data ?? []).map((activity) => ({
       activityId: activity.activity_id,
-      walletAddress: activity.wallet_address,
+      walletAddress: walletByMemberId.get(activity.member_id) ?? null,
       sessionName: sessionNameById.get(activity.session_id) ?? null,
       evidenceUrl: activity.evidence_url,
       createdAt: activity.created_at,

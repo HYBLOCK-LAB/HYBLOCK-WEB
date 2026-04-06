@@ -7,12 +7,10 @@ import { AlertCircle, Award, BadgeCheck, ChevronRight, ExternalLink, LoaderCircl
 import {
   CERTIFICATE_TYPE_LABELS,
   EAS_ABI,
-  EAS_SCHEMA_UIDS,
+  EAS_SCHEMA_UID,
   ZERO_BYTES32,
   computePersonalDataHash,
-  encodeAssignmentData,
-  encodeAttendanceData,
-  encodeExternalActivityData,
+  encodeAttestationData,
   getEasContractAddress,
   isEasSchemaConfigured,
   type CertificateType,
@@ -167,7 +165,7 @@ export default function CertificateManager() {
       return;
     }
 
-    if (!isEasSchemaConfigured(selectedType)) {
+    if (!isEasSchemaConfigured()) {
       setAttestError('EAS Schema UID가 설정되지 않았습니다. 환경변수를 확인해주세요.');
       setAttestState('error');
       return;
@@ -181,7 +179,8 @@ export default function CertificateManager() {
         selectedCandidate.wallet_address as `0x${string}`,
         selectedCandidate.cohort,
       );
-      const encodedData = buildEncodedData(selectedCandidate, selectedType, personalDataHash);
+      const revealedData = JSON.stringify(buildRevealedData(selectedCandidate, selectedType));
+      const encodedData = buildEncodedData(selectedCandidate, selectedType, personalDataHash, revealedData);
 
       const txHash = await writeContractAsync({
         address: contractAddress,
@@ -189,7 +188,7 @@ export default function CertificateManager() {
         functionName: 'attest',
         args: [
           {
-            schema: EAS_SCHEMA_UIDS[selectedType],
+            schema: EAS_SCHEMA_UID,
             data: {
               recipient: selectedCandidate.wallet_address as `0x${string}`,
               expirationTime: 0n,
@@ -215,7 +214,7 @@ export default function CertificateManager() {
     }
   }
 
-  const schemaConfigured = isEasSchemaConfigured(selectedType);
+  const schemaConfigured = isEasSchemaConfigured();
 
   return (
     <div className="space-y-6">
@@ -244,7 +243,7 @@ export default function CertificateManager() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             EAS Schema UID가 설정되지 않았습니다.{' '}
-            <span className="font-mono text-xs">NEXT_PUBLIC_EAS_SCHEMA_{selectedType.toUpperCase()}</span> 환경변수를 확인해주세요. 테스트 발급은 불가합니다.
+            <span className="font-mono text-xs">NEXT_PUBLIC_EAS_SCHEMA</span> 환경변수를 확인해주세요. 테스트 발급은 불가합니다.
           </span>
         </div>
       ) : null}
@@ -609,35 +608,18 @@ function RecordRow({
 
 // ---- Helpers ----
 
-function buildEncodedData(candidate: CertificateCandidate, type: CertificateType, personalDataHash: Hex): Hex {
-  const details = candidate.criteria_details ?? {};
-  const recipient = candidate.wallet_address as `0x${string}`;
-
-  if (type === 'attendance') {
-    return encodeAttendanceData({
-      recipient,
-      cohort: candidate.cohort,
-      presentCount: (details.present_count as number | undefined) ?? 0,
-      lateCount: (details.late_count as number | undefined) ?? 0,
-      personalDataHash,
-    });
-  }
-
-  if (type === 'external_activity') {
-    return encodeExternalActivityData({
-      recipient,
-      cohort: candidate.cohort,
-      activityCount: (details.activity_count as number | undefined) ?? 0,
-      personalDataHash,
-    });
-  }
-
-  return encodeAssignmentData({
-    recipient,
-    cohort: candidate.cohort,
-    submissionCount: (details.submission_count as number | undefined) ?? 0,
-    assignmentType: (details.affiliation as string | undefined) ?? 'hackathon',
+function buildEncodedData(
+  candidate: CertificateCandidate,
+  type: CertificateType,
+  personalDataHash: Hex,
+  revealedData: string,
+): Hex {
+  return encodeAttestationData({
+    walletAddress: candidate.wallet_address as `0x${string}`,
     personalDataHash,
+    attestationType: type,
+    revealedData,
+    isGraduated: false,
   });
 }
 

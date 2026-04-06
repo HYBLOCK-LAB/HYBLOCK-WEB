@@ -27,8 +27,8 @@ contract HyblockResolver {
         if (attestation.attester != issuer) return false;
 
         // 2. 발행하려는 데이터 풀기
-        (address wallet, , , bool isGraduated) = abi.decode(
-            attestation.data, (address, bytes32, string, bool)
+        (address wallet, , , , bool isGraduated) = abi.decode(
+            attestation.data, (address, bytes32, string, string, bool)
         );
 
         // 수료증(true) 발급 시, 온체인 활동 데이터와 대조

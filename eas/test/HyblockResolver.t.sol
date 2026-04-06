@@ -79,7 +79,7 @@ contract HyblockResolverTest is Test {
         address wallet,
         bool isGraduated
     ) internal pure returns (Attestation memory) {
-        bytes memory data = abi.encode(wallet, bytes32(0), "", isGraduated);
+        bytes memory data = abi.encode(wallet, bytes32(0), "attendance", "", isGraduated);
         return Attestation({
             uid: bytes32(0),
             schema: bytes32(0),

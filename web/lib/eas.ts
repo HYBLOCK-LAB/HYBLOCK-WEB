@@ -10,12 +10,8 @@ export const EAS_CONTRACT_ADDRESS: Record<number, Address> = {
 
 export const ZERO_BYTES32 = ('0x' + '0'.repeat(64)) as Hex;
 
-// Schema UIDs — configure via .env after registering on https://easscan.org
-export const EAS_SCHEMA_UIDS: Record<CertificateType, Hex> = {
-  attendance: (process.env.NEXT_PUBLIC_EAS_SCHEMA_ATTENDANCE ?? ZERO_BYTES32) as Hex,
-  external_activity: (process.env.NEXT_PUBLIC_EAS_SCHEMA_EXTERNAL_ACTIVITY ?? ZERO_BYTES32) as Hex,
-  assignment: (process.env.NEXT_PUBLIC_EAS_SCHEMA_ASSIGNMENT ?? ZERO_BYTES32) as Hex,
-};
+// Single schema UID — configure via .env after registering on https://easscan.org
+export const EAS_SCHEMA_UID = (process.env.NEXT_PUBLIC_EAS_SCHEMA ?? ZERO_BYTES32) as Hex;
 
 export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   attendance: '출석',
@@ -23,8 +19,8 @@ export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   assignment: '해커톤·아이디어톤',
 };
 
-export function isEasSchemaConfigured(type: CertificateType): boolean {
-  return EAS_SCHEMA_UIDS[type] !== ZERO_BYTES32;
+export function isEasSchemaConfigured(): boolean {
+  return EAS_SCHEMA_UID !== ZERO_BYTES32;
 }
 
 export function getEasContractAddress(chainId: number): Address | null {
@@ -82,69 +78,27 @@ export function computePersonalDataHash(walletAddress: Address, cohort: number):
   );
 }
 
-export function encodeAttendanceData(params: {
-  recipient: Address;
-  cohort: number;
-  presentCount: number;
-  lateCount: number;
+export function encodeAttestationData(params: {
+  walletAddress: Address;
   personalDataHash: Hex;
+  attestationType: CertificateType;
+  revealedData: string;
+  isGraduated: boolean;
 }): Hex {
   return encodeAbiParameters(
     [
-      { type: 'address', name: 'recipient' },
-      { type: 'uint256', name: 'cohort' },
-      { type: 'uint256', name: 'presentCount' },
-      { type: 'uint256', name: 'lateCount' },
+      { type: 'address', name: 'walletAddress' },
       { type: 'bytes32', name: 'personalDataHash' },
+      { type: 'string', name: 'attestationType' },
+      { type: 'string', name: 'revealedData' },
+      { type: 'bool', name: 'isGraduated' },
     ],
     [
-      params.recipient,
-      BigInt(params.cohort),
-      BigInt(params.presentCount),
-      BigInt(params.lateCount),
+      params.walletAddress,
       params.personalDataHash,
-    ],
-  );
-}
-
-export function encodeExternalActivityData(params: {
-  recipient: Address;
-  cohort: number;
-  activityCount: number;
-  personalDataHash: Hex;
-}): Hex {
-  return encodeAbiParameters(
-    [
-      { type: 'address', name: 'recipient' },
-      { type: 'uint256', name: 'cohort' },
-      { type: 'uint256', name: 'activityCount' },
-      { type: 'bytes32', name: 'personalDataHash' },
-    ],
-    [params.recipient, BigInt(params.cohort), BigInt(params.activityCount), params.personalDataHash],
-  );
-}
-
-export function encodeAssignmentData(params: {
-  recipient: Address;
-  cohort: number;
-  submissionCount: number;
-  assignmentType: string;
-  personalDataHash: Hex;
-}): Hex {
-  return encodeAbiParameters(
-    [
-      { type: 'address', name: 'recipient' },
-      { type: 'uint256', name: 'cohort' },
-      { type: 'uint256', name: 'submissionCount' },
-      { type: 'string', name: 'assignmentType' },
-      { type: 'bytes32', name: 'personalDataHash' },
-    ],
-    [
-      params.recipient,
-      BigInt(params.cohort),
-      BigInt(params.submissionCount),
-      params.assignmentType,
-      params.personalDataHash,
+      params.attestationType,
+      params.revealedData,
+      params.isGraduated,
     ],
   );
 }

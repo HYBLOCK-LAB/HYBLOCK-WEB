@@ -36,13 +36,20 @@ contract HyblockIssuer {
     function issue(
         address walletAddress,        // recipient
         bytes32 personalDataHash,     // 개인정보 해시
+        string calldata attestationType, // 증명서 타입
         string calldata revealedData, // 선택적 공개 정보 (JSON 문자열)
         bool isGraduated              // 수료 여부
     ) external returns (bytes32) {
         require(msg.sender == admin, "Not admin");
 
-        // 스키마 순서: address, bytes32, string, bool
-        bytes memory data = abi.encode(walletAddress, personalDataHash, revealedData, isGraduated);
+        // 스키마 순서: address, bytes32, string, string, bool
+        bytes memory data = abi.encode(
+            walletAddress,
+            personalDataHash,
+            attestationType,
+            revealedData,
+            isGraduated
+        );
 
         return eas.attest(IEAS.AttestationRequest({
             schema: schemaUID,

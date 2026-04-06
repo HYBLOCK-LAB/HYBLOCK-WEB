@@ -4,6 +4,7 @@ const adminLinks = [
   { href: '/admin/members', label: '멤버 관리' },
   { href: '/admin/attendance', label: '출석 관리' },
   { href: '/admin/activities', label: '활동 관리' },
+  { href: '/admin/certificates', label: '증명 관리' },
 ];
 
 type AdminSectionShellProps = {

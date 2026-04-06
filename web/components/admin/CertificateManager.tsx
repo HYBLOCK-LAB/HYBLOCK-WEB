@@ -17,7 +17,7 @@ import {
   isEasSchemaConfigured,
   type CertificateType,
 } from '@/lib/eas';
-import type { AssignmentRecord, AttendanceRecord, CertificateCandidate, ExternalActivityRecord, MemberCertificateDetail } from '@/lib/supabase-certificate';
+import type { CertificateCandidate, MemberCertificateDetail } from '@/lib/supabase-certificate';
 
 type AttestState = 'idle' | 'signing' | 'pending' | 'success' | 'error';
 

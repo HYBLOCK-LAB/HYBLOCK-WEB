@@ -1,5 +1,7 @@
 import { encodeAbiParameters, keccak256, type Address, type Hex } from 'viem';
 
+export type CertificateType = 'attendance' | 'external_activity' | 'assignment';
+
 // EAS contract addresses per chain
 export const EAS_CONTRACT_ADDRESS: Record<number, Address> = {
   1: '0xA1207F3BBa224E2c9c3c6D5aF63D0eb1582Ce587',       // Ethereum Mainnet
@@ -14,8 +16,6 @@ export const EAS_SCHEMA_UIDS: Record<CertificateType, Hex> = {
   external_activity: (process.env.NEXT_PUBLIC_EAS_SCHEMA_EXTERNAL_ACTIVITY ?? ZERO_BYTES32) as Hex,
   assignment: (process.env.NEXT_PUBLIC_EAS_SCHEMA_ASSIGNMENT ?? ZERO_BYTES32) as Hex,
 };
-
-export type CertificateType = 'attendance' | 'external_activity' | 'assignment';
 
 export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   attendance: '출석',

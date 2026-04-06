@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronDown, LogOut, Wallet } from 'lucide-react';
+import { ChevronDown, LogOut, UserRound, Wallet } from 'lucide-react';
 import { Bell, CheckCircle2, Compass, Home } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
@@ -35,6 +35,9 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
   const isConnected = useWalletSessionStore((state) => state.isConnected);
   const isAdmin = activePath.startsWith('/admin');
   const headerNavItems = isAdmin ? adminNavItems : navItems;
+  const visibleHeaderNavItems = isAdmin
+    ? [...headerNavItems, { href: '/admin/certificates', label: '증명 관리' }]
+    : headerNavItems;
 
   const handleHeaderWalletClick = async () => {
     if (isConnected && address) {
@@ -109,7 +112,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     </Link>
                   </div>
                 ) : null}
-                {headerNavItems.map((item) => (
+                {visibleHeaderNavItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -142,6 +145,14 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     <span className="text-[10px] font-medium text-monolith-onSurfaceMuted">{chainName ?? 'Wallet'}</span>
                   </span>
                 </button>
+                <Link
+                  href="/mypage"
+                  className="interactive-soft flex h-11 w-11 items-center justify-center rounded-md border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest text-monolith-onSurface transition-colors hover:bg-monolith-surface"
+                  aria-label="마이페이지"
+                  title="마이페이지"
+                >
+                  <UserRound className="h-4 w-4" />
+                </Link>
                 <button
                   type="button"
                   onClick={() => disconnect()}
@@ -208,7 +219,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 alt="HYBLOCK logo"
                 width={28}
                 height={28}
-                className="h-7 w-7 object-contain"
+                className="h-10 w-10 object-contain"
               />
               <p className="text-sm text-monolith-onSurfaceMuted">{textContent.footer.copyright}</p>
             </div>
@@ -220,7 +231,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-instagram text-base" aria-hidden="true" />
+              <i className="fa-brands fa-instagram text-lg" aria-hidden="true" />
             </a>
             <a
               href="https://www.linkedin.com/company/hyblock/"
@@ -228,7 +239,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-linkedin text-base" aria-hidden="true" />
+              <i className="fa-brands fa-linkedin text-lg" aria-hidden="true" />
             </a>
             <a
               href="https://x.com/hyblock_kr"
@@ -236,7 +247,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               rel="noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-monolith-primaryContainer"
             >
-              <i className="fa-brands fa-x-twitter text-base" aria-hidden="true" />
+              <i className="fa-brands fa-x-twitter text-lg" aria-hidden="true" />
             </a>
           </div>
         </div>
@@ -261,6 +272,10 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               <Link href="/admin/attendance" className={mobileNavClass(activePath.startsWith('/admin/attendance'))}>
                 <CheckCircle2 className="h-5 w-5" />
                 <span>출석</span>
+              </Link>
+              <Link href="/admin/certificates" className={mobileNavClass(activePath.startsWith('/admin/certificates'))}>
+                <span className="text-sm font-bold">증</span>
+                <span>증명</span>
               </Link>
             </>
           ) : (

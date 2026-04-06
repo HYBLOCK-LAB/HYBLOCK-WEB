@@ -4,6 +4,8 @@ const adminLinks = [
   { href: '/admin/members', label: '멤버 관리' },
   { href: '/admin/attendance', label: '출석 관리' },
   { href: '/admin/activities', label: '활동 관리' },
+  { href: '/admin/notices', label: '공지 관리' },
+  { href: '/admin/certificates', label: '증명 관리' },
 ];
 
 type AdminSectionShellProps = {
@@ -26,10 +28,10 @@ export default function AdminSectionShell({ title, description, currentPath, chi
                 key={link.href}
                 href={link.href}
                 className={[
-                  'flex rounded-xl px-4 py-3 text-sm font-semibold transition-colors',
+                  'flex rounded-xl border px-4 py-3 text-sm font-semibold transition-colors',
                   currentPath === link.href
-                    ? 'bg-monolith-primary text-white'
-                    : 'bg-monolith-surfaceLow text-monolith-onSurface hover:bg-monolith-surface',
+                    ? 'border-monolith-primary bg-monolith-primaryFixed text-monolith-primary shadow-[0_8px_20px_rgba(0,51,97,0.08)]'
+                    : 'border-transparent bg-monolith-surfaceLow text-monolith-onSurface hover:border-monolith-primaryContainer/30 hover:bg-monolith-surface',
                 ].join(' ')}
               >
                 {link.label}

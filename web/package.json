@@ -37,10 +37,15 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "typescript": "^6.0.2",
     "viem": "^2.47.10",
     "wagmi": "^3.6.0",
     "zustand": "^5.0.12"
+  },
+  "overrides": {
+    "bn.js": "^5.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",

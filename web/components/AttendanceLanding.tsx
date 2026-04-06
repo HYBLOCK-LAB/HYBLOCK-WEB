@@ -1,13 +1,19 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { CalendarDays, CheckCircle2, Clock3, Lock, QrCode } from 'lucide-react';
-import { encodeEvent } from '@/lib/utils';
+import { decodeEvent, encodeEvent } from '@/lib/utils';
 import CheckInForm from '@/components/CheckInForm';
+import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
+import type { ActiveAttendanceEvent, AttendanceSessionSummary } from '@/lib/supabase-attendance';
 import { textContent } from '@/lib/text-content';
 
 type AttendanceLandingProps = {
-  events: string[];
-  activeEvent: { name: string; activatedAt: string | null } | null;
-  categories: Record<string, string>;
+  sessions: AttendanceSessionSummary[];
+  activeEvents: ActiveAttendanceEvent[];
+  members: string[];
 };
 
 function translateCategory(category?: string) {
@@ -16,12 +22,77 @@ function translateCategory(category?: string) {
   return category;
 }
 
+function getSessionPresentation(status: AttendanceSessionSummary['status'], isActive: boolean) {
+  if (isActive || status === 'in_progress') {
+    return {
+      badgeLabel: 'Active',
+      badgeClassName: 'bg-monolith-primary text-monolith-onPrimary',
+      hint: textContent.attendance.activeStatusHint,
+      actionLabel: '출석 체크하기',
+      actionClassName: 'bg-monolith-primaryContainer text-monolith-onPrimary shadow-lg shadow-monolith-primary/10',
+      iconClassName: 'bg-monolith-secondaryContainer text-monolith-primaryContainer',
+    };
+  }
+
+  if (status === 'completed') {
+    return {
+      badgeLabel: 'Closed',
+      badgeClassName: 'bg-[#ffe2e0] text-[#b3261e]',
+      hint: '종료됨',
+      actionLabel: '세션 보기',
+      actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
+      iconClassName: 'bg-[#ffe2e0] text-[#b3261e]',
+    };
+  }
+
+  if (status === 'cancelled') {
+    return {
+      badgeLabel: 'Cancelled',
+      badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+      hint: '취소됨',
+      actionLabel: '세션 보기',
+      actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
+      iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+    };
+  }
+
+  return {
+    badgeLabel: 'Upcoming',
+    badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+    hint: textContent.attendance.pendingStatusHint,
+    actionLabel: '세션 보기',
+    actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
+    iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+  };
+}
+
 export default function AttendanceLanding({
-  events,
-  activeEvent,
-  categories,
+  sessions = [],
+  activeEvents = [],
+  members,
 }: AttendanceLandingProps) {
-  const visibleEvents = events.slice(0, 6);
+  const searchParams = useSearchParams();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  const selectedQueryEvent = useMemo(() => {
+    const encodedParam = searchParams.get('event');
+    return encodedParam ? decodeEvent(encodedParam) : null;
+  }, [searchParams]);
+
+  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
+
+  useEffect(() => {
+    if (!selectedQueryEvent) return;
+
+    const matchedSession = sessions.find((session) => session.name === selectedQueryEvent);
+    if (!matchedSession) return;
+
+    setSelectedSessionId((current) => (current === matchedSession.id ? current : matchedSession.id));
+  }, [selectedQueryEvent, sessions]);
+
+  const toggleSelectedEvent = (sessionId: string) => {
+    setSelectedSessionId((current) => (current === sessionId ? null : sessionId));
+  };
 
   return (
     <main className="pb-28 pt-12 md:pt-16">
@@ -47,70 +118,81 @@ export default function AttendanceLanding({
               <div className="col-span-3 text-right">Status / Action</div>
             </div>
 
-            {visibleEvents.map((event, index) => {
-              const isActive = event === activeEvent?.name;
-              const encoded = encodeURIComponent(encodeEvent(event));
+            {sessions.map((session, index) => {
+              const isActive = activeEvents.some((activeEvent) => activeEvent.sessionId === session.id);
+              const encoded = encodeURIComponent(encodeEvent(session.name));
+              const presentation = getSessionPresentation(session.status, isActive);
 
               return (
                 <div
-                  key={event}
+                  key={session.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleSelectedEvent(session.id)}
+                  onKeyDown={(keyboardEvent) => {
+                    if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                      keyboardEvent.preventDefault();
+                      toggleSelectedEvent(session.id);
+                    }
+                  }}
                   className={[
-                    'grid gap-4 rounded-xl border bg-monolith-surfaceLowest p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-ambient md:grid-cols-12 md:items-center md:p-6',
+                    'grid cursor-pointer gap-4 rounded-xl border bg-monolith-surfaceLowest p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-ambient md:grid-cols-12 md:items-center md:p-6',
                     isActive ? 'border-monolith-primaryFixed/70' : 'border-monolith-outlineVariant/30',
+                    selectedSessionId === session.id ? 'ring-2 ring-monolith-primaryContainer/50' : '',
                   ].join(' ')}
                 >
                   <div className="col-span-1 flex justify-start">
-                    <div className={['rounded-lg p-3', isActive ? 'bg-monolith-secondaryContainer' : 'bg-monolith-surfaceContainer'].join(' ')}>
-                      <CheckCircle2 className={['h-5 w-5', isActive ? 'text-monolith-primaryContainer' : 'text-monolith-onSurfaceMuted'].join(' ')} />
+                    <div className={['rounded-lg p-3', presentation.iconClassName].join(' ')}>
+                      <CheckCircle2 className="h-5 w-5" />
                     </div>
                   </div>
 
                   <div className="col-span-5">
                     <div className="mb-2 flex flex-wrap items-center gap-3">
-                      <h3 className="text-lg font-bold text-monolith-primaryContainer">{event}</h3>
+                      <h3 className="text-lg font-bold text-monolith-primaryContainer">{session.name}</h3>
                       <span
                         className={[
                           'rounded-full px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em]',
-                          isActive
-                            ? 'bg-monolith-primary text-monolith-onPrimary'
-                            : 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+                          presentation.badgeClassName,
                         ].join(' ')}
                       >
-                        {isActive ? 'Active' : 'Upcoming'}
+                        {presentation.badgeLabel}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">{textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}</p>
+                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">
+                      {textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}
+                    </p>
                   </div>
 
                   <div className="col-span-3">
                     <div className="flex items-center gap-2 text-sm text-monolith-onSurfaceMuted">
                       <CalendarDays className="h-4 w-4" />
-                      <span>{translateCategory(categories[event])}</span>
+                      <span>{translateCategory(session.category)}</span>
                     </div>
                     <p className="ml-6 mt-1 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
                       <Clock3 className="h-3.5 w-3.5" />
-                      {isActive ? textContent.attendance.activeStatusHint : textContent.attendance.pendingStatusHint}
+                      {presentation.hint}
                     </p>
                   </div>
 
                   <div className="col-span-3 flex gap-2 md:justify-end">
                     <Link
                       href={`/attendance?event=${encoded}`}
+                      onClick={(event) => event.stopPropagation()}
                       className="flex flex-1 items-center justify-center rounded-lg bg-monolith-surfaceContainer px-4 py-2.5 font-display text-sm font-bold text-monolith-primaryContainer transition hover:bg-monolith-surfaceHigh md:flex-none"
                     >
                       <QrCode className="h-4 w-4" />
                     </Link>
                     <Link
                       href={`/attendance?event=${encoded}`}
+                      onClick={(event) => event.stopPropagation()}
                       className={[
                         'flex flex-[2] items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition md:flex-none',
-                        isActive
-                          ? 'bg-monolith-primaryContainer text-monolith-onPrimary shadow-lg shadow-monolith-primary/10'
-                          : 'cursor-not-allowed bg-monolith-surfaceHigh text-monolith-onSurfaceMuted pointer-events-none opacity-70',
+                        presentation.actionClassName,
                       ].join(' ')}
                     >
                       {isActive ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                      {isActive ? '출석 체크하기' : '대기 중'}
+                      {presentation.actionLabel}
                     </Link>
                   </div>
                 </div>
@@ -119,25 +201,29 @@ export default function AttendanceLanding({
           </section>
 
           <aside className="space-y-6">
-            <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-gradient p-6 text-monolith-onPrimary shadow-monolith">
-              <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryFixed">{textContent.attendance.liveSessionLabel}</p>
-              <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em]">
-                {activeEvent?.name ?? textContent.attendance.liveSessionFallback}
-              </h2>
-              <p className="mt-4 text-sm leading-6 text-monolith-primaryFixed">
-                {textContent.attendance.liveSessionDescription}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
-              <div className="mb-5">
-                <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
-                  {textContent.attendance.manualCheckInLabel}
-                </p>
-                <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">{textContent.attendance.manualCheckInTitle}</h2>
+            {selectedSession ? (
+              <>
+                <PersonalAttendanceQrCard
+                  selectedEventName={selectedSession.name}
+                  activeEventNames={activeEvents.map((activeEvent) => activeEvent.name)}
+                />
+                <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+                  <div className="mb-5">
+                    <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                      {textContent.attendance.manualCheckInLabel}
+                    </p>
+                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">
+                      {textContent.attendance.manualCheckInTitle}
+                    </h2>
+                  </div>
+                  <CheckInForm members={members} eventName={selectedSession.name} />
+                </div>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
+                왼쪽에서 세션을 선택하면 해당 세션의 `내 출석 QR`과 수동 출석이 이 영역에 표시됩니다.
               </div>
-              <CheckInForm />
-            </div>
+            )}
           </aside>
         </div>
       </div>

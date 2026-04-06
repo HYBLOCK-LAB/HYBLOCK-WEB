@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<{ 
     events: string[], 
     attendanceData: AttendanceRow[], 
-    activeEvent: { name: string, activatedAt: string } | null,
+    activeEvent: { name: string, activatedAt: string, checkInCode?: string | null } | null,
     categories: Record<string, string>
   } | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('세션');

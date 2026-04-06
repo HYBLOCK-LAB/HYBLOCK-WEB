@@ -1,3 +1,4 @@
+.claude/
 node_modules/
 .next/
 out/
@@ -15,3 +16,6 @@ yarn-error.log*
 .vercel
 *.csv
 *.csv:Zone.Identifier
+/eas/broadcast/
+/eas/cache/
+/eas/cache/Deploy.s.sol/

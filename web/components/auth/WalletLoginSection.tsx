@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoaderCircle, Wallet } from 'lucide-react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
+import { isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
 import { textContent } from '@/lib/text-content';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 
@@ -19,12 +19,8 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isConnected && address) {
-      router.replace(redirectTo);
-    }
-  }, [address, isConnected, redirectTo, router]);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const handledAddressRef = useRef<string | null>(null);
 
   const handleOpenConnectModal = async () => {
     setError(null);
@@ -44,9 +40,41 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
 
     try {
       setError(null);
+      setMessage('서명 요청을 준비하는 중입니다.');
+      setIsVerifying(true);
+
+      const nonceResponse = await fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`);
+      if (!nonceResponse.ok) {
+        const noncePayload = (await nonceResponse.json().catch(() => ({}))) as { error?: string };
+        throw new Error(noncePayload.error ?? '로그인 요청을 시작하지 못했습니다.');
+      }
+
+      const noncePayload = (await nonceResponse.json()) as { message: string };
+      setMessage('지갑에서 서명을 완료해주세요.');
       const signature = await signMessageAsync({
-        message: buildWalletLinkMessage(address),
+        message: noncePayload.message,
       });
+
+      setMessage('서명을 확인하는 중입니다.');
+      const verifyResponse = await fetch('/api/auth/wallet/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address,
+          message: noncePayload.message,
+          signature,
+        }),
+      });
+
+      const data = (await verifyResponse.json().catch(() => ({}))) as { exists?: boolean; error?: string };
+      if (!verifyResponse.ok) {
+        if (verifyResponse.status === 404) {
+          router.push(`/signup?redirect=${encodeURIComponent(redirectTo)}`);
+          return;
+        }
+
+        throw new Error(data.error ?? '회원 정보 확인에 실패했습니다.');
+      }
 
       window.localStorage.setItem(
         'hyblock_wallet_login',
@@ -58,12 +86,30 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
         }),
       );
 
-      setMessage('지갑 서명이 완료되었습니다.');
-      router.push('/wallet-link?intent=wallet-login');
+      setMessage('지갑 로그인 세션이 연결되었습니다.');
+      router.replace(redirectTo);
     } catch (loginError) {
+      handledAddressRef.current = null;
       setError(formatWalletLoginError(loginError));
+      setMessage(null);
+    } finally {
+      setIsVerifying(false);
     }
   };
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      handledAddressRef.current = null;
+      return;
+    }
+
+    if (handledAddressRef.current === address) {
+      return;
+    }
+
+    handledAddressRef.current = address;
+    void handleWalletLogin();
+  }, [address, isConnected]);
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -86,10 +132,10 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
           <button
             type="button"
             onClick={handleWalletLogin}
-            disabled={isSigning}
+            disabled={isSigning || isVerifying}
             className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl border border-[#0e4a84] bg-[linear-gradient(135deg,#003361,#0e4a84)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,51,97,0.2)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSigning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+            {isSigning || isVerifying ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
             지갑으로 로그인
           </button>
         </div>

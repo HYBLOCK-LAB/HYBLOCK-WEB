@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { ArrowRight, Plus, Terminal, Users } from 'lucide-react';
 import SiteChrome from '@/components/SiteChrome';
 import AttendanceLanding from '@/components/AttendanceLanding';
-import { getActiveEvent, getEventCategories, getEvents } from '@/lib/supabase-attendance';
+import { getActiveEvent, getAdminMembers, getAttendanceSessions } from '@/lib/supabase-attendance';
 import { aboutValues, aboutVision, homeNotices, upcomingActivities } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 
@@ -17,16 +17,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = (await searchParams) ?? {};
   const hasEventParam = typeof params.event === 'string' && params.event.length > 0;
 
-  const [events, activeEvent, categories] = await Promise.all([
-    getEvents().catch(() => []),
+  const [sessions, activeEvent, members] = await Promise.all([
+    getAttendanceSessions(),
     getActiveEvent().catch(() => null),
-    getEventCategories().catch(() => ({})),
+    getAdminMembers().catch(() => []),
   ]);
 
   if (hasEventParam) {
     return (
       <SiteChrome activePath="/attendance">
-        <AttendanceLanding events={events} activeEvent={activeEvent} categories={categories} />
+        <AttendanceLanding
+          sessions={sessions}
+          activeEvent={activeEvent}
+          members={members.filter((member) => member.isActive).map((member) => member.name)}
+        />
       </SiteChrome>
     );
   }
@@ -39,25 +43,24 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-black/20 to-transparent" />
           <div className="relative mx-auto grid min-h-[760px] max-w-7xl items-center gap-12 px-6 py-20 md:grid-cols-12 lg:px-8 lg:py-24">
             <div className="md:col-span-8">
-              <span className="inline-block rounded-full bg-monolith-primaryFixed px-4 py-1 font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary">
-                Academic Club
+              <span className="inline-block rounded-full bg-monolith-primaryFixed px-4 py-1.5 font-display text-md font-bold uppercase leading-tight tracking-[0.18em] text-monolith-primary">
+                Hanyang University
+                <br />
+                <span className="hidden sm:inline">{' '}</span>
+                Blockchain Academic Club
               </span>
               <h1 className="mt-8 text-5xl font-black uppercase leading-[0.9] tracking-[-0.08em] sm:text-6xl md:text-8xl">
-                Share Insight,
-                <br />
-                Engage
-                <br />
-                <span className="text-monolith-primaryFixed">in Web3.</span>
+                HYBLOCK
               </h1>
               <p className="mt-8 max-w-[132rem] break-keep text-lg leading-8 text-monolith-primaryFixed md:text-xl md:leading-9">
-                {aboutVision}
+                한양대학교 블록체인 학술 동아리 HYBLOCK은 연구, 개발, 세미나, 네트워킹을 통해 Web3를 깊이 있게 탐구하는 커뮤니티입니다.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link href="/about" className="interactive-soft rounded-lg bg-white px-8 py-4 font-display text-lg font-bold text-monolith-primary transition hover:bg-monolith-surface">
-                  소개 보기
+                  HYBLOCK 소개
                 </Link>
                 <Link href="/attendance" className="interactive-soft rounded-lg border border-white/30 px-8 py-4 font-display text-lg font-bold text-white transition hover:bg-white/10">
-                  출석 체크
+                  출석하기
                 </Link>
               </div>
             </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronDown, LogOut, Wallet } from 'lucide-react';
+import { ChevronDown, LogOut, UserRound, Wallet } from 'lucide-react';
 import { Bell, CheckCircle2, Compass, Home } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
@@ -145,6 +145,14 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     <span className="text-[10px] font-medium text-monolith-onSurfaceMuted">{chainName ?? 'Wallet'}</span>
                   </span>
                 </button>
+                <Link
+                  href="/mypage"
+                  className="interactive-soft flex h-11 w-11 items-center justify-center rounded-md border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest text-monolith-onSurface transition-colors hover:bg-monolith-surface"
+                  aria-label="마이페이지"
+                  title="마이페이지"
+                >
+                  <UserRound className="h-4 w-4" />
+                </Link>
                 <button
                   type="button"
                   onClick={() => disconnect()}

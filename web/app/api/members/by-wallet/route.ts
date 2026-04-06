@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const member = await getMemberByWallet(wallet);
+    const member = await getMemberByWallet(wallet.toLowerCase());
     return NextResponse.json({ exists: Boolean(member), member });
   } catch (error) {
     console.error('GET /api/members/by-wallet error:', error);

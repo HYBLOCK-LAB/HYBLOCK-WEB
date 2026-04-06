@@ -20,14 +20,23 @@ const translateEvent = (eventName: string | null) => {
   return eventName;
 };
 
-export default function CheckInForm() {
+export default function CheckInForm({
+  members = [],
+  eventName,
+}: {
+  members?: string[];
+  eventName?: string | null;
+}) {
   const searchParams = useSearchParams();
   const encodedParam = searchParams.get('event');
-  const event = encodedParam ? decodeEvent(encodedParam) : null;
+  const queryEvent = encodedParam ? decodeEvent(encodedParam) : null;
+  const event = eventName ?? queryEvent;
   
   const [activeEvent, setActiveEvent] = useState<{ name: string, activatedAt: string | null } | null>(null);
+  const [eventStatuses, setEventStatuses] = useState<Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>>({});
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -39,6 +48,7 @@ export default function CheckInForm() {
         const data = await response.json();
         if (response.ok) {
           setActiveEvent(data.activeEvent);
+          setEventStatuses(data.statuses ?? {});
         }
       } catch (error) {
         console.error('Failed to fetch event status:', error);
@@ -71,7 +81,16 @@ export default function CheckInForm() {
     return () => clearInterval(timer);
   }, [activeEvent]);
 
+  const eventStatus = event ? eventStatuses[event] : undefined;
   const isEventOpen = event && activeEvent && event === activeEvent.name;
+  const inactiveReason =
+    eventStatus === 'completed'
+      ? '종료된 세션입니다.'
+      : eventStatus === 'cancelled'
+        ? '취소된 세션입니다.'
+        : event
+          ? '아직 오픈 전인 세션입니다.'
+          : '현재 세션 또는 이벤트가 존재하지 않습니다.';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,18 +98,19 @@ export default function CheckInForm() {
     setMessage(null);
 
     if (!isEventOpen) {
-      setMessage({ type: 'error', text: '현재 세션 또는 이벤트가 존재하지 않습니다.' });
+      setMessage({ type: 'error', text: inactiveReason });
       setLoading(false);
       return;
     }
 
     const trimmedName = name.trim();
+    const trimmedCode = code.trim();
 
     try {
       const response = await fetch('/api/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName, event }),
+        body: JSON.stringify({ name: trimmedName, event, code: trimmedCode }),
       });
 
       const data = await response.json();
@@ -101,6 +121,7 @@ export default function CheckInForm() {
         } else {
           setMessage({ type: 'success', text: `${trimmedName}님, 출석이 완료되었습니다!` });
           setName('');
+          setCode('');
         }
       } else {
         setMessage({ type: 'error', text: data.error || '출석 체크 중 오류가 발생했습니다.' });
@@ -120,7 +141,7 @@ export default function CheckInForm() {
     <div>
       {!isEventOpen ? (
         <div className="mb-5 rounded-xl border border-monolith-error/15 bg-monolith-errorContainer px-4 py-3 text-sm font-semibold text-monolith-error">
-          현재 세션 또는 이벤트가 존재하지 않습니다.
+          {inactiveReason}
         </div>
       ) : (
         <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -174,15 +195,45 @@ export default function CheckInForm() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="예: 홍길동"
             required
             disabled={loading || !isEventOpen}
-            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition placeholder:text-monolith-onSurfaceMuted focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
+            placeholder="이름을 입력하세요"
+            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
+            list={members.length > 0 ? 'member-name-suggestions' : undefined}
+            autoComplete="name"
+          />
+          {members.length > 0 ? (
+            <datalist id="member-name-suggestions">
+              {members.map((member) => (
+                <option key={member} value={member} />
+              ))}
+            </datalist>
+          ) : null}
+        </div>
+        <div>
+          <label
+            htmlFor="code"
+            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer"
+          >
+            출석 코드를 입력하세요
+          </label>
+          <input
+            id="code"
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            required
+            disabled={loading || !isEventOpen}
+            inputMode="numeric"
+            pattern="[0-9]{4}"
+            maxLength={4}
+            placeholder="4자리 숫자 코드를 입력하세요"
+            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
           />
         </div>
         <button
           type="submit"
-          disabled={loading || !isEventOpen}
+          disabled={loading || !isEventOpen || !name || code.trim().length !== 4}
           className="w-full rounded-lg bg-monolith-primaryContainer px-5 py-3 font-display text-base font-bold text-monolith-onPrimary transition hover:bg-monolith-primary disabled:cursor-not-allowed disabled:bg-monolith-primaryContainer/45"
         >
           {loading ? '처리 중...' : '출석하기'}

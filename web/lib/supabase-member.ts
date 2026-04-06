@@ -11,16 +11,50 @@ export type MemberProfile = {
   is_active: boolean;
 };
 
+function normalizeWalletAddress(walletAddress: string) {
+  return walletAddress.trim().toLowerCase();
+}
+
 export async function getMemberByWallet(walletAddress: string): Promise<MemberProfile | null> {
+  const supabase = getSupabase();
+  const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
+  const { data, error } = await supabase
+    .from('member')
+    .select('id, wallet_address, name, major, affiliation, cohort, role, is_active')
+    .ilike('wallet_address', normalizedWalletAddress)
+    .order('is_active', { ascending: false })
+    .order('id', { ascending: true })
+    .returns<MemberProfile[]>();
+
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  const exactMatch =
+    data.find((member) => member.wallet_address && normalizeWalletAddress(member.wallet_address) === normalizedWalletAddress) ?? null;
+
+  return exactMatch ?? data[0] ?? null;
+}
+
+export async function getMemberByName(name: string): Promise<MemberProfile | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('member')
     .select('id, wallet_address, name, major, affiliation, cohort, role, is_active')
-    .eq('wallet_address', walletAddress)
-    .maybeSingle<MemberProfile>();
+    .eq('name', name)
+    .eq('is_active', true)
+    .limit(2)
+    .returns<MemberProfile[]>();
 
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) return null;
+  if (data.length > 1) {
+    throw new Error(`Multiple active members found with name: ${name}`);
+  }
+
+  return data[0];
 }
 
 export async function createMember(params: {
@@ -30,7 +64,8 @@ export async function createMember(params: {
   affiliation: 'development' | 'business';
   cohort: number;
 }) {
-  const existing = await getMemberByWallet(params.wallet_address);
+  const normalizedWalletAddress = normalizeWalletAddress(params.wallet_address);
+  const existing = await getMemberByWallet(normalizedWalletAddress);
   if (existing) {
     return existing;
   }
@@ -39,7 +74,7 @@ export async function createMember(params: {
   const { data, error } = await supabase
     .from('member')
     .insert({
-      wallet_address: params.wallet_address,
+      wallet_address: normalizedWalletAddress,
       name: params.name,
       major: params.major,
       affiliation: params.affiliation,

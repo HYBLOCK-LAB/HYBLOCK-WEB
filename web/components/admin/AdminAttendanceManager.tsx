@@ -2,47 +2,72 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { AlertCircle, CheckCircle2, Link2, Plus, QrCode, SquareArrowOutUpRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Link2, QrCode, SquareArrowOutUpRight, X } from 'lucide-react';
 import { encodeEvent } from '@/lib/utils';
+import AdminAttendanceScanner from '@/components/admin/AdminAttendanceScanner';
 
 type AttendanceRow = Record<string, string>;
+type ParticipantStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
+type EventParticipant = {
+  memberId: number;
+  name: string;
+  status: ParticipantStatus;
+};
 
 type EventPayload = {
   events: string[];
   attendanceData: AttendanceRow[];
-  activeEvent: { name: string; activatedAt: string } | null;
+  activeEvent: { name: string; activatedAt: string; checkInCode?: string | null } | null;
   categories: Record<string, string>;
+  contents: Record<string, string | null>;
+  statuses: Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>;
 };
 
-type TabType = '세션' | '대외활동' | '특별세션';
+type TabType = '전체' | '기본 세션' | '심화 세션' | '기타 활동' | '외부 활동' | '해커톤';
+type SessionStatus = EventPayload['statuses'][string];
 
 type EventStats = {
   attendance: number;
   late: number;
   absence: number;
+  nonParticipation: number;
 };
 
 export default function AdminAttendanceManager() {
   const [data, setData] = useState<EventPayload | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('세션');
-  const [newEventName, setNewEventName] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('전체');
   const [loading, setLoading] = useState(true);
   const [processingEvent, setProcessingEvent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
-  const [viewingQR, setViewingQR] = useState<string | null>(null);
+  const [qrModalEvent, setQrModalEvent] = useState<string | null>(null);
+  const [statModalEvent, setStatModalEvent] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [participantProcessingId, setParticipantProcessingId] = useState<number | null>(null);
 
   useEffect(() => {
     setBaseUrl(window.location.origin);
     void fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!statModalEvent) {
+      setParticipants([]);
+      setParticipantsLoading(false);
+      setParticipantProcessingId(null);
+      return;
+    }
+
+    void fetchParticipants(statModalEvent);
+  }, [statModalEvent]);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/events');
+      const response = await fetch('/api/events', { cache: 'no-store' });
       const result = (await response.json()) as EventPayload | { error?: string };
       if (!response.ok) {
         setError('error' in result && result.error ? result.error : '데이터를 불러오지 못했습니다.');
@@ -54,6 +79,28 @@ export default function AdminAttendanceManager() {
       setError('서버와 통신 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchParticipants = async (eventName: string) => {
+    setParticipantsLoading(true);
+
+    try {
+      const response = await fetch(`/api/events?includeParticipants=true&eventName=${encodeURIComponent(eventName)}`, {
+        cache: 'no-store',
+      });
+      const result = (await response.json()) as { participants?: EventParticipant[]; error?: string };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? '참여자 데이터를 불러오지 못했습니다.');
+      }
+
+      setParticipants(result.participants ?? []);
+    } catch {
+      setError('참여자 데이터를 불러오지 못했습니다.');
+      setParticipants([]);
+    } finally {
+      setParticipantsLoading(false);
     }
   };
 
@@ -103,32 +150,27 @@ export default function AdminAttendanceManager() {
     }
   };
 
-  const handleAddEvent = async () => {
-    if (!newEventName.trim()) return;
-
-    setLoading(true);
+  const handleStatusChange = async (eventName: string, status: SessionStatus) => {
+    setProcessingEvent(`status:${eventName}`);
     setError(null);
+
     try {
       const response = await fetch('/api/events', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventName: newEventName.trim(),
-          category: activeTab,
-        }),
+        body: JSON.stringify({ eventName, status }),
       });
 
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) {
-        const result = (await response.json()) as { error?: string };
-        throw new Error(result.error || '이벤트 추가 실패');
+        throw new Error(payload.error ?? '세션 상태 변경에 실패했습니다.');
       }
 
-      setNewEventName('');
       await fetchData();
-    } catch (eventError) {
-      setError(eventError instanceof Error ? eventError.message : '이벤트 추가 실패');
+    } catch {
+      setError('세션 상태 변경에 실패했습니다.');
     } finally {
-      setLoading(false);
+      setProcessingEvent(null);
     }
   };
 
@@ -136,15 +178,27 @@ export default function AdminAttendanceManager() {
     if (!data) return [];
 
     return data.events.filter((event) => {
+      if (activeTab === '전체') return true;
       const category = data.categories[event];
-      if (category) return category === activeTab;
-      if (activeTab === '세션') return !event.includes('대외') && !event.includes('특별');
-      return event.includes(activeTab);
+      return category === activeTab;
     });
   }, [activeTab, data]);
 
+  const getStatusMeta = (status: EventPayload['statuses'][string] | undefined) => {
+    if (status === 'in_progress') {
+      return { label: '진행중', className: 'bg-monolith-primaryFixed text-monolith-primary' };
+    }
+    if (status === 'completed') {
+      return { label: '종료', className: 'bg-[#ffe2e0] text-[#b3261e]' };
+    }
+    if (status === 'cancelled') {
+      return { label: '취소', className: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted' };
+    }
+    return { label: '예정', className: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted' };
+  };
+
   const getStats = (eventName: string): EventStats => {
-    if (!data) return { attendance: 0, late: 0, absence: 0 };
+    if (!data) return { attendance: 0, late: 0, absence: 0, nonParticipation: 0 };
 
     return data.attendanceData.reduce(
       (acc, row) => {
@@ -152,10 +206,45 @@ export default function AdminAttendanceManager() {
         if (status === 'Attendence') acc.attendance += 1;
         if (status === 'Late') acc.late += 1;
         if (status === 'Absence') acc.absence += 1;
+        if (!status) acc.nonParticipation += 1;
         return acc;
       },
-      { attendance: 0, late: 0, absence: 0 },
+      { attendance: 0, late: 0, absence: 0, nonParticipation: 0 },
     );
+  };
+
+  const handleParticipantStatusChange = async (eventName: string, memberId: number, status: ParticipantStatus) => {
+    setParticipantProcessingId(memberId);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/events', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventName, memberId, attendanceStatus: status }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? '참여 상태 변경에 실패했습니다.');
+      }
+
+      setParticipants((current) =>
+        current.map((participant) => (participant.memberId === memberId ? { ...participant, status } : participant)),
+      );
+      await Promise.all([fetchData(), fetchParticipants(eventName)]);
+    } catch {
+      setError('참여 상태 변경에 실패했습니다.');
+    } finally {
+      setParticipantProcessingId(null);
+    }
+  };
+
+  const getParticipantStatusLabel = (status: ParticipantStatus) => {
+    if (status === 'present') return '출석';
+    if (status === 'late') return '지각';
+    if (status === 'absent') return '결석';
+    return '미참여';
   };
 
   if (loading && !data) {
@@ -164,38 +253,19 @@ export default function AdminAttendanceManager() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-2xl bg-monolith-surfaceLow p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 활성 세션</p>
-          <p className="mt-3 text-2xl font-black tracking-tight text-monolith-onSurface">{data?.activeEvent?.name ?? '없음'}</p>
-          <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">세션 활성화, 마감, QR 생성까지 이 화면에서 바로 처리할 수 있습니다.</p>
-        </div>
+      <AdminAttendanceScanner />
 
-        <div className="rounded-2xl bg-monolith-surfaceLow p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">새 이벤트 추가</p>
-          <div className="mt-4 flex gap-3">
-            <input
-              type="text"
-              value={newEventName}
-              onChange={(event) => setNewEventName(event.target.value)}
-              placeholder={`새 ${activeTab} 이름`}
-              className="min-w-0 flex-1 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
-            />
-            <button
-              type="button"
-              onClick={handleAddEvent}
-              disabled={loading}
-              className="interactive-soft flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#0e4a84,#003361)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(0,51,97,0.18)] transition-all hover:brightness-105 disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" />
-              추가
-            </button>
-          </div>
-        </div>
+      <div className="rounded-2xl bg-monolith-surfaceLow p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 세션</p>
+        <p className="mt-3 text-2xl font-black tracking-tight text-monolith-onSurface">{data?.activeEvent?.name ?? '없음'}</p>
+        <p className="mt-2 text-sm font-semibold text-monolith-onSurfaceMuted">
+          현재 출석 코드: <span className="font-mono text-monolith-primaryContainer">{data?.activeEvent?.checkInCode ?? '-'}</span>
+        </p>
+        <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">활동 생성은 활동 관리 화면에서 처리하고, 이 화면에서는 기존 세션의 활성화, 마감, QR 생성만 수행합니다.</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {(['세션', '대외활동', '특별세션'] as TabType[]).map((tab) => (
+        {(['전체', '기본 세션', '심화 세션', '기타 활동', '외부 활동', '해커톤'] as TabType[]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -203,8 +273,8 @@ export default function AdminAttendanceManager() {
             className={[
               'interactive-soft rounded-full border px-4 py-2 text-sm font-semibold transition-all',
               activeTab === tab
-                ? 'border-monolith-primaryContainer bg-monolith-primaryFixed text-monolith-primary shadow-[0_10px_20px_rgba(0,51,97,0.12)]'
-                : 'border-monolith-outlineVariant/30 bg-monolith-surfaceLow text-monolith-onSurface hover:border-monolith-primaryContainer/35 hover:bg-monolith-surfaceLowest',
+                ? 'border-monolith-outlineVariant/45 bg-monolith-surfaceContainer text-monolith-onSurface shadow-[0_8px_18px_rgba(0,24,46,0.08)]'
+                : 'border-monolith-outlineVariant/40 bg-monolith-surfaceLowest text-monolith-onSurface hover:border-monolith-primaryContainer/35 hover:bg-monolith-surfaceLow',
             ].join(' ')}
           >
             {tab}
@@ -219,15 +289,20 @@ export default function AdminAttendanceManager() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {filteredEvents.map((event) => {
           const stats = getStats(event);
           const isActive = event === data?.activeEvent?.name;
           const isProcessing = event === processingEvent;
+          const isStatusProcessing = processingEvent === `status:${event}`;
           const eventLink = `${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(event))}`;
+          const statusMeta = getStatusMeta(data?.statuses[event]);
 
           return (
-            <div key={event} className="rounded-2xl bg-monolith-surfaceLow p-5 shadow-[0_14px_30px_rgba(0,51,97,0.05)]">
+            <div
+              key={event}
+              className="rounded-2xl bg-monolith-surfaceLow p-5 shadow-[0_14px_30px_rgba(0,51,97,0.05)] transition hover:bg-monolith-surface"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
@@ -235,20 +310,41 @@ export default function AdminAttendanceManager() {
                   </p>
                   <h2 className="mt-2 text-lg font-black tracking-tight text-monolith-onSurface">{event}</h2>
                 </div>
-                {isActive ? (
-                  <span className="rounded-full bg-monolith-primary px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">
-                    active
-                  </span>
-                ) : null}
+                <span
+                  className={[
+                    'rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]',
+                    statusMeta.className,
+                  ].join(' ')}
+                >
+                  {statusMeta.label}
+                </span>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                <MiniStat label="출석" value={stats.attendance} tone="primary" />
-                <MiniStat label="지각" value={stats.late} tone="warning" />
-                <MiniStat label="결석" value={stats.absence} tone="muted" />
+              <div className="mt-5 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+                <MiniStat label="미참여" value={stats.nonParticipation} tone="neutral" onClick={() => setStatModalEvent(event)} />
+                <MiniStat label="출석" value={stats.attendance} tone="primary" onClick={() => setStatModalEvent(event)} />
+                <MiniStat label="지각" value={stats.late} tone="warning" onClick={() => setStatModalEvent(event)} />
+                <MiniStat label="결석" value={stats.absence} tone="danger" onClick={() => setStatModalEvent(event)} />
               </div>
 
               <div className="mt-5 space-y-3">
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-monolith-onSurfaceMuted">
+                    세션 상태
+                  </label>
+                  <select
+                    value={data?.statuses[event] ?? 'scheduled'}
+                    onChange={(changeEvent) => void handleStatusChange(event, changeEvent.target.value as SessionStatus)}
+                    disabled={isStatusProcessing}
+                    className="w-full rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-3 text-sm font-semibold text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer disabled:opacity-60"
+                  >
+                    <option value="scheduled">예정</option>
+                    <option value="in_progress">진행중</option>
+                    <option value="completed">종료</option>
+                    <option value="cancelled">취소</option>
+                  </select>
+                </div>
+
                 {isActive ? (
                   <button
                     type="button"
@@ -273,17 +369,21 @@ export default function AdminAttendanceManager() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setViewingQR(viewingQR === event ? null : event)}
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      setQrModalEvent(event);
+                    }}
                     className="interactive-soft flex items-center justify-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-3 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface"
                   >
                     <QrCode className="h-4 w-4" />
-                    {viewingQR === event ? 'QR 닫기' : 'QR 보기'}
+                    QR 보기
                   </button>
 
                   <a
                     href={eventLink}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={(clickEvent) => clickEvent.stopPropagation()}
                     className="interactive-soft flex items-center justify-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-3 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface"
                   >
                     <SquareArrowOutUpRight className="h-4 w-4" />
@@ -291,36 +391,138 @@ export default function AdminAttendanceManager() {
                   </a>
                 </div>
 
-                {viewingQR === event ? (
-                  <div className="rounded-2xl bg-white p-5 text-center shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
-                    <QRCodeSVG value={eventLink} size={180} includeMargin />
-                    <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-monolith-onSurfaceMuted">
-                      <Link2 className="h-3.5 w-3.5" />
-                      <span>{eventLink}</span>
-                    </div>
-                  </div>
-                ) : null}
               </div>
             </div>
           );
         })}
       </div>
+
+      {statModalEvent ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00172d]/40 px-4 py-8 backdrop-blur-[2px]">
+          <div className="w-full max-w-5xl rounded-[2rem] border border-monolith-outlineVariant/20 bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">참여 현황</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-onSurface">{statModalEvent}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatModalEvent(null)}
+                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow text-monolith-onSurfaceMuted transition hover:border-monolith-outlineVariant/40 hover:text-monolith-onSurface"
+                aria-label="닫기"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow">
+              <div className="grid grid-cols-[1.1fr_0.8fr] gap-4 border-b border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-monolith-onSurfaceMuted">
+                <span>참여자</span>
+                <span>상태 변경</span>
+              </div>
+              <div className="max-h-[28rem] overflow-y-auto">
+                {participantsLoading ? (
+                  <div className="px-4 py-6 text-sm text-monolith-onSurfaceMuted">참여자 목록을 불러오는 중입니다.</div>
+                ) : participants.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-monolith-onSurfaceMuted">표시할 참여자가 없습니다.</div>
+                ) : (
+                  participants.map((participant) => (
+                    <div
+                      key={participant.memberId}
+                      className="grid grid-cols-[1.1fr_0.8fr] items-center gap-4 border-b border-monolith-outlineVariant/15 bg-white px-4 py-3 last:border-b-0"
+                    >
+                      <div>
+                        <p className="font-semibold text-monolith-onSurface">{participant.name}</p>
+                        <p className="mt-1 text-xs text-monolith-onSurfaceMuted">
+                          현재 상태: {getParticipantStatusLabel(participant.status)}
+                        </p>
+                      </div>
+                      <select
+                        value={participant.status}
+                        onChange={(changeEvent) =>
+                          void handleParticipantStatusChange(
+                            statModalEvent,
+                            participant.memberId,
+                            changeEvent.target.value as ParticipantStatus,
+                          )
+                        }
+                        disabled={participantProcessingId === participant.memberId}
+                        className="w-full rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-3 text-sm font-semibold text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer disabled:opacity-60"
+                      >
+                        <option value="nonParticipation">미참여</option>
+                        <option value="present">출석</option>
+                        <option value="late">지각</option>
+                        <option value="absent">결석</option>
+                      </select>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {qrModalEvent ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00172d]/40 px-4 py-8 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-[2rem] border border-monolith-outlineVariant/20 bg-white p-6 text-center shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
+            <div className="flex items-start justify-between gap-4 text-left">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">QR 코드</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-onSurface">{qrModalEvent}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQrModalEvent(null)}
+                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow text-monolith-onSurfaceMuted transition hover:border-monolith-outlineVariant/40 hover:text-monolith-onSurface"
+                aria-label="닫기"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            <div className="mt-6 rounded-2xl bg-white p-5 shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
+              <QRCodeSVG value={`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(qrModalEvent))}`} size={220} includeMargin />
+            </div>
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-monolith-onSurfaceMuted">
+              <Link2 className="h-3.5 w-3.5" />
+              <span>{`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(qrModalEvent))}`}</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function MiniStat({ label, value, tone }: { label: string; value: number; tone: 'primary' | 'warning' | 'muted' }) {
+function MiniStat({
+  label,
+  value,
+  tone,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  tone: 'primary' | 'warning' | 'danger' | 'neutral';
+  onClick: () => void;
+}) {
   const toneClass =
     tone === 'primary'
-      ? 'bg-monolith-primaryFixed text-monolith-primary'
+      ? 'bg-[#e7f6ec] text-[#1f7a3d]'
       : tone === 'warning'
         ? 'bg-[#fff1cc] text-[#8a5a00]'
-        : 'bg-monolith-surfaceLowest text-monolith-onSurfaceMuted';
+        : tone === 'danger'
+          ? 'bg-monolith-errorContainer text-monolith-error'
+          : 'bg-[#eceff3] text-[#5f6b7a]';
 
   return (
-    <div className={['rounded-xl px-3 py-4', toneClass].join(' ')}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={['interactive-soft rounded-xl px-3 py-4 transition hover:brightness-[0.98]', toneClass].join(' ')}
+    >
       <p className="text-[11px] font-bold uppercase tracking-[0.14em]">{label}</p>
       <p className="mt-2 text-xl font-black">{value}</p>
-    </div>
+    </button>
   );
 }

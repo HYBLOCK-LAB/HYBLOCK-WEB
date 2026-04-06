@@ -6,6 +6,7 @@ type SessionRow = {
   session_type: 'basic' | 'advanced' | 'misc' | 'external' | 'hackathon';
   title: string;
   content: string | null;
+  check_in_code: string | null;
   session_start_time: string;
   session_end_time: string | null;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
@@ -21,9 +22,27 @@ type MemberRow = {
 };
 
 type AttendanceRow = {
+  attendance_id?: string;
   member_id: number;
   status: 'present' | 'late' | 'absent' | null;
   session_id: string;
+  attended_at?: string | null;
+};
+
+export type AttendanceSessionSummary = {
+  id: string;
+  name: string;
+  content: string | null;
+  category: string;
+  status: SessionRow['status'];
+};
+
+export type AdminParticipantAttendanceStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
+
+export type AdminEventParticipant = {
+  memberId: number;
+  name: string;
+  status: AdminParticipantAttendanceStatus;
 };
 
 const DEFAULT_COHORT = Number(process.env.DEFAULT_SESSION_COHORT ?? '1');
@@ -50,6 +69,95 @@ const attendanceLabelMap: Record<NonNullable<AttendanceRow['status']>, string> =
   absent: 'Absence',
 };
 
+function isMissingCheckInCodeColumnError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    (error.code === '42703' || error.code === 'PGRST204') &&
+    typeof error.message === 'string' &&
+    (error.message.includes('attendance_session.check_in_code') ||
+      error.message.includes("'check_in_code' column of 'attendance_session'"))
+  );
+}
+
+async function selectSessions(includeCheckInCode: boolean) {
+  const supabase = getSupabase();
+  const selectColumns = includeCheckInCode
+    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+
+  const query = supabase.from('attendance_session').select(selectColumns);
+
+  const { data, error } = await query
+    .order('created_at', { ascending: true })
+    .returns<Array<Omit<SessionRow, 'check_in_code'> & { check_in_code?: string | null }>>();
+
+  if (error) throw error;
+
+  return (data ?? []).map((session) => ({
+    ...session,
+    check_in_code: session.check_in_code ?? null,
+  })) as SessionRow[];
+}
+
+async function selectSessionByEventName(eventName: string, includeCheckInCode: boolean) {
+  const supabase = getSupabase();
+  const selectColumns = includeCheckInCode
+    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+
+  const { data, error } = await supabase
+    .from('attendance_session')
+    .select(selectColumns)
+    .eq('title', eventName)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<Omit<SessionRow, 'check_in_code'> & { check_in_code?: string | null }>();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    ...data,
+    check_in_code: data.check_in_code ?? null,
+  } as SessionRow;
+}
+
+async function updateSessionWithOptionalCheckInCode(sessionId: string, payload: Partial<SessionRow>) {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('attendance_session').update(payload).eq('session_id', sessionId);
+
+  if (!error) return;
+  if (!isMissingCheckInCodeColumnError(error)) throw error;
+
+  const { check_in_code: _ignored, ...fallbackPayload } = payload;
+  const { error: fallbackError } = await supabase.from('attendance_session').update(fallbackPayload).eq('session_id', sessionId);
+  if (fallbackError) throw fallbackError;
+}
+
+async function bulkUpdateSessionsWithOptionalCheckInCode(matchStatus: SessionRow['status'], excludeSessionId: string, payload: Partial<SessionRow>) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('attendance_session')
+    .update(payload)
+    .eq('status', matchStatus)
+    .neq('session_id', excludeSessionId);
+
+  if (!error) return;
+  if (!isMissingCheckInCodeColumnError(error)) throw error;
+
+  const { check_in_code: _ignored, ...fallbackPayload } = payload;
+  const { error: fallbackError } = await supabase
+    .from('attendance_session')
+    .update(fallbackPayload)
+    .eq('status', matchStatus)
+    .neq('session_id', excludeSessionId);
+
+  if (fallbackError) throw fallbackError;
+}
+
 function requireTitle(session: Pick<SessionRow, 'title' | 'session_id'>): string {
   if (!session.title || session.title.trim() === '') {
     throw new Error(`Session ${session.session_id} is missing title.`);
@@ -58,29 +166,21 @@ function requireTitle(session: Pick<SessionRow, 'title' | 'session_id'>): string
 }
 
 async function getSessionByEventName(eventName: string) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('attendance_session')
-    .select('session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at')
-    .eq('title', eventName)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<SessionRow>();
-
-  if (error) throw error;
-  return data;
+  try {
+    return await selectSessionByEventName(eventName, true);
+  } catch (error) {
+    if (!isMissingCheckInCodeColumnError(error)) throw error;
+    return selectSessionByEventName(eventName, false);
+  }
 }
 
 async function getSessions() {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('attendance_session')
-    .select('session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at')
-    .order('created_at', { ascending: true })
-    .returns<SessionRow[]>();
-
-  if (error) throw error;
-  return data ?? [];
+  try {
+    return await selectSessions(true);
+  } catch (error) {
+    if (!isMissingCheckInCodeColumnError(error)) throw error;
+    return selectSessions(false);
+  }
 }
 
 function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
@@ -88,23 +188,52 @@ function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
   return attendedAt <= lateBoundary ? 'present' : 'late';
 }
 
+function generateCheckInCode(length = 6) {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length }, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+}
+
 export async function getActiveEvent() {
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('attendance_session')
-      .select('session_id, title, updated_at')
-      .eq('status', 'in_progress')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<{ session_id: string; title: string; updated_at: string | null }>();
+    let data:
+      | { session_id: string; title: string; updated_at: string | null; check_in_code: string | null }
+      | { session_id: string; title: string; updated_at: string | null; check_in_code?: string | null }
+      | null;
 
-    if (error) throw error;
+    try {
+      const result = await supabase
+        .from('attendance_session')
+        .select('session_id, title, updated_at, check_in_code')
+        .eq('status', 'in_progress')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>();
+
+      if (result.error) throw result.error;
+      data = result.data;
+    } catch (error) {
+      if (!isMissingCheckInCodeColumnError(error)) throw error;
+
+      const fallbackResult = await supabase
+        .from('attendance_session')
+        .select('session_id, title, updated_at')
+        .eq('status', 'in_progress')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<{ session_id: string; title: string; updated_at: string | null }>();
+
+      if (fallbackResult.error) throw fallbackResult.error;
+      data = fallbackResult.data ? { ...fallbackResult.data, check_in_code: null } : null;
+    }
+
     if (!data?.title) return null;
 
     return {
+      sessionId: data.session_id,
       name: data.title,
       activatedAt: data.updated_at,
+      checkInCode: data.check_in_code,
     };
   } catch (error) {
     console.error('getActiveEvent error:', error);
@@ -113,32 +242,28 @@ export async function getActiveEvent() {
 }
 
 export async function setActiveEvent(eventName: string) {
-  const supabase = getSupabase();
   const session = await getSessionByEventName(eventName);
   if (!session) {
     throw new Error(`Event not found: ${eventName}`);
   }
 
   const now = new Date().toISOString();
+  const checkInCode = generateCheckInCode();
 
-  const { error: deactivateError } = await supabase
-    .from('attendance_session')
-    .update({ status: 'scheduled', updated_at: now })
-    .eq('status', 'in_progress')
-    .neq('session_id', session.session_id);
+  await bulkUpdateSessionsWithOptionalCheckInCode('in_progress', session.session_id, {
+    status: 'scheduled',
+    updated_at: now,
+    check_in_code: null,
+  });
 
-  if (deactivateError) throw deactivateError;
+  await updateSessionWithOptionalCheckInCode(session.session_id, {
+    status: 'in_progress',
+    session_start_time: now,
+    updated_at: now,
+    check_in_code: checkInCode,
+  });
 
-  const { error } = await supabase
-    .from('attendance_session')
-    .update({
-      status: 'in_progress',
-      session_start_time: now,
-      updated_at: now,
-    })
-    .eq('session_id', session.session_id);
-
-  if (error) throw error;
+  return checkInCode;
 }
 
 export async function deactivateActiveEvent() {
@@ -156,16 +281,12 @@ export async function deactivateActiveEvent() {
 
   const now = new Date().toISOString();
 
-  const { error: sessionUpdateError } = await supabase
-    .from('attendance_session')
-    .update({
-      status: 'completed',
-      session_end_time: now,
-      updated_at: now,
-    })
-    .eq('session_id', activeSession.session_id);
-
-  if (sessionUpdateError) throw sessionUpdateError;
+  await updateSessionWithOptionalCheckInCode(activeSession.session_id, {
+    status: 'completed',
+    session_end_time: now,
+    updated_at: now,
+    check_in_code: null,
+  });
 
   const { data: members, error: membersError } = await supabase
     .from('member')
@@ -200,6 +321,70 @@ export async function deactivateActiveEvent() {
   }
 }
 
+export async function updateEventStatus(eventName: string, nextStatus: SessionRow['status']) {
+  if (nextStatus === 'in_progress') {
+    await setActiveEvent(eventName);
+    return;
+  }
+
+  const supabase = getSupabase();
+  const session = await getSessionByEventName(eventName);
+  if (!session) {
+    throw new Error(`Event not found: ${eventName}`);
+  }
+
+  const now = new Date().toISOString();
+  const updatePayload: Partial<SessionRow> = {
+    status: nextStatus,
+    updated_at: now,
+    check_in_code: null,
+  };
+
+  if (nextStatus === 'completed') {
+    updatePayload.session_end_time = now;
+  }
+
+  if (nextStatus === 'scheduled') {
+    updatePayload.session_end_time = null;
+  }
+
+  await updateSessionWithOptionalCheckInCode(session.session_id, updatePayload);
+
+  if (session.status === 'in_progress' && nextStatus === 'completed') {
+    const { data: members, error: membersError } = await supabase
+      .from('member')
+      .select('id, name')
+      .eq('cohort', session.cohort)
+      .eq('is_active', true)
+      .returns<MemberRow[]>();
+
+    if (membersError) throw membersError;
+
+    const { data: existingAttendance, error: existingAttendanceError } = await supabase
+      .from('attendance_record')
+      .select('member_id')
+      .eq('session_id', session.session_id)
+      .returns<Array<{ member_id: number }>>();
+
+    if (existingAttendanceError) throw existingAttendanceError;
+
+    const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
+    const absentRows = (members ?? [])
+      .filter((member) => !existingMemberIds.has(member.id))
+      .map((member) => ({
+        session_id: session.session_id,
+        member_id: member.id,
+        attended_at: null,
+        status: 'absent',
+      }));
+
+    if (absentRows.length > 0) {
+      const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
+      if (insertError) throw insertError;
+    }
+  }
+}
+
 export async function getEvents() {
   try {
     const sessions = await getSessions();
@@ -209,6 +394,39 @@ export async function getEvents() {
   } catch (error: any) {
     console.error('getEvents error:', error.message);
     throw new Error(`Failed to fetch events: ${error.message}`);
+  }
+}
+
+export async function getAttendanceSessions() {
+  try {
+    const sessions = await getSessions();
+    return sessions
+      .filter((session): session is SessionRow & { title: string } => Boolean(session.title?.trim()))
+      .map<AttendanceSessionSummary>((session) => ({
+        id: session.session_id,
+        name: session.title.trim(),
+        content: session.content,
+        category: sessionTypeToCategory(session.session_type),
+        status: session.status,
+      }));
+  } catch (error) {
+    console.error('getAttendanceSessions error:', error);
+    return [];
+  }
+}
+
+export async function getEventContents() {
+  try {
+    const sessions = await getSessions();
+    return sessions.reduce<Record<string, string | null>>((acc, session) => {
+      if (session.title) {
+        acc[session.title] = session.content;
+      }
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('getEventContents error:', error);
+    return {};
   }
 }
 
@@ -223,6 +441,21 @@ export async function getEventCategories() {
     }, {});
   } catch (error) {
     console.error('getEventCategories error:', error);
+    return {};
+  }
+}
+
+export async function getEventStatuses() {
+  try {
+    const sessions = await getSessions();
+    return sessions.reduce<Record<string, SessionRow['status']>>((acc, session) => {
+      if (session.title) {
+        acc[session.title] = session.status;
+      }
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('getEventStatuses error:', error);
     return {};
   }
 }
@@ -260,6 +493,9 @@ export async function checkIn(name: string, event: string) {
     if (!session) {
       throw new Error(`Invalid event: ${event}`);
     }
+    if (session.status !== 'in_progress') {
+      return { success: false, reason: 'inactive' as const };
+    }
 
     const { data: members, error: memberError } = await supabase
       .from('member')
@@ -270,24 +506,57 @@ export async function checkIn(name: string, event: string) {
 
     if (memberError) throw memberError;
     if (!members || members.length === 0) {
-      return { success: false };
+      return { success: false, reason: 'member_not_found' as const };
     }
     if (members.length > 1) {
       throw new Error(`Multiple active members found with name: ${name}`);
     }
 
     const member = members[0];
+    return checkInByMemberId(member.id, event, member.name);
+  } catch (error: any) {
+    console.error('checkIn error:', error.message);
+    throw error;
+  }
+}
+
+export async function checkInByMemberId(memberId: number, event: string, memberName?: string) {
+  try {
+    const supabase = getSupabase();
+    const session = await getSessionByEventName(event);
+    if (!session) {
+      throw new Error(`Invalid event: ${event}`);
+    }
+    if (session.status !== 'in_progress') {
+      return { success: false, reason: 'inactive' as const };
+    }
+
+    const { data: member, error: memberError } = await supabase
+      .from('member')
+      .select('id, name, is_active')
+      .eq('id', memberId)
+      .maybeSingle<{ id: number; name: string; is_active: boolean }>();
+
+    if (memberError) throw memberError;
+    if (!member || !member.is_active) {
+      return { success: false, reason: 'member_not_found' as const };
+    }
 
     const { data: existingAttendance, error: attendanceLookupError } = await supabase
       .from('attendance_record')
-      .select('attendance_id')
+      .select('attendance_id, status')
       .eq('session_id', session.session_id)
       .eq('member_id', member.id)
-      .maybeSingle<{ attendance_id: string }>();
+      .maybeSingle<{ attendance_id: string; status: 'present' | 'late' | 'absent' | null }>();
 
     if (attendanceLookupError) throw attendanceLookupError;
     if (existingAttendance) {
-      return { success: true, alreadyCheckedIn: true };
+      return {
+        success: true,
+        alreadyCheckedIn: true,
+        memberName: memberName ?? member.name,
+        status: existingAttendance.status ?? undefined,
+      };
     }
 
     const attendedAt = new Date();
@@ -301,11 +570,28 @@ export async function checkIn(name: string, event: string) {
     });
 
     if (insertError) throw insertError;
-    return { success: true, alreadyCheckedIn: false };
+    return { success: true, alreadyCheckedIn: false, memberName: memberName ?? member.name, status };
   } catch (error: any) {
-    console.error('checkIn error:', error.message);
+    console.error('checkInByMemberId error:', error.message);
     throw error;
   }
+}
+
+export async function verifyActiveEventCode(eventName: string, code: string) {
+  const session = await getSessionByEventName(eventName);
+  if (!session) {
+    return { valid: false, reason: 'event_not_found' as const };
+  }
+
+  if (session.status !== 'in_progress') {
+    return { valid: false, reason: 'inactive' as const };
+  }
+
+  if (!session.check_in_code || session.check_in_code !== code.trim().toUpperCase()) {
+    return { valid: false, reason: 'code_mismatch' as const };
+  }
+
+  return { valid: true };
 }
 
 export async function getAttendanceData() {
@@ -360,6 +646,103 @@ export async function getAttendanceData() {
     console.error('getAttendanceData error:', error);
     return [];
   }
+}
+
+export async function getEventParticipants(eventName: string) {
+  const supabase = getSupabase();
+  const session = await getSessionByEventName(eventName);
+
+  if (!session) {
+    throw new Error(`Event not found: ${eventName}`);
+  }
+
+  const { data: members, error: membersError } = await supabase
+    .from('member')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+    .returns<Array<{ id: number; name: string }>>();
+
+  if (membersError) throw membersError;
+
+  const { data: attendanceRows, error: attendanceError } = await supabase
+    .from('attendance_record')
+    .select('member_id, status')
+    .eq('session_id', session.session_id)
+    .returns<Array<{ member_id: number; status: 'present' | 'late' | 'absent' | null }>>();
+
+  if (attendanceError) throw attendanceError;
+
+  const statusByMemberId = new Map((attendanceRows ?? []).map((row) => [row.member_id, row.status]));
+
+  return (members ?? []).map<AdminEventParticipant>((member) => ({
+    memberId: member.id,
+    name: member.name,
+    status: (statusByMemberId.get(member.id) ?? 'nonParticipation') as AdminParticipantAttendanceStatus,
+  }));
+}
+
+export async function updateParticipantAttendanceStatus(params: {
+  eventName: string;
+  memberId: number;
+  status: AdminParticipantAttendanceStatus;
+}) {
+  const supabase = getSupabase();
+  const session = await getSessionByEventName(params.eventName);
+
+  if (!session) {
+    throw new Error(`Event not found: ${params.eventName}`);
+  }
+
+  const { data: member, error: memberError } = await supabase
+    .from('member')
+    .select('id')
+    .eq('id', params.memberId)
+    .eq('is_active', true)
+    .maybeSingle<{ id: number }>();
+
+  if (memberError) throw memberError;
+  if (!member) {
+    throw new Error(`Member not found for event: ${params.memberId}`);
+  }
+
+  if (params.status === 'nonParticipation') {
+    const { error } = await supabase
+      .from('attendance_record')
+      .delete()
+      .eq('session_id', session.session_id)
+      .eq('member_id', params.memberId);
+
+    if (error) throw error;
+    return;
+  }
+
+  const { data: existingAttendance, error: existingAttendanceError } = await supabase
+    .from('attendance_record')
+    .select('attendance_id, attended_at')
+    .eq('session_id', session.session_id)
+    .eq('member_id', params.memberId)
+    .maybeSingle<{ attendance_id: string; attended_at: string | null }>();
+
+  if (existingAttendanceError) throw existingAttendanceError;
+
+  const attendedAt =
+    params.status === 'absent'
+      ? null
+      : existingAttendance?.attended_at ?? new Date().toISOString();
+
+  const payload = {
+    session_id: session.session_id,
+    member_id: params.memberId,
+    attended_at: attendedAt,
+    status: params.status,
+  };
+
+  const { error } = await supabase.from('attendance_record').upsert(payload, {
+    onConflict: 'session_id,member_id',
+  });
+
+  if (error) throw error;
 }
 
 export async function getAdminMembers() {

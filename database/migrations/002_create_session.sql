@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS attendance_session (
   session_type VARCHAR(25) NOT NULL DEFAULT 'basic',
   title VARCHAR(255) NOT NULL,
   content TEXT,
+  check_in_code VARCHAR(32),
 
   -- 세션 시간 정보
   session_start_time TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -49,6 +50,7 @@ COMMENT ON COLUMN attendance_session.cohort IS '세션 기수';
 COMMENT ON COLUMN attendance_session.session_type IS '세션 타입: basic (기본 세션), advanced (심화 세션), misc (기타 활동), external (외부 활동), hackathon (해커톤)';
 COMMENT ON COLUMN attendance_session.title IS '세션 이름';
 COMMENT ON COLUMN attendance_session.content IS '세션 설명';
+COMMENT ON COLUMN attendance_session.check_in_code IS '세션 활성화 시 생성되는 출석 확인 코드';
 COMMENT ON COLUMN attendance_session.session_start_time IS '세션 시작 시간 (출석 상태 판정 기준)';
 COMMENT ON COLUMN attendance_session.session_end_time IS '세션 종료 시간';
 COMMENT ON COLUMN attendance_session.status IS '세션 상태: scheduled, in_progress, completed';

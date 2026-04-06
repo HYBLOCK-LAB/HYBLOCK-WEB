@@ -57,20 +57,49 @@ export default function AboutPage() {
             </section>
 
             <section>
-              <h3 className="text-3xl font-bold uppercase tracking-tight text-monolith-primary">History</h3>
-              <div className="relative ml-3 mt-12 space-y-12 border-l-2 border-monolith-primary/20 pl-10 sm:space-y-16 sm:pl-12">
-                {aboutHistory.map((item, index) => (
-                  <div key={item.year} className="relative">
+              <div className="mb-10">
+                <span className="block h-3 w-12 bg-monolith-primary" />
+                <h3 className="mt-3 text-4xl font-black tracking-[-0.06em] text-black">연혁</h3>
+              </div>
+
+              <div className="relative overflow-hidden bg-[#f8f8f6] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+                <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[36px] -translate-x-1/2 bg-[linear-gradient(180deg,#08163a_0%,#0b2a6d_28%,#123c96_56%,#0b2a6d_78%,#08163a_100%)] shadow-[0_0_32px_rgba(12,53,133,0.35)] lg:block" />
+
+                <div className="relative space-y-10 lg:space-y-0">
+                  {aboutHistory.map((item, index) => (
                     <div
+                      key={item.year}
                       className={[
-                        'absolute -left-[54px] top-1 h-6 w-6 rounded-sm',
-                        index === 0 ? 'bg-monolith-primary' : index === 1 ? 'bg-monolith-primary/60' : 'bg-monolith-primary/30',
+                        'relative lg:grid lg:grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)]',
+                        index > 0 ? 'lg:-mt-6' : '',
                       ].join(' ')}
-                    />
-                    <span className="block text-2xl font-black text-monolith-primary">{item.year}</span>
-                    <p className="mt-2 text-monolith-onSurfaceMuted">{item.description}</p>
-                  </div>
-                ))}
+                    >
+                      <div
+                        className={[
+                          'lg:px-10',
+                          item.side === 'left'
+                            ? 'lg:col-start-1 lg:text-right'
+                            : 'lg:col-start-3 lg:text-left',
+                        ].join(' ')}
+                      >
+                        <div
+                          className={[
+                            'mx-auto max-w-[280px] border-t border-black/70 pt-5 lg:mx-0',
+                            item.side === 'left' ? 'lg:ml-auto' : '',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-baseline gap-3 lg:gap-4">
+                            <span className="text-5xl font-black tracking-[-0.08em] text-[#33479b] sm:text-6xl">{item.year}</span>
+                            <h4 className="text-2xl font-black tracking-[-0.05em] text-black sm:text-4xl">{item.title}</h4>
+                          </div>
+                          <p className="mt-4 whitespace-pre-line text-lg leading-8 text-black/55">{item.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="hidden lg:block" />
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
           </div>

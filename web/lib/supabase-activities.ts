@@ -97,3 +97,66 @@ export async function createActivity(params: {
     cohort: data.cohort,
   } satisfies ActivityItem;
 }
+
+export async function updateActivity(params: {
+  id: string;
+  name: string;
+  description?: string;
+  sessionType: ActivitySessionType;
+  date: string;
+  cohort?: number;
+}) {
+  const supabase = getSupabase();
+  const updatePayload: {
+    title: string;
+    content: string | null;
+    session_type: ActivitySessionType;
+    session_start_time: string;
+    updated_at: string;
+    cohort?: number;
+  } = {
+    title: params.name,
+    content: params.description?.trim() || null,
+    session_type: params.sessionType,
+    session_start_time: params.date,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (typeof params.cohort === 'number') {
+    updatePayload.cohort = params.cohort;
+  }
+
+  const { data, error } = await supabase
+    .from('attendance_session')
+    .update(updatePayload)
+    .eq('session_id', params.id)
+    .select('session_id, title, content, session_type, session_start_time, status, cohort')
+    .single<{
+      session_id: string;
+      title: string;
+      content: string | null;
+      session_type: ActivitySessionType;
+      session_start_time: string;
+      status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+      cohort: number;
+    }>();
+
+  if (error) throw error;
+
+  return {
+    id: data.session_id,
+    name: data.title,
+    description: data.content,
+    sessionType: data.session_type,
+    date: data.session_start_time,
+    status: data.status,
+    cohort: data.cohort,
+  } satisfies ActivityItem;
+}
+
+export async function deleteActivity(activityId: string) {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('attendance_session').delete().eq('session_id', activityId);
+
+  if (error) throw error;
+}

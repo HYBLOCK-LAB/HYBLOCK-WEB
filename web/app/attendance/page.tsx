@@ -1,19 +1,23 @@
 import SiteChrome from '@/components/SiteChrome';
 import AttendanceLanding from '@/components/AttendanceLanding';
-import { getActiveEvent, getEventCategories, getEvents } from '@/lib/supabase-attendance';
+import { getActiveEvent, getAdminMembers, getAttendanceSessions } from '@/lib/supabase-attendance';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AttendancePage() {
-  const [events, activeEvent, categories] = await Promise.all([
-    getEvents().catch(() => []),
+  const [sessions, activeEvent, members] = await Promise.all([
+    getAttendanceSessions(),
     getActiveEvent().catch(() => null),
-    getEventCategories().catch(() => ({})),
+    getAdminMembers().catch(() => []),
   ]);
 
   return (
     <SiteChrome activePath="/attendance">
-      <AttendanceLanding events={events} activeEvent={activeEvent} categories={categories} />
+      <AttendanceLanding
+        sessions={sessions}
+        activeEvent={activeEvent}
+        members={members.filter((member) => member.isActive).map((member) => member.name)}
+      />
     </SiteChrome>
   );
 }

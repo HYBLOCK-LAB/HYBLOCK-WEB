@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { createNotice, deleteNotice, getAllNotices, updateNotice } from '@/lib/supabase-notices';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const notices = await getAllNotices();
     return NextResponse.json({ notices });
@@ -14,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   let body: {
     category: string;
     title: string;
@@ -51,6 +58,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   let body: {
     id: number;
     category: string;
@@ -90,6 +100,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   const rawId = request.nextUrl.searchParams.get('id');
   const id = rawId ? Number(rawId) : NaN;
 

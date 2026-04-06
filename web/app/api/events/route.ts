@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import {
   getEvents,
   getAttendanceData,
   addEvent,
   getActiveEvent,
+  getActiveEvents,
   setActiveEvent,
   getEventCategories,
   getEventContents,
   getEventStatuses,
-  deactivateActiveEvent,
+  deactivateEvent,
   updateEventStatus,
   getEventParticipants,
   updateParticipantAttendanceStatus,
@@ -18,6 +20,9 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: Request) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const eventName = searchParams.get('eventName')?.trim();
@@ -30,11 +35,12 @@ export async function GET(request: Request) {
 
     const events = await getEvents();
     const attendanceData = await getAttendanceData();
-    const activeEvent = await getActiveEvent();
+    const activeEvents = await getActiveEvents();
+    const activeEvent = activeEvents[0] ?? null;
     const categories = await getEventCategories();
     const contents = await getEventContents();
     const statuses = await getEventStatuses();
-    return NextResponse.json({ events, attendanceData, activeEvent, categories, contents, statuses });
+    return NextResponse.json({ events, attendanceData, activeEvent, activeEvents, categories, contents, statuses });
   } catch (error) {
     console.error('Events GET error:', error);
     return NextResponse.json({ error: '출석 데이터를 불러오지 못했습니다.' }, { status: 500 });
@@ -42,11 +48,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const { eventName, setActive, deactivate, category } = await request.json();
     
     if (deactivate) {
-      await deactivateActiveEvent();
+      await deactivateEvent(typeof eventName === 'string' ? eventName : undefined);
       return NextResponse.json({ success: true });
     }
 
@@ -67,6 +76,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const { eventName, status, memberId, attendanceStatus } = await request.json();
 

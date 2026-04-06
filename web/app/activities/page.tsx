@@ -1,13 +1,11 @@
 import SiteChrome from '@/components/SiteChrome';
 import ActivitiesGallery from '@/components/activities/ActivitiesGallery';
-import { getActivities } from '@/lib/supabase-activities';
+import { mockActivityGalleryPhotos } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ActivitiesPage() {
-  const activities = await getActivities().catch(() => []);
-
   return (
     <SiteChrome activePath="/activities">
       <main className="mx-auto max-w-7xl px-6 pb-20 pt-12 sm:pb-24 sm:pt-16 lg:px-8">
@@ -23,7 +21,7 @@ export default async function ActivitiesPage() {
           </p>
         </div>
 
-        <ActivitiesGallery activities={activities} />
+        <ActivitiesGallery photos={mockActivityGalleryPhotos} />
       </main>
     </SiteChrome>
   );

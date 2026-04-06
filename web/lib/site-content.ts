@@ -16,6 +16,13 @@ export type WalletLinkPageContent = {
   }>;
 };
 
+export type ActivityGalleryPhoto = {
+  id: string;
+  src: string;
+  alt: string;
+  height: number;
+};
+
 export const brandMenuItems: NavItem[] = [
   { href: '/about', label: '소개' },
   { href: '/bylaws', label: '회칙' },
@@ -94,6 +101,63 @@ export const activities = [
     title: 'DeFi Protocol Architecture Deep Dive',
     description: '주요 디파이 프로토콜의 경제 모델과 시스템 설계를 비교 분석했습니다.',
     image: 'https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=1200&q=80',
+  },
+];
+
+export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
+  {
+    id: 'gallery-1',
+    src: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+    alt: 'HYBLOCK 세션에서 발표를 듣는 참가자들',
+    height: 820,
+  },
+  {
+    id: 'gallery-2',
+    src: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80',
+    alt: '팀 단위로 협업하는 해커톤 현장',
+    height: 640,
+  },
+  {
+    id: 'gallery-3',
+    src: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+    alt: '스터디 그룹이 함께 토론하는 모습',
+    height: 760,
+  },
+  {
+    id: 'gallery-4',
+    src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+    alt: '외부 네트워킹 행사에서 교류하는 참가자들',
+    height: 540,
+  },
+  {
+    id: 'gallery-5',
+    src: 'https://images.unsplash.com/photo-1518186233392-c232efbf2373?auto=format&fit=crop&w=1200&q=80',
+    alt: '보안 워크숍에서 자료를 검토하는 장면',
+    height: 700,
+  },
+  {
+    id: 'gallery-6',
+    src: 'https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=1200&q=80',
+    alt: '프로토콜 아키텍처를 설명하는 세미나 슬라이드',
+    height: 860,
+  },
+  {
+    id: 'gallery-7',
+    src: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
+    alt: '프로젝트 아이디어를 공유하는 팀 미팅',
+    height: 620,
+  },
+  {
+    id: 'gallery-8',
+    src: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+    alt: '노트북으로 작업 중인 멤버들',
+    height: 780,
+  },
+  {
+    id: 'gallery-9',
+    src: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
+    alt: '행사 종료 후 단체 교류 장면',
+    height: 680,
   },
 ];
 

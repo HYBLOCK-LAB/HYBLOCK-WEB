@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { createActivity, deleteActivity, getActivities, updateActivity, type ActivitySessionType } from '@/lib/supabase-activities';
 
 export async function GET() {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const activities = await getActivities();
     return NextResponse.json({ activities });
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   let body: {
     name: string;
     description?: string;
@@ -51,6 +58,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   const activityId = new URL(request.url).searchParams.get('id')?.trim();
 
   if (!activityId) {
@@ -67,6 +77,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   let body: {
     id: string;
     name: string;

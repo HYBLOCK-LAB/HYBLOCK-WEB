@@ -32,7 +32,7 @@ export default function CheckInForm({
   const queryEvent = encodedParam ? decodeEvent(encodedParam) : null;
   const event = eventName ?? queryEvent;
   
-  const [activeEvent, setActiveEvent] = useState<{ name: string, activatedAt: string | null } | null>(null);
+  const [activeEvents, setActiveEvents] = useState<Array<{ name: string; activatedAt: string | null }>>([]);
   const [eventStatuses, setEventStatuses] = useState<Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>>({});
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [name, setName] = useState('');
@@ -47,7 +47,7 @@ export default function CheckInForm({
         const response = await fetch('/api/events');
         const data = await response.json();
         if (response.ok) {
-          setActiveEvent(data.activeEvent);
+          setActiveEvents(Array.isArray(data.activeEvents) ? data.activeEvents : data.activeEvent ? [data.activeEvent] : []);
           setEventStatuses(data.statuses ?? {});
         }
       } catch (error) {
@@ -60,7 +60,8 @@ export default function CheckInForm({
   }, []);
 
   useEffect(() => {
-    const activatedAtValue = activeEvent?.activatedAt;
+    const currentActiveEvent = activeEvents.find((activeEvent) => activeEvent.name === event) ?? null;
+    const activatedAtValue = currentActiveEvent?.activatedAt;
     if (!activatedAtValue) return;
 
     const timer = setInterval(() => {
@@ -79,10 +80,11 @@ export default function CheckInForm({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeEvent]);
+  }, [activeEvents, event]);
 
   const eventStatus = event ? eventStatuses[event] : undefined;
-  const isEventOpen = event && activeEvent && event === activeEvent.name;
+  const currentActiveEvent = event ? activeEvents.find((activeEvent) => activeEvent.name === event) ?? null : null;
+  const isEventOpen = Boolean(event && currentActiveEvent);
   const inactiveReason =
     eventStatus === 'completed'
       ? '종료된 세션입니다.'

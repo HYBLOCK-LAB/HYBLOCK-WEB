@@ -37,6 +37,13 @@ export type AttendanceSessionSummary = {
   status: SessionRow['status'];
 };
 
+export type ActiveAttendanceEvent = {
+  sessionId: string;
+  name: string;
+  activatedAt: string | null;
+  checkInCode?: string | null;
+};
+
 export type AdminParticipantAttendanceStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
 
 export type AdminEventParticipant = {
@@ -194,12 +201,16 @@ function generateCheckInCode(length = 6) {
 }
 
 export async function getActiveEvent() {
+  const activeEvents = await getActiveEvents();
+  return activeEvents[0] ?? null;
+}
+
+export async function getActiveEvents(): Promise<ActiveAttendanceEvent[]> {
   try {
     const supabase = getSupabase();
     let data:
-      | { session_id: string; title: string; updated_at: string | null; check_in_code: string | null }
-      | { session_id: string; title: string; updated_at: string | null; check_in_code?: string | null }
-      | null;
+      | Array<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>
+      | Array<{ session_id: string; title: string; updated_at: string | null; check_in_code?: string | null }>;
 
     try {
       const result = await supabase
@@ -207,11 +218,10 @@ export async function getActiveEvent() {
         .select('session_id, title, updated_at, check_in_code')
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>();
+        .returns<Array<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>>();
 
       if (result.error) throw result.error;
-      data = result.data;
+      data = result.data ?? [];
     } catch (error) {
       if (!isMissingCheckInCodeColumnError(error)) throw error;
 
@@ -220,24 +230,23 @@ export async function getActiveEvent() {
         .select('session_id, title, updated_at')
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle<{ session_id: string; title: string; updated_at: string | null }>();
+        .returns<Array<{ session_id: string; title: string; updated_at: string | null }>>();
 
       if (fallbackResult.error) throw fallbackResult.error;
-      data = fallbackResult.data ? { ...fallbackResult.data, check_in_code: null } : null;
+      data = (fallbackResult.data ?? []).map((session) => ({ ...session, check_in_code: null }));
     }
 
-    if (!data?.title) return null;
-
-    return {
-      sessionId: data.session_id,
-      name: data.title,
-      activatedAt: data.updated_at,
-      checkInCode: data.check_in_code,
-    };
+    return (data ?? [])
+      .filter((session) => Boolean(session.title?.trim()))
+      .map((session) => ({
+        sessionId: session.session_id,
+        name: session.title.trim(),
+        activatedAt: session.updated_at,
+        checkInCode: session.check_in_code ?? null,
+      }));
   } catch (error) {
-    console.error('getActiveEvent error:', error);
-    return null;
+    console.error('getActiveEvents error:', error);
+    return [];
   }
 }
 
@@ -250,12 +259,6 @@ export async function setActiveEvent(eventName: string) {
   const now = new Date().toISOString();
   const checkInCode = generateCheckInCode();
 
-  await bulkUpdateSessionsWithOptionalCheckInCode('in_progress', session.session_id, {
-    status: 'scheduled',
-    updated_at: now,
-    check_in_code: null,
-  });
-
   await updateSessionWithOptionalCheckInCode(session.session_id, {
     status: 'in_progress',
     session_start_time: now,
@@ -267,58 +270,87 @@ export async function setActiveEvent(eventName: string) {
 }
 
 export async function deactivateActiveEvent() {
-  const supabase = getSupabase();
-  const { data: activeSession, error: activeSessionError } = await supabase
-    .from('attendance_session')
-    .select('session_id, cohort, title')
-    .eq('status', 'in_progress')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<{ session_id: string; cohort: number; title: string }>();
+  await deactivateEvent();
+}
 
-  if (activeSessionError) throw activeSessionError;
-  if (!activeSession) return;
+export async function deactivateEvent(eventName?: string) {
+  const supabase = getSupabase();
+  let activeSessions: Array<{ session_id: string; cohort: number; title: string }> = [];
+
+  if (eventName) {
+    const session = await getSessionByEventName(eventName);
+    if (!session || session.status !== 'in_progress') {
+      return;
+    }
+
+    activeSessions = [{ session_id: session.session_id, cohort: session.cohort, title: session.title }];
+  } else {
+    const { data, error } = await supabase
+      .from('attendance_session')
+      .select('session_id, cohort, title')
+      .eq('status', 'in_progress')
+      .returns<Array<{ session_id: string; cohort: number; title: string }>>();
+
+    if (error) throw error;
+    activeSessions = data ?? [];
+  }
 
   const now = new Date().toISOString();
 
-  await updateSessionWithOptionalCheckInCode(activeSession.session_id, {
-    status: 'completed',
-    session_end_time: now,
-    updated_at: now,
-    check_in_code: null,
-  });
+  for (const activeSession of activeSessions) {
+    await updateSessionWithOptionalCheckInCode(activeSession.session_id, {
+      status: 'completed',
+      session_end_time: now,
+      updated_at: now,
+      check_in_code: null,
+    });
 
-  const { data: members, error: membersError } = await supabase
-    .from('member')
-    .select('id, name')
-    .eq('cohort', activeSession.cohort)
-    .eq('is_active', true)
-    .returns<MemberRow[]>();
+    const { data: members, error: membersError } = await supabase
+      .from('member')
+      .select('id, name')
+      .eq('cohort', activeSession.cohort)
+      .eq('is_active', true)
+      .returns<MemberRow[]>();
 
-  if (membersError) throw membersError;
+    if (membersError) throw membersError;
 
-  const { data: existingAttendance, error: existingAttendanceError } = await supabase
-    .from('attendance_record')
-    .select('member_id')
-    .eq('session_id', activeSession.session_id)
-    .returns<Array<{ member_id: number }>>();
+    const { data: existingAttendance, error: existingAttendanceError } = await supabase
+      .from('attendance_record')
+      .select('member_id')
+      .eq('session_id', activeSession.session_id)
+      .returns<Array<{ member_id: number }>>();
 
-  if (existingAttendanceError) throw existingAttendanceError;
+    if (existingAttendanceError) throw existingAttendanceError;
 
-  const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
-  const absentRows = (members ?? [])
-    .filter((member) => !existingMemberIds.has(member.id))
-    .map((member) => ({
-      session_id: activeSession.session_id,
-      member_id: member.id,
-      attended_at: null,
-      status: 'absent',
-    }));
+    const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
+    const absentRows = (members ?? [])
+      .filter((member) => !existingMemberIds.has(member.id))
+      .map((member) => ({
+        session_id: activeSession.session_id,
+        member_id: member.id,
+        attended_at: null,
+        status: 'absent',
+      }));
 
-  if (absentRows.length > 0) {
-    const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
-    if (insertError) throw insertError;
+    if (absentRows.length > 0) {
+      const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
+      if (insertError) throw insertError;
+    }
   }
+}
+
+export async function getActiveEventByName(eventName: string): Promise<ActiveAttendanceEvent | null> {
+  const session = await getSessionByEventName(eventName);
+  if (!session || session.status !== 'in_progress' || !session.title?.trim()) {
+    return null;
+  }
+
+  return {
+    sessionId: session.session_id,
+    name: session.title.trim(),
+    activatedAt: session.updated_at ?? null,
+    checkInCode: session.check_in_code ?? null,
+  };
 }
 
 export async function updateEventStatus(eventName: string, nextStatus: SessionRow['status']) {

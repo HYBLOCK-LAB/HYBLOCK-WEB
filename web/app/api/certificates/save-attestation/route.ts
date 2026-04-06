@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { saveAttestation } from '@/lib/supabase-certificate';
 
 type SaveAttestationBody = {
@@ -11,6 +12,9 @@ type SaveAttestationBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   let body: SaveAttestationBody;
 
   try {

@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ATTENDANCE_QR_TTL_SECONDS, buildAttendanceQrPayload } from '@/lib/attendance-qr';
 import { getAuthenticatedUserFromAccessToken } from '@/lib/supabase-auth';
-import { getActiveEvent } from '@/lib/supabase-attendance';
+import { getActiveEvent, getActiveEventByName } from '@/lib/supabase-attendance';
 import { getMemberByWallet, getMemberByName } from '@/lib/supabase-member';
 import { executeRedisCommand } from '@/lib/upstash-redis';
 import { getWalletSessionMember } from '@/lib/wallet-session';
@@ -16,8 +16,12 @@ function getBearerToken(request: Request) {
 export async function POST(request: Request) {
   try {
     const accessToken = getBearerToken(request);
+    const requestBody = (await request.json().catch(() => ({}))) as { eventName?: string };
+    const requestedEventName = typeof requestBody.eventName === 'string' ? requestBody.eventName.trim() : '';
 
-    const activeEvent = await getActiveEvent();
+    const activeEvent = requestedEventName
+      ? await getActiveEventByName(requestedEventName)
+      : await getActiveEvent();
     if (!activeEvent?.name) {
       return NextResponse.json({ error: '현재 활성화된 세션이 없습니다.' }, { status: 400 });
     }

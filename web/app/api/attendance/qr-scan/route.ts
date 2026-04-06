@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { parseAttendanceQrPayload } from '@/lib/attendance-qr';
-import { checkInByMemberId, getActiveEvent } from '@/lib/supabase-attendance';
+import { checkInByMemberId, getActiveEventByName } from '@/lib/supabase-attendance';
 import { executeRedisCommand } from '@/lib/upstash-redis';
 
 type StoredQrPayload = {
@@ -12,6 +13,9 @@ type StoredQrPayload = {
 };
 
 export async function POST(request: Request) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   try {
     const { token: rawToken } = (await request.json()) as { token?: string };
     const token = typeof rawToken === 'string' ? parseAttendanceQrPayload(rawToken) : null;
@@ -26,9 +30,9 @@ export async function POST(request: Request) {
     }
 
     const payload = JSON.parse(stored) as StoredQrPayload;
-    const activeEvent = await getActiveEvent();
+    const activeEvent = await getActiveEventByName(payload.eventName);
 
-    if (!activeEvent?.name || activeEvent.name !== payload.eventName) {
+    if (!activeEvent?.name) {
       await executeRedisCommand(['DEL', `attendance:qr:${token}`]);
       return NextResponse.json({ error: '현재 활성 세션과 일치하지 않는 QR입니다.' }, { status: 400 });
     }

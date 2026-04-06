@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { CalendarDays, CheckCircle2, Clock3, Lock, QrCode } from 'lucide-react';
-import { encodeEvent } from '@/lib/utils';
+import { decodeEvent, encodeEvent } from '@/lib/utils';
 import CheckInForm from '@/components/CheckInForm';
 import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
-import type { AttendanceSessionSummary } from '@/lib/supabase-attendance';
+import type { ActiveAttendanceEvent, AttendanceSessionSummary } from '@/lib/supabase-attendance';
 import { textContent } from '@/lib/text-content';
 
 type AttendanceLandingProps = {
   sessions: AttendanceSessionSummary[];
-  activeEvent: { sessionId?: string; name: string; activatedAt: string | null } | null;
+  activeEvents: ActiveAttendanceEvent[];
   members: string[];
 };
 
@@ -67,15 +68,30 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
 
 export default function AttendanceLanding({
   sessions = [],
-  activeEvent,
+  activeEvents = [],
   members,
 }: AttendanceLandingProps) {
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
-  const selectedSession = sessions.find((session) => session.id === selectedEventId) ?? null;
+  const selectedQueryEvent = useMemo(() => {
+    const encodedParam = searchParams.get('event');
+    return encodedParam ? decodeEvent(encodedParam) : null;
+  }, [searchParams]);
+
+  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
+
+  useEffect(() => {
+    if (!selectedQueryEvent) return;
+
+    const matchedSession = sessions.find((session) => session.name === selectedQueryEvent);
+    if (!matchedSession) return;
+
+    setSelectedSessionId((current) => (current === matchedSession.id ? current : matchedSession.id));
+  }, [selectedQueryEvent, sessions]);
 
   const toggleSelectedEvent = (sessionId: string) => {
-    setSelectedEventId((current) => (current === sessionId ? null : sessionId));
+    setSelectedSessionId((current) => (current === sessionId ? null : sessionId));
   };
 
   return (
@@ -103,7 +119,7 @@ export default function AttendanceLanding({
             </div>
 
             {sessions.map((session, index) => {
-              const isActive = session.id === activeEvent?.sessionId;
+              const isActive = activeEvents.some((activeEvent) => activeEvent.sessionId === session.id);
               const encoded = encodeURIComponent(encodeEvent(session.name));
               const presentation = getSessionPresentation(session.status, isActive);
 
@@ -122,7 +138,7 @@ export default function AttendanceLanding({
                   className={[
                     'grid cursor-pointer gap-4 rounded-xl border bg-monolith-surfaceLowest p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-ambient md:grid-cols-12 md:items-center md:p-6',
                     isActive ? 'border-monolith-primaryFixed/70' : 'border-monolith-outlineVariant/30',
-                    selectedEventId === session.id ? 'ring-2 ring-monolith-primaryContainer/50' : '',
+                    selectedSessionId === session.id ? 'ring-2 ring-monolith-primaryContainer/50' : '',
                   ].join(' ')}
                 >
                   <div className="col-span-1 flex justify-start">
@@ -143,7 +159,9 @@ export default function AttendanceLanding({
                         {presentation.badgeLabel}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">{textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}</p>
+                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">
+                      {textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}
+                    </p>
                   </div>
 
                   <div className="col-span-3">
@@ -183,26 +201,29 @@ export default function AttendanceLanding({
           </section>
 
           <aside className="space-y-6">
-            <PersonalAttendanceQrCard />
-            <div className="hidden lg:block">
-              {selectedSession ? (
-                <>
-                  <div className="mt-6 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
-                    <div className="mb-5">
-                      <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
-                        {textContent.attendance.manualCheckInLabel}
-                      </p>
-                      <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">{textContent.attendance.manualCheckInTitle}</h2>
-                    </div>
-                    <CheckInForm members={members} eventName={selectedSession.name} />
+            {selectedSession ? (
+              <>
+                <PersonalAttendanceQrCard
+                  selectedEventName={selectedSession.name}
+                  activeEventNames={activeEvents.map((activeEvent) => activeEvent.name)}
+                />
+                <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+                  <div className="mb-5">
+                    <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                      {textContent.attendance.manualCheckInLabel}
+                    </p>
+                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">
+                      {textContent.attendance.manualCheckInTitle}
+                    </h2>
                   </div>
-                </>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
-                  왼쪽 세션 리스트를 클릭하면 상세 내용이 이 영역에 표시됩니다.
+                  <CheckInForm members={members} eventName={selectedSession.name} />
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
+                왼쪽에서 세션을 선택하면 해당 세션의 `내 출석 QR`과 수동 출석이 이 영역에 표시됩니다.
+              </div>
+            )}
           </aside>
         </div>
       </div>

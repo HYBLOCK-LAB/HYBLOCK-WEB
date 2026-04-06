@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { getCertificateCandidates } from '@/lib/supabase-certificate';
 import type { CertificateType } from '@/lib/eas';
 
 const VALID_TYPES: CertificateType[] = ['attendance', 'external_activity', 'assignment'];
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   const type = request.nextUrl.searchParams.get('type') as CertificateType | null;
 
   if (!type || !VALID_TYPES.includes(type)) {

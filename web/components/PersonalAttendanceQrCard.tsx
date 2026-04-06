@@ -27,7 +27,15 @@ function formatTimeLeft(expiresAt: string | null) {
   return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-export default function PersonalAttendanceQrCard() {
+export default function PersonalAttendanceQrCard({
+  selectedEventName,
+  activeEventName,
+  activeEventNames,
+}: {
+  selectedEventName?: string | null;
+  activeEventName?: string | null;
+  activeEventNames?: string[];
+}) {
   const [loading, setLoading] = useState(true);
   const [fetchingToken, setFetchingToken] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -37,8 +45,25 @@ export default function PersonalAttendanceQrCard() {
 
   const canUseSupabase = isBrowserSupabaseConfigured();
   const walletSessionConnected = useWalletSessionStore((state) => state.isConnected);
+  const resolvedActiveEventNames = useMemo(
+    () => activeEventNames ?? (activeEventName ? [activeEventName] : []),
+    [activeEventName, activeEventNames],
+  );
+  const targetEventName = selectedEventName ?? resolvedActiveEventNames[0] ?? null;
+  const requiresSessionMatch = Boolean(selectedEventName);
+  const isSelectedEventActive = requiresSessionMatch
+    ? Boolean(selectedEventName && resolvedActiveEventNames.includes(selectedEventName))
+    : resolvedActiveEventNames.length > 0;
 
   const refreshToken = async () => {
+    if (!isSelectedEventActive) {
+      setPayload(null);
+      setTimeLeft(null);
+      setError('선택한 세션이 현재 활성 세션일 때만 개인 QR을 발급할 수 있습니다.');
+      setLoading(false);
+      return;
+    }
+
     const supabase = getBrowserSupabase();
     setFetchingToken(true);
     setError(null);
@@ -57,11 +82,15 @@ export default function PersonalAttendanceQrCard() {
 
       const response = await fetch('/api/attendance/qr-token', {
         method: 'POST',
-        headers: accessToken
-          ? {
-              Authorization: `Bearer ${accessToken}`,
-            }
-          : undefined,
+        headers: {
+          ...(accessToken
+            ? {
+                Authorization: `Bearer ${accessToken}`,
+              }
+            : {}),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(targetEventName ? { eventName: targetEventName } : {}),
       });
 
       const result = (await response.json().catch(() => ({}))) as Partial<QrTokenResponse> & { error?: string };
@@ -89,7 +118,11 @@ export default function PersonalAttendanceQrCard() {
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
-
+    setPayload(null);
+    setTimeLeft(null);
+    setLoading(true);
+    setError(null);
+    setIsLoggedIn(false);
     void refreshToken();
 
     if (!supabase) {
@@ -119,15 +152,15 @@ export default function PersonalAttendanceQrCard() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [selectedEventName, activeEventName, resolvedActiveEventNames]);
 
   useEffect(() => {
-    if (!walletSessionConnected) {
+    if (!walletSessionConnected || !isSelectedEventActive) {
       return;
     }
 
     void refreshToken();
-  }, [walletSessionConnected]);
+  }, [walletSessionConnected, isSelectedEventActive]);
 
   useEffect(() => {
     if (!payload?.expiresAt) {
@@ -150,6 +183,12 @@ export default function PersonalAttendanceQrCard() {
   }, [payload?.expiresAt]);
 
   const helperText = useMemo(() => {
+    if (!isSelectedEventActive) {
+      return requiresSessionMatch
+        ? '선택한 세션이 현재 활성화된 세션과 일치할 때만 개인 QR을 생성할 수 있습니다.'
+        : '현재 활성화된 세션이 있을 때만 개인 QR을 생성할 수 있습니다.';
+    }
+
     if (walletSessionConnected) {
       return '지갑 로그인 세션으로 개인 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.';
     }
@@ -163,7 +202,7 @@ export default function PersonalAttendanceQrCard() {
     }
 
     return 'QR은 45초 후 자동 갱신됩니다. 운영진이 관리자 화면에서 스캔하면 즉시 소모됩니다.';
-  }, [canUseSupabase, isLoggedIn, walletSessionConnected]);
+  }, [canUseSupabase, isLoggedIn, isSelectedEventActive, requiresSessionMatch, walletSessionConnected]);
 
   return (
     <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
@@ -173,11 +212,12 @@ export default function PersonalAttendanceQrCard() {
             Personal QR
           </p>
           <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">내 출석 QR</h2>
+          {targetEventName ? <p className="mt-2 text-sm text-monolith-onSurfaceMuted">{targetEventName}</p> : null}
         </div>
         <button
           type="button"
           onClick={() => void refreshToken()}
-          disabled={fetchingToken || (!isLoggedIn && !canUseSupabase && !walletSessionConnected)}
+          disabled={fetchingToken || !isSelectedEventActive || (!isLoggedIn && !canUseSupabase && !walletSessionConnected)}
           className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow px-4 py-2 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surface"
         >
           {fetchingToken ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
@@ -201,7 +241,9 @@ export default function PersonalAttendanceQrCard() {
         </div>
       ) : payload ? (
         <div className="mt-6 rounded-2xl bg-white p-5 text-center shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
-          <QRCodeSVG value={payload.qrValue} size={220} includeMargin />
+          <div className="flex justify-center">
+            <QRCodeSVG value={payload.qrValue} size={220} includeMargin />
+          </div>
           <p className="mt-5 text-lg font-bold text-monolith-onSurface">{payload.memberName}</p>
           <p className="mt-1 text-sm text-monolith-onSurfaceMuted">{payload.eventName}</p>
           <p className="mt-3 font-mono text-sm text-monolith-primaryContainer">{timeLeft ?? '00:00'}</p>

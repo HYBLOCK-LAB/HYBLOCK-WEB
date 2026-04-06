@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
 import { getMemberCertificateDetail } from '@/lib/supabase-certificate';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminApiAccess();
+  if (auth.response) return auth.response;
+
   const wallet = request.nextUrl.searchParams.get('wallet');
 
   if (!wallet || !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {

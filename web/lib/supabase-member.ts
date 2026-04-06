@@ -12,14 +12,16 @@ export type MemberProfile = {
   is_admin: boolean;
 };
 
-type MemberRow = Omit<MemberProfile, 'is_admin'>;
+type MemberRow = Omit<MemberProfile, 'is_admin'> & {
+  is_admin?: boolean | null;
+};
 
-const MEMBER_SELECT_COLUMNS = 'id, wallet_address, name, major, affiliation, cohort, role, is_active';
+const MEMBER_SELECT_COLUMNS = 'id, wallet_address, name, major, affiliation, cohort, role, is_active, is_admin';
 
 function toMemberProfile(member: MemberRow): MemberProfile {
   return {
     ...member,
-    is_admin: false,
+    is_admin: member.is_admin ?? false,
   };
 }
 

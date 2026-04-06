@@ -4,6 +4,11 @@ export const textContent = {
   },
   home: {
     aboutBlueprint: 'The Society Blueprint',
+    pastActivitiesEyebrow: 'Our Archive',
+    pastActivitiesTitle: 'Activities',
+    pastActivitiesDescription: '세미나, 해커톤, 외부 교류까지 HYBLOCK이 쌓아온 활동을 한눈에 볼 수 있습니다.',
+    pastActivitiesEmpty: '아직 표시할 활동 기록이 없습니다.',
+    pastActivitiesCta: '전체 활동 보기',
   },
   activities: {
     intro: '함께 배우고 성장하는 HYBLOCK의 다양한 활동 기록입니다.',

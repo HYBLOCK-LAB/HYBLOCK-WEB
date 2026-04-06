@@ -23,6 +23,7 @@ type MemberProfile = {
   cohort: number;
   role: string;
   is_active: boolean;
+  is_admin: boolean;
 };
 
 const AFFILIATION_LABELS: Record<string, string> = {

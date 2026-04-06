@@ -42,6 +42,9 @@
     "wagmi": "^3.6.0",
     "zustand": "^5.0.12"
   },
+  "overrides": {
+    "bn.js": "^5.2.3"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.4.27",

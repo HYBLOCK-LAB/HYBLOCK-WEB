@@ -122,22 +122,6 @@ bytes32 constant MINT_TYPEHASH = keccak256(
 - `deadline` → time-limited signatures
 - `domain separator` includes chainId + verifyingContract
 
-### 4. HyblockResolver.sol — EAS Attestation Resolver
-
-**Inherits:** SchemaResolver (from EAS)
-
-**State:**
-- `mapping(address => bool) public trustedAttesters`
-- `address public owner`
-
-**Functions:**
-| Function | Access | Description |
-|----------|--------|-------------|
-| `onAttest(Attestation, uint256)` | EAS only | Verify attester is trusted |
-| `onRevoke(Attestation, uint256)` | EAS only | Allow revocation |
-| `addAttester(address)` | owner | Register trusted attester |
-| `removeAttester(address)` | owner | Remove trusted attester |
-
 ---
 
 ## EAS Schema

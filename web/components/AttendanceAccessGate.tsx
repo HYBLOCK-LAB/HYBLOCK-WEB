@@ -42,15 +42,31 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
 
       if (cancelled) return;
 
-      const linkedWallet =
+      const sessionLinkedWallet =
         typeof session?.user?.user_metadata?.wallet_address === 'string'
           ? session.user.user_metadata.wallet_address
           : null;
 
-      if (session?.access_token && linkedWallet) {
+      if (session?.access_token && sessionLinkedWallet) {
         setAllowed(true);
         setChecking(false);
         return;
+      }
+
+      if (session?.access_token) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (cancelled) return;
+
+        const userLinkedWallet =
+          !userError && typeof userData.user?.user_metadata?.wallet_address === 'string'
+            ? userData.user.user_metadata.wallet_address
+            : null;
+
+        if (userLinkedWallet) {
+          setAllowed(true);
+          setChecking(false);
+          return;
+        }
       }
 
       router.replace(session?.access_token ? '/wallet-link?intent=link&next=%2Fattendance' : '/login?redirect=/attendance');

@@ -109,11 +109,15 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
 
       if (updateError) throw updateError;
 
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+
       setUser((current) => (current ? { ...current, linkedAddress: address } : current));
       setMessage('지갑이 연결되었습니다.');
 
       if (redirectTo) {
         window.setTimeout(() => {
+          router.refresh();
           router.replace(redirectTo);
         }, 700);
       }
@@ -149,10 +153,11 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
           ) : user ? (
             <div className="mt-3 space-y-2 text-sm text-monolith-onSurfaceMuted">
               <p>{user.email ?? '이메일 없음'}</p>
-              <p>연결된 지갑: {user.linkedAddress ?? textContent.walletLink.emptyLinkedWallet}</p>
+              <p>계정에 저장된 지갑: {user.linkedAddress ?? textContent.walletLink.emptyLinkedWallet}</p>
+              {address ? <p>현재 선택한 지갑: {address}</p> : null}
               {intent === 'link' && !user.linkedAddress ? (
                 <p className="rounded-xl bg-monolith-primaryFixed px-3 py-2 text-sm text-monolith-primary">
-                  Google 로그인은 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 한 번만 지갑을 계정에 연결하세요.
+                  Google 로그인이 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 지갑을 연결하세요.
                 </p>
               ) : null}
             </div>
@@ -165,17 +170,6 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
               </div>
             </div>
           )}
-        </div>
-
-        <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary/60">{textContent.walletLink.stepsLabel}</p>
-          <ol className="mt-4 space-y-3 text-sm leading-7 text-monolith-onSurfaceMuted">
-            {content.steps.map((step, index) => (
-              <li key={step}>
-                {index + 1}. {step}
-              </li>
-            ))}
-          </ol>
         </div>
 
         <WalletConnectPanel
@@ -192,13 +186,7 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
           message={message}
           disabled={!supabaseConfigured}
           primaryActionDisabled={!user}
-          helperText={
-            !isReownProjectIdConfigured ? (
-              <p>{textContent.auth.walletLinkMissingProjectId}</p>
-            ) : (
-              <p>연동 전에 지갑을 다시 선택하거나 연결 상태를 검토할 수 있게 진입 UX를 바꿨습니다.</p>
-            )
-          }
+          helperText={!isReownProjectIdConfigured ? <p>{textContent.auth.walletLinkMissingProjectId}</p> : undefined}
         />
       </div>
     </div>

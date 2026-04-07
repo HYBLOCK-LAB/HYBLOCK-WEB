@@ -20,13 +20,10 @@ export default function WalletConnectHero({ mode }: WalletConnectHeroProps) {
             <Wallet className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-monolith-primaryFixed">Wallet Access</p>
-            <h3 className="mt-1 text-2xl font-black tracking-[-0.05em] text-white">HYBLOCK Wallet Connect</h3>
+            <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-monolith-primaryFixed">Wallet</p>
+            <h3 className="mt-1 text-2xl font-black tracking-[-0.05em] text-white">지갑 연결</h3>
           </div>
         </div>
-        <p className="mt-4 text-sm leading-7 text-white/78">
-          기본 `reown` 버튼 대신 HYBLOCK 플로우에 맞춘 연결 패널입니다. 지갑 선택은 모달에서 진행하고, 연결 상태와 다음 액션은 여기서 바로 처리합니다.
-        </p>
         <div className={['mt-5 flex flex-wrap gap-2', actionClass].join(' ')}>
           {walletHints.map((hint) => (
             <span

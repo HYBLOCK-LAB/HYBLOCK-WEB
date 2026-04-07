@@ -64,7 +64,7 @@ export default function WalletConnectConnectedState({
           className="interactive-soft flex items-center justify-center gap-2 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-5 py-3 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface"
         >
           <RefreshCcw className="h-4 w-4" />
-          다른 지갑 선택
+          지갑 다시 선택
         </button>
         <button
           type="button"

@@ -74,29 +74,29 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
 
       <header className="sticky top-0 z-50 border-b border-monolith-outlineVariant/30 bg-monolith-surfaceLowest/95 backdrop-blur-xl">
         <div
-          className={[
-            'header-expand-shell mx-auto max-w-7xl px-6 lg:px-8',
-            'transition-all duration-300 ease-out',
-            'py-4',
-          ].join(' ')}
+        className={[
+          'header-expand-shell mx-auto max-w-7xl px-6 lg:px-8',
+          'transition-all duration-300 ease-out',
+          'py-3',
+        ].join(' ')}
           onMouseLeave={() => {
             setBrandMenuOpen(false);
             setHeaderHoverActive(false);
           }}
         >
-          <div className="flex h-24 items-center justify-between">
-            <div className="flex items-center gap-12">
+          <div className="flex h-20 items-center justify-between">
+            <div className="flex items-center gap-10">
               <Link href="/" className="flex items-center">
                 <Image
                   src="/logo_name.png"
                   alt="HYBLOCK"
-                  width={186}
-                  height={72}
-                  className="h-14 w-auto object-contain"
+                  width={224}
+                  height={84}
+                  className="h-16 w-auto object-contain"
                   priority
                 />
               </Link>
-              <nav className="hidden items-center gap-8 md:flex">
+              <nav className="hidden items-center gap-7 md:flex">
                 {!isAdmin ? (
                   <div
                     className="relative"
@@ -112,7 +112,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     <Link
                       href="/about"
                       className={[
-                        'flex h-13 items-center gap-1 rounded-md px-3 font-display text-[17px] font-medium tracking-tight transition-colors',
+                        'flex h-12 items-center gap-1 rounded-md px-3.5 font-display text-[18px] font-semibold tracking-tight transition-colors',
                         isBrandMenuActive(activePath)
                           ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
                           : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
@@ -130,7 +130,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                     onMouseEnter={() => setHeaderHoverActive(true)}
                     onFocus={() => setHeaderHoverActive(true)}
                     className={[
-                      'flex h-13 items-center rounded-md px-3 font-display text-[16px] font-medium tracking-tight transition-colors',
+                      'flex h-12 items-center rounded-md px-3.5 font-display text-[17px] font-semibold tracking-tight transition-colors',
                       isActive(activePath, item.href)
                         ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
                         : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
@@ -197,14 +197,14 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               setHeaderHoverActive(true);
             }}
           >
-            <div className="pb-6 pl-[12.25rem] pt-5">
+            <div className="pb-5 pl-[13.75rem] pt-4">
               <div className="flex max-w-xl items-center gap-8">
                 {brandMenuItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={[
-                      'rounded-md px-3 py-2 font-display text-xl font-semibold tracking-tight transition-colors',
+                      'rounded-md px-3 py-2 font-display text-[1.4rem] font-semibold tracking-tight transition-colors',
                       isActive(activePath, item.href)
                         ? 'bg-monolith-surfaceLow/90 text-monolith-primaryContainer'
                         : 'text-monolith-onSurface hover:bg-monolith-surfaceLow/80 hover:text-monolith-primaryContainer',
@@ -236,6 +236,12 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
             </div>
           </div>
           <div className="flex gap-6 text-sm text-monolith-onSurfaceMuted">
+            <Link href="/privacy-policy" className="transition-colors hover:text-monolith-primaryContainer">
+              개인정보처리방침
+            </Link>
+            <Link href="/terms-of-service" className="transition-colors hover:text-monolith-primaryContainer">
+              이용약관
+            </Link>
             <a
               href="https://www.instagram.com/hyblock_kr/"
               target="_blank"

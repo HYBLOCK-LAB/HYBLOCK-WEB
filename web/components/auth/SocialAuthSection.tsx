@@ -31,7 +31,10 @@ export default function SocialAuthSection({ mode, redirectPath = '/wallet-link' 
 
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: callbackUrl.toString() },
+        options: {
+          redirectTo: callbackUrl.toString(),
+          skipBrowserRedirect: false,
+        },
       });
 
       if (signInError) {

@@ -42,13 +42,18 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
 
       if (cancelled) return;
 
-      if (session?.access_token) {
+      const linkedWallet =
+        typeof session?.user?.user_metadata?.wallet_address === 'string'
+          ? session.user.user_metadata.wallet_address
+          : null;
+
+      if (session?.access_token && linkedWallet) {
         setAllowed(true);
         setChecking(false);
         return;
       }
 
-      router.replace('/login?redirect=/attendance');
+      router.replace(session?.access_token ? '/wallet-link?intent=link&next=%2Fattendance' : '/login?redirect=/attendance');
     })();
 
     return () => {

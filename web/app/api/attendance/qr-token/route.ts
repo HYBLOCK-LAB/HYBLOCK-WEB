@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { ATTENDANCE_QR_TTL_SECONDS, buildAttendanceQrPayload } from '@/lib/attendance-qr';
 import { getAuthenticatedUserFromAccessToken } from '@/lib/supabase-auth';
 import { getActiveEvent, getActiveEventByName } from '@/lib/supabase-attendance';
-import { getMemberByWallet, getMemberByName } from '@/lib/supabase-member';
+import { getMemberByWallet } from '@/lib/supabase-member';
 import { executeRedisCommand } from '@/lib/upstash-redis';
 import { getWalletSessionMember } from '@/lib/wallet-session';
 
@@ -33,16 +33,8 @@ export async function POST(request: Request) {
       if (authUser) {
         const walletAddress =
           typeof authUser.user_metadata.wallet_address === 'string' ? authUser.user_metadata.wallet_address : null;
-        const fullName =
-          typeof authUser.user_metadata.full_name === 'string'
-            ? authUser.user_metadata.full_name
-            : typeof authUser.user_metadata.name === 'string'
-              ? authUser.user_metadata.name
-              : null;
 
-        member =
-          (walletAddress ? await getMemberByWallet(walletAddress) : null) ??
-          (fullName ? await getMemberByName(fullName) : null);
+        member = walletAddress ? await getMemberByWallet(walletAddress) : null;
       }
     }
 

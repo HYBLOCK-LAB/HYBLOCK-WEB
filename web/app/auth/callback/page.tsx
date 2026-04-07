@@ -46,7 +46,17 @@ function AuthCallbackContent() {
           throw new Error('Google 로그인 세션을 생성하지 못했습니다.');
         }
 
+        const linkedWallet =
+          typeof data.session.user.user_metadata?.wallet_address === 'string'
+            ? data.session.user.user_metadata.wallet_address
+            : null;
+
         if (!cancelled) {
+          if (!linkedWallet) {
+            router.replace(`/wallet-link?intent=link&next=${encodeURIComponent(next)}`);
+            return;
+          }
+
           router.replace(next);
         }
       } catch (callbackError) {

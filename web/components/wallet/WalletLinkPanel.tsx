@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import WalletConnectPanel from '@/components/wallet/WalletConnectPanel';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
@@ -13,6 +14,8 @@ import { textContent } from '@/lib/text-content';
 
 type WalletLinkPanelProps = {
   content: WalletLinkPageContent;
+  redirectTo?: string;
+  intent?: string;
 };
 
 type AuthUserSummary = {
@@ -20,7 +23,8 @@ type AuthUserSummary = {
   linkedAddress: string | null;
 };
 
-export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
+export default function WalletLinkPanel({ content, redirectTo = '/', intent }: WalletLinkPanelProps) {
+  const router = useRouter();
   const supabaseConfigured = isBrowserSupabaseConfigured();
   const supabase = getBrowserSupabase();
   const { openWalletConnectModal } = useWalletConnectModal();
@@ -107,6 +111,12 @@ export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
 
       setUser((current) => (current ? { ...current, linkedAddress: address } : current));
       setMessage('지갑이 연결되었습니다.');
+
+      if (redirectTo) {
+        window.setTimeout(() => {
+          router.replace(redirectTo);
+        }, 700);
+      }
     } catch (linkError) {
       setError(linkError instanceof Error ? linkError.message : '지갑 연동 중 오류가 발생했습니다.');
     } finally {
@@ -140,6 +150,11 @@ export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
             <div className="mt-3 space-y-2 text-sm text-monolith-onSurfaceMuted">
               <p>{user.email ?? '이메일 없음'}</p>
               <p>연결된 지갑: {user.linkedAddress ?? textContent.walletLink.emptyLinkedWallet}</p>
+              {intent === 'link' && !user.linkedAddress ? (
+                <p className="rounded-xl bg-monolith-primaryFixed px-3 py-2 text-sm text-monolith-primary">
+                  Google 로그인은 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 한 번만 지갑을 계정에 연결하세요.
+                </p>
+              ) : null}
             </div>
           ) : (
             <div className="mt-3 space-y-3">

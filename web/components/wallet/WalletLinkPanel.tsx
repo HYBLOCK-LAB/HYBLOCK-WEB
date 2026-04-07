@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
+import WalletLoginSection from '@/components/auth/WalletLoginSection';
 import WalletConnectPanel from '@/components/wallet/WalletConnectPanel';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
@@ -153,8 +154,8 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
           ) : user ? (
             <div className="mt-3 space-y-2 text-sm text-monolith-onSurfaceMuted">
               <p>{user.email ?? '이메일 없음'}</p>
-              <p>계정에 저장된 지갑: {user.linkedAddress ?? textContent.walletLink.emptyLinkedWallet}</p>
-              {address ? <p>현재 선택한 지갑: {address}</p> : null}
+              {user.linkedAddress ? <p>연결된 지갑: {user.linkedAddress}</p> : null}
+              {!user.linkedAddress ? <p>연결된 지갑: {textContent.walletLink.emptyLinkedWallet}</p> : null}
               {intent === 'link' && !user.linkedAddress ? (
                 <p className="rounded-xl bg-monolith-primaryFixed px-3 py-2 text-sm text-monolith-primary">
                   Google 로그인이 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 지갑을 연결하세요.
@@ -163,7 +164,7 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
             </div>
           ) : (
             <div className="mt-3 space-y-3">
-              <p className="text-sm text-monolith-onSurfaceMuted">{textContent.walletLink.loginRequired}</p>
+              <p className="text-sm text-monolith-onSurfaceMuted">Google 로그인 없이도 지갑으로 바로 로그인할 수 있습니다.</p>
               <div className="flex gap-3 text-sm font-semibold text-monolith-primaryContainer">
                 <Link href="/login">로그인</Link>
                 <Link href="/signup">회원가입</Link>
@@ -172,22 +173,32 @@ export default function WalletLinkPanel({ content, redirectTo = '/', intent }: W
           )}
         </div>
 
-        <WalletConnectPanel
-          address={address}
-          chainName={chain?.name}
-          isConnected={isConnected && Boolean(address)}
-          isBusy={isLinking || isSigning}
-          connectLabel="지갑 선택하기"
-          primaryActionLabel="계정에 저장"
-          onConnect={handleOpenWalletModal}
-          onPrimaryAction={handleLinkWallet}
-          onDisconnect={() => void handleDisconnect()}
-          error={error}
-          message={message}
-          disabled={!supabaseConfigured}
-          primaryActionDisabled={!user}
-          helperText={!isReownProjectIdConfigured ? <p>{textContent.auth.walletLinkMissingProjectId}</p> : undefined}
-        />
+        {user ? (
+          <WalletConnectPanel
+            address={address}
+            chainName={chain?.name}
+            walletLabel="지갑 주소"
+            isConnected={isConnected && Boolean(address)}
+            isBusy={isLinking || isSigning}
+            connectLabel="지갑 연결 시작"
+            primaryActionLabel={user.linkedAddress ? '이 지갑으로 계정 다시 연동' : '이 지갑으로 계정 연동'}
+            onConnect={handleOpenWalletModal}
+            onPrimaryAction={handleLinkWallet}
+            onDisconnect={() => void handleDisconnect()}
+            error={error}
+            message={message}
+            disabled={!supabaseConfigured}
+            primaryActionDisabled={!user}
+            helperText={!isReownProjectIdConfigured ? <p>{textContent.auth.walletLinkMissingProjectId}</p> : undefined}
+          />
+        ) : (
+          <div className="space-y-4 rounded-[1.75rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-6 shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
+            <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+              Google 계정에 지갑을 연동하려면 먼저 Google 로그인 후 다시 이 페이지로 오세요. 지금은 지갑으로 바로 로그인할 수 있습니다.
+            </p>
+            <WalletLoginSection redirectTo={redirectTo} />
+          </div>
+        )}
       </div>
     </div>
   );

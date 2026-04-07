@@ -27,6 +27,7 @@ HYBLOCK는 학회 HYBLOCK의 공식 웹사이트 레포다.
 
 주요 문서:
 - [아키텍처](/home/jaeman/Codes/HYBLOCK-WEB/docs/ARCHITECTURE.md)
+- [디자인 시스템](/home/jaeman/Codes/HYBLOCK-WEB/docs/DESIGN_SYSTEM.md)
 - [기술 스택](/home/jaeman/Codes/HYBLOCK-WEB/docs/TECH_STACK.md)
 - [주요 플로우](/home/jaeman/Codes/HYBLOCK-WEB/docs/FLOWS.md)
 - [운영 가이드](/home/jaeman/Codes/HYBLOCK-WEB/docs/OPERATIONS.md)

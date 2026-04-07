@@ -5,6 +5,7 @@ export type WalletConnectMode = 'centered' | 'stacked';
 export type WalletConnectPanelProps = {
   address?: string;
   chainName?: string;
+  walletLabel?: string;
   isConnected: boolean;
   isBusy?: boolean;
   connectLabel?: string;

@@ -9,6 +9,7 @@ import type { WalletConnectPanelProps } from '@/components/wallet/wallet-connect
 export default function WalletConnectPanel({
   address,
   chainName,
+  walletLabel,
   isConnected,
   isBusy = false,
   connectLabel = 'Connect Wallet',
@@ -41,6 +42,7 @@ export default function WalletConnectPanel({
               mode={mode}
               address={address}
               chainName={chainName}
+              walletLabel={walletLabel}
               isBusy={isBusy}
               primaryActionLabel={primaryActionLabel}
               primaryActionDisabled={primaryActionDisabled}

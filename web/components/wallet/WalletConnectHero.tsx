@@ -28,7 +28,7 @@ export default function WalletConnectHero({ mode }: WalletConnectHeroProps) {
           {walletHints.map((hint) => (
             <span
               key={hint}
-              className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/84"
+              className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-white/84"
             >
               {hint}
             </span>

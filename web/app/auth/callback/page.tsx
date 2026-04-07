@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, LoaderCircle } from 'lucide-react';
@@ -11,7 +11,7 @@ function normalizeNextPath(rawNext: string | null) {
   return rawNext.startsWith('/') ? rawNext : '/';
 }
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -95,5 +95,24 @@ export default function AuthCallbackPage() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function AuthCallbackFallback() {
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7fbff,transparent_45%),linear-gradient(180deg,#f6f7fb_0%,#eef2f7_100%)] px-6 py-20">
+      <section className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest py-16 text-sm text-monolith-onSurfaceMuted shadow-monolith">
+        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+        로그인 정보를 불러오는 중입니다.
+      </section>
+    </main>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<AuthCallbackFallback />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

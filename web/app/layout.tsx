@@ -1,19 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { Manrope, Space_Grotesk } from 'next/font/google'
 import AppProviders from '@/providers/AppProviders'
 import './globals.css'
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-  display: 'swap',
-})
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-manrope',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'HYBLOCK Official',
@@ -38,7 +25,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html
+      lang="ko"
+      suppressHydrationWarning
+      style={
+        {
+          '--font-space-grotesk': '"Avenir Next", "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif',
+          '--font-manrope': '"Inter", "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif',
+        } as React.CSSProperties
+      }
+    >
       <head>
         <link
           rel="stylesheet"
@@ -48,7 +44,7 @@ export default function RootLayout({
           referrerPolicy="no-referrer"
         />
       </head>
-      <body className={`${spaceGrotesk.variable} ${manrope.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

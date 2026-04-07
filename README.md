@@ -1,6 +1,14 @@
 # HYBLOCK
 
-HYBLOCK는 학회원 활동 데이터를 기반으로 EAS 증명을 발급하고, 조건을 충족한 회원에게 SBT 수료증을 발급하는 프로젝트다.
+HYBLOCK는 학회 HYBLOCK의 공식 웹사이트 레포다.
+
+이 저장소에는 단순 소개 페이지뿐 아니라 실제 운영 기능도 함께 들어 있다.
+- 학회원/운영진용 웹사이트
+- QR 기반 출석 관리
+- 관리자 증명 발급
+- 학회원 SBT 수료증 발급
+
+즉 이 레포는 "학회 홈페이지"이면서, 동시에 출석과 수료증 운영 도구를 포함한 모노레포다.
 
 ## 구성
 
@@ -24,6 +32,7 @@ HYBLOCK는 학회원 활동 데이터를 기반으로 EAS 증명을 발급하고
 - [운영 가이드](/home/jaeman/Codes/HYBLOCK-WEB/docs/OPERATIONS.md)
 - [컨트랙트 상세](/home/jaeman/Codes/HYBLOCK-WEB/eas/docs/contracts.md)
 - [DB 스키마 상세](/home/jaeman/Codes/HYBLOCK-WEB/database/docs/Schema.md)
+- [DB 구현 가이드](/home/jaeman/Codes/HYBLOCK-WEB/database/docs/IMPLEMENTATION_GUIDE.md)
 
 ## 빠른 시작
 

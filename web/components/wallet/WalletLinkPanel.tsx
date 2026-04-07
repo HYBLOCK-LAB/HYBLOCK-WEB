@@ -2,203 +2,153 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
-import WalletLoginSection from '@/components/auth/WalletLoginSection';
 import WalletConnectPanel from '@/components/wallet/WalletConnectPanel';
-import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
-import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
-import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
-import type { WalletLinkPageContent } from '@/lib/site-content';
+import { isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
+import { useLanguageStore } from '@/lib/auth/language-store';
 import { textContent } from '@/lib/text-content';
 
 type WalletLinkPanelProps = {
-  content: WalletLinkPageContent;
+  content: any;
   redirectTo?: string;
   intent?: string;
 };
 
-type AuthUserSummary = {
-  email: string | null;
-  linkedAddress: string | null;
-};
-
-export default function WalletLinkPanel({ content, redirectTo = '/', intent }: WalletLinkPanelProps) {
-  const router = useRouter();
-  const supabaseConfigured = isBrowserSupabaseConfigured();
-  const supabase = getBrowserSupabase();
+export default function WalletLinkPanel({ content, redirectTo = '/mypage', intent }: WalletLinkPanelProps) {
+  const { language } = useLanguageStore();
+  const d = textContent[language];
+  
   const { openWalletConnectModal } = useWalletConnectModal();
-  const { address, chain, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const resetWalletSession = useWalletSessionStore((state) => state.resetWalletSession);
+  const { address, chain, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
-  const [user, setUser] = useState<AuthUserSummary | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{ email?: string; linkedAddress?: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLinking, setIsLinking] = useState(false);
+  const [linking, setLinking] = useState(false);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoadingUser(false);
-      return;
-    }
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error('Fetch user error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void fetchUser();
+  }, []);
 
-    let active = true;
+  const handleLink = async () => {
+    if (!address) return;
 
-    supabase.auth.getUser().then(({ data, error: userError }) => {
-      if (!active) return;
-      if (userError) {
-        setError(userError.message);
-        setLoadingUser(false);
-        return;
+    try {
+      setLinking(true);
+      setError(null);
+
+      const nonceRes = await fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`);
+      const { message: nonceMessage } = await nonceRes.json();
+
+      const signature = await signMessageAsync({ message: nonceMessage });
+
+      const linkRes = await fetch('/api/auth/wallet/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, message: nonceMessage, signature }),
+      });
+
+      if (!linkRes.ok) {
+        const { error: linkError } = await linkRes.json();
+        throw new Error(linkError || '연동에 실패했습니다.');
       }
 
-      const authUser = data.user;
-      setUser(
-        authUser
-          ? {
-              email: authUser.email ?? null,
-              linkedAddress:
-                typeof authUser.user_metadata?.wallet_address === 'string'
-                  ? authUser.user_metadata.wallet_address
-                  : null,
-            }
-          : null,
-      );
-      setLoadingUser(false);
-    });
+      window.location.href = redirectTo;
+    } catch (err: any) {
+      setError(err.message || '알 수 없는 오류가 발생했습니다.');
+    } finally {
+      setLinking(false);
+    }
+  };
 
-    return () => {
-      active = false;
-    };
-  }, [supabase]);
-
-  const handleOpenWalletModal = async () => {
-    setError(null);
-    setMessage(null);
+  const handleConnectClick = async () => {
     const modalError = await openWalletConnectModal();
     if (modalError) {
       setError(modalError);
     }
   };
 
-  const handleLinkWallet = async () => {
-    if (!supabase || !user || !address) {
-      setError('먼저 로그인한 뒤 지갑을 연결하세요.');
-      return;
-    }
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-monolith-primary border-t-transparent" />
+      </div>
+    );
+  }
 
-    setIsLinking(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const signature = await signMessageAsync({
-        message: buildWalletLinkMessage(address),
-      });
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          wallet_address: address,
-          wallet_chain_id: chain?.id ?? null,
-          wallet_linked_at: new Date().toISOString(),
-          wallet_signature_preview: `${signature.slice(0, 10)}...${signature.slice(-8)}`,
-        },
-      });
-
-      if (updateError) throw updateError;
-
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw refreshError;
-
-      setUser((current) => (current ? { ...current, linkedAddress: address } : current));
-      setMessage('지갑이 연결되었습니다.');
-
-      if (redirectTo) {
-        window.setTimeout(() => {
-          router.refresh();
-          router.replace(redirectTo);
-        }, 700);
-      }
-    } catch (linkError) {
-      setError(linkError instanceof Error ? linkError.message : '지갑 연동 중 오류가 발생했습니다.');
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    disconnect();
-    resetWalletSession();
-    window.localStorage.removeItem('hyblock_wallet_login');
-    await fetch('/api/auth/wallet/logout', { method: 'POST' }).catch(() => null);
-    setMessage(null);
-  };
+  if (!user) {
+    return (
+      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 text-center shadow-ambient">
+        <p className="font-bold text-monolith-onSurface">{d.walletLink.loginRequired}</p>
+        <Link
+          href="/login"
+          className="mt-6 inline-block rounded-full bg-monolith-primary px-8 py-3 text-sm font-bold text-white transition hover:brightness-110"
+        >
+          {d.auth.loginCta}
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-monolith md:p-10">
-      <div className="border-b border-monolith-outlineVariant/20 pb-6">
-        <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-monolith-primaryContainer">
-          {content.cardTitle}
-        </p>
-        <h2 className="mt-4 text-3xl font-black tracking-[-0.05em] text-monolith-primary">{content.cardDescription}</h2>
-      </div>
-
-      <div className="mt-8 space-y-6">
-        <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary/60">{textContent.walletLink.currentAccountLabel}</p>
-          {loadingUser ? (
-            <p className="mt-3 text-sm text-monolith-onSurfaceMuted">{textContent.walletLink.loadingUser}</p>
-          ) : user ? (
-            <div className="mt-3 space-y-2 text-sm text-monolith-onSurfaceMuted">
-              <p>{user.email ?? '이메일 없음'}</p>
-              {user.linkedAddress ? <p>연결된 지갑: {user.linkedAddress}</p> : null}
-              {!user.linkedAddress ? <p>연결된 지갑: {textContent.walletLink.emptyLinkedWallet}</p> : null}
-              {intent === 'link' && !user.linkedAddress ? (
-                <p className="rounded-xl bg-monolith-primaryFixed px-3 py-2 text-sm text-monolith-primary">
-                  Google 로그인이 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 지갑을 연결하세요.
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              <p className="text-sm text-monolith-onSurfaceMuted">Google 로그인 없이도 지갑으로 바로 로그인할 수 있습니다.</p>
-              <div className="flex gap-3 text-sm font-semibold text-monolith-primaryContainer">
-                <Link href="/login">로그인</Link>
-                <Link href="/signup">회원가입</Link>
-              </div>
-            </div>
-          )}
+    <div className="space-y-8">
+      {/* Account Info */}
+      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-ambient">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tight text-monolith-onSurface">{d.walletLink.stepsLabel} 01. {content.cardTitle}</h2>
+          <span className="rounded-full bg-monolith-primaryFixed px-3 py-1 text-[10px] font-black uppercase tracking-widest text-monolith-primary">
+            Account Info
+          </span>
         </div>
 
-        {user ? (
-          <WalletConnectPanel
-            address={address}
-            chainName={chain?.name}
-            walletLabel="지갑 주소"
-            isConnected={isConnected && Boolean(address)}
-            isBusy={isLinking || isSigning}
-            connectLabel="지갑 연결 시작"
-            primaryActionLabel={user.linkedAddress ? '이 지갑으로 계정 다시 연동' : '이 지갑으로 계정 연동'}
-            onConnect={handleOpenWalletModal}
-            onPrimaryAction={handleLinkWallet}
-            onDisconnect={() => void handleDisconnect()}
-            error={error}
-            message={message}
-            disabled={!supabaseConfigured}
-            primaryActionDisabled={!user}
-            helperText={!isReownProjectIdConfigured ? <p>{textContent.auth.walletLinkMissingProjectId}</p> : undefined}
-          />
-        ) : (
-          <div className="space-y-4 rounded-[1.75rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-6 shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
-            <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
-              Google 계정에 지갑을 연동하려면 먼저 Google 로그인 후 다시 이 페이지로 오세요. 지금은 지갑으로 바로 로그인할 수 있습니다.
-            </p>
-            <WalletLoginSection redirectTo={redirectTo} />
+        <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary/60">{d.walletLink.currentAccountLabel}</p>
+          <p className="mt-2 text-lg font-bold text-monolith-onSurface">{user.email}</p>
+          <div className="mt-4 border-t border-monolith-outlineVariant/20 pt-4 text-xs font-bold text-monolith-onSurfaceMuted">
+            {!user.linkedAddress ? <p>{language === 'ko' ? '연결된 지갑' : 'Linked Wallet'}: {d.walletLink.emptyLinkedWallet}</p> : (
+              <p className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                {user.linkedAddress}
+              </p>
+            )}
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Wallet Link Action */}
+      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-ambient">
+        <div className="mb-8 flex items-center justify-between">
+          <h2 className="text-2xl font-black tracking-tight text-monolith-onSurface">{d.walletLink.stepsLabel} 02. {language === 'ko' ? '지갑 연동하기' : 'Link Wallet'}</h2>
+        </div>
+
+        <WalletConnectPanel
+          isConnected={isConnected}
+          address={address}
+          chainName={chain?.name || d.walletLink.unknownNetwork}
+          isLinking={linking || isSigning}
+          onConnect={handleConnectClick}
+          onDisconnect={disconnect}
+          onLink={handleLink}
+          error={error}
+          title={d.walletLink.connectedWalletLabel}
+          helperText={!isReownProjectIdConfigured ? <p>{d.auth.walletLinkMissingProjectId}</p> : undefined}
+        />
       </div>
     </div>
   );

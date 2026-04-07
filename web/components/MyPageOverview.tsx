@@ -121,7 +121,7 @@ export default function MyPageOverview() {
       setMintError(null);
 
       const memberWallet = member?.wallet_address?.toLowerCase() ?? null;
-      const activeWallet = address.toLowerCase();
+      const activeWallet = (address || '').toLowerCase();
       if (memberWallet && memberWallet !== activeWallet) {
         throw new Error('현재 마이페이지 회원 정보의 지갑과 연결된 지갑이 다릅니다. 다시 로그인하거나 지갑을 다시 연결하세요.');
       }

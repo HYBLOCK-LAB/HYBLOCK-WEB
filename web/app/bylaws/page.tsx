@@ -1,8 +1,14 @@
+'use client';
+
 import SiteChrome from '@/components/SiteChrome';
 import { bylawsChapters } from '@/lib/bylaws-content';
 import { textContent } from '@/lib/text-content';
+import { useLanguageStore } from '@/lib/auth/language-store';
 
 export default function BylawsPage() {
+  const { language } = useLanguageStore();
+  const d = textContent[language].bylaws;
+
   return (
     <SiteChrome activePath="/bylaws">
       <main className="min-h-screen">
@@ -14,7 +20,7 @@ export default function BylawsPage() {
                 Academic Club
               </span>
               <h1 className="text-5xl font-black leading-none tracking-[-0.08em] text-white sm:text-6xl md:text-8xl">
-                BYLAWS
+                {d.title.toUpperCase()}
               </h1>
             </div>
           </div>
@@ -23,7 +29,7 @@ export default function BylawsPage() {
         <section className="mx-auto max-w-7xl px-6 py-16 sm:py-20 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-3xl">
             <p className="text-lg leading-8 text-monolith-onSurfaceMuted sm:text-xl">
-              {textContent.bylaws.intro}
+              {d.intro}
             </p>
           </div>
         </section>
@@ -66,10 +72,10 @@ export default function BylawsPage() {
             </div>
             <div className="mt-20 rounded-lg border-t-2 border-monolith-primaryContainer bg-monolith-surfaceLow p-12">
               <p className="text-center text-sm text-monolith-onSurfaceMuted">
-                {textContent.bylaws.closingNote}
+                {d.closingNote}
               </p>
               <p className="mt-4 text-center font-display text-sm uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">
-                {textContent.bylaws.updatedAt}
+                {d.updatedAt}
               </p>
             </div>
           </div>

@@ -31,7 +31,6 @@ export const brandMenuItems: NavItem[] = [
 export const navItems: NavItem[] = [
   { href: '/notices', label: '공지사항' },
   { href: '/activities', label: '활동' },
-  { href: '/attendance', label: '출석 체크' },
 ];
 
 export const adminNavItems: NavItem[] = [
@@ -62,103 +61,37 @@ export const activities = [
     description: '롤업 솔루션의 아키텍처 분석과 실제 구현 사례를 정리한 연구 세션입니다.',
     image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
   },
-  {
-    slug: 'hackathon',
-    category: '해커톤',
-    date: '2024.02.20',
-    title: 'KB-Blockchain Finance Hackathon Participation',
-    description: '분산 신원 증명 기반 자산 관리 프로젝트를 설계하고 데모까지 완성했습니다.',
-    image: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    slug: 'cryptography',
-    category: '기본 세션',
-    date: '2024.01.10',
-    title: 'Cryptography Fundamentals for Web3',
-    description: '해시 함수와 공개키 암호학 등 블록체인의 핵심 개념을 다룬 기초 세션입니다.',
-    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    slug: 'buidl-asia',
-    category: '기타 외부 활동',
-    date: '2023.12.05',
-    title: 'Buidl Asia 2023 Networking Night',
-    description: '국내외 프로젝트 팀과 교류하며 학회의 연구 방향과 협업 기회를 확장했습니다.',
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    slug: 'security-audit',
-    category: '심화 세션',
-    date: '2023.11.18',
-    title: 'Solidity Security & Audit Workshop',
-    description: '정적 분석 도구와 실제 취약점 사례를 중심으로 스마트 컨트랙트 보안을 실습했습니다.',
-    image: 'https://images.unsplash.com/photo-1518186233392-c232efbf2373?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    slug: 'defi-architecture',
-    category: '심화 세션',
-    date: '2023.10.22',
-    title: 'DeFi Protocol Architecture Deep Dive',
-    description: '주요 디파이 프로토콜의 경제 모델과 시스템 설계를 비교 분석했습니다.',
-    image: 'https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=1200&q=80',
-  },
 ];
 
 export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
-  {
-    id: 'gallery-1',
-    src: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-    alt: 'HYBLOCK 세션에서 발표를 듣는 참가자들',
-    height: 820,
-  },
-  {
-    id: 'gallery-2',
-    src: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80',
-    alt: '팀 단위로 협업하는 해커톤 현장',
-    height: 640,
-  },
-  {
-    id: 'gallery-3',
-    src: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
-    alt: '스터디 그룹이 함께 토론하는 모습',
-    height: 760,
-  },
-  {
-    id: 'gallery-4',
-    src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-    alt: '외부 네트워킹 행사에서 교류하는 참가자들',
-    height: 540,
-  },
-  {
-    id: 'gallery-5',
-    src: 'https://images.unsplash.com/photo-1518186233392-c232efbf2373?auto=format&fit=crop&w=1200&q=80',
-    alt: '보안 워크숍에서 자료를 검토하는 장면',
-    height: 700,
-  },
-  {
-    id: 'gallery-6',
-    src: 'https://images.unsplash.com/photo-1640161704729-cbe966a08476?auto=format&fit=crop&w=1200&q=80',
-    alt: '프로토콜 아키텍처를 설명하는 세미나 슬라이드',
-    height: 860,
-  },
-  {
-    id: 'gallery-7',
-    src: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
-    alt: '프로젝트 아이디어를 공유하는 팀 미팅',
-    height: 620,
-  },
-  {
-    id: 'gallery-8',
-    src: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
-    alt: '노트북으로 작업 중인 멤버들',
-    height: 780,
-  },
-  {
-    id: 'gallery-9',
-    src: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
-    alt: '행사 종료 후 단체 교류 장면',
-    height: 680,
-  },
+  { id: 'a1', src: '/Album/lbank.jpeg', alt: 'LBank 세션', height: 800 },
+  { id: 'a2', src: '/Album/하블밤2.jpg', alt: '하블밤 행사', height: 800 },
+  { id: 'a3', src: '/Album/하블밤3.jpg', alt: '하블밤 단체사진', height: 800 },
+  { id: 'a4', src: '/Album/하블밥1.jpg', alt: '하블밥 모임', height: 800 },
+  { id: 'a5', src: '/Album/엑셀라1.jpeg', alt: '엑셀라 세션 1', height: 800 },
+  { id: 'a6', src: '/Album/엑셀라2.jpeg', alt: '엑셀라 세션 2', height: 800 },
+  { id: 'a7', src: '/Album/엑셀라3.jpeg', alt: '엑셀라 세션 3', height: 800 },
+  { id: 'a8', src: '/Album/KakaoTalk_20260330_123322826.jpg', alt: '활동 사진 1', height: 800 },
+  { id: 'a9', src: '/Album/KakaoTalk_20260330_123413866.jpg', alt: '활동 사진 2', height: 800 },
+  { id: 'a10', src: '/Album/image.png', alt: '활동 사진 3', height: 800 },
+  { id: 'a11', src: '/Album/image (1).png', alt: '활동 사진 4', height: 800 },
+  { id: 'a12', src: '/Album/image (2).png', alt: '활동 사진 5', height: 800 },
+  { id: 'a13', src: '/Album/image (3).png', alt: '활동 사진 6', height: 800 },
+  { id: 'a14', src: '/Album/image (4).png', alt: '활동 사진 7', height: 800 },
+  { id: 'a15', src: '/Album/image (5).png', alt: '활동 사진 8', height: 800 },
+  { id: 'a16', src: '/Album/KakaoTalk_20260128_154618954_08.jpg', alt: '활동 사진 9', height: 800 },
+  { id: 'a17', src: '/Album/KakaoTalk_20260407_194115929_01.jpg', alt: '활동 사진 10', height: 800 },
+  { id: 'a18', src: '/Album/KakaoTalk_20260407_194115929_05.jpg', alt: '활동 사진 11', height: 800 },
+  { id: 'a19', src: '/Album/KakaoTalk_20260407_194115929_06.jpg', alt: '활동 사진 12', height: 800 },
+  { id: 'a20', src: '/Album/KakaoTalk_20260407_194115929_07.jpg', alt: '활동 사진 13', height: 800 },
+  { id: 'a21', src: '/Album/KakaoTalk_20260407_194115929_08.jpg', alt: '활동 사진 14', height: 800 },
+  { id: 'a22', src: '/Album/KakaoTalk_20260407_194115929_09.jpg', alt: '활동 사진 15', height: 800 },
+  { id: 'a23', src: '/Album/KakaoTalk_20260407_194115929_11.jpg', alt: '활동 사진 16', height: 800 },
+  { id: 'a24', src: '/Album/KakaoTalk_20260407_194115929_12.jpg', alt: '활동 사진 17', height: 800 },
+  { id: 'a25', src: '/Album/KakaoTalk_20260407_194115929_14.jpg', alt: '활동 사진 18', height: 800 },
+  { id: 'a26', src: '/Album/KakaoTalk_20260407_194115929_15.jpg', alt: '활동 사진 19', height: 800 },
+  { id: 'a27', src: '/Album/KakaoTalk_20260407_194115929_18.jpg', alt: '활동 사진 20', height: 800 },
+  { id: 'a28', src: '/Album/KakaoTalk_20260407_194115929_20.jpg', alt: '활동 사진 21', height: 800 },
 ];
 
 export const homeNotices = [
@@ -255,7 +188,7 @@ export const aboutHistory = [
   {
     year: '2026',
     title: "What's next?",
-    description: '기업 협력 프로젝트, 대외 홍보 채널 확대,\n타 학회 간 교류를 시작으로 활발한 활동을\n이어갈 계획입니다.',
+    description: '기업 협력 프로젝트, 대외 홍보 채널 확대,\n타 학회 간 교류를 시작으로 활발할 활동을\n이어갈 계획입니다.',
     side: 'right',
   },
 ] as const;

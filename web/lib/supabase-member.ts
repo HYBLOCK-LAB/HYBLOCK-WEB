@@ -25,7 +25,8 @@ function toMemberProfile(member: MemberRow): MemberProfile {
   };
 }
 
-function normalizeWalletAddress(walletAddress: string) {
+function normalizeWalletAddress(walletAddress: string | null | undefined): string {
+  if (!walletAddress) return '';
   return walletAddress.trim().toLowerCase();
 }
 

@@ -8,10 +8,12 @@ export type WalletConnectPanelProps = {
   walletLabel?: string;
   isConnected: boolean;
   isBusy?: boolean;
+  isLinking?: boolean; // 추가
   connectLabel?: string;
-  primaryActionLabel: string;
+  primaryActionLabel?: string; // 옵셔널로 변경
   onConnect: () => void | Promise<void>;
-  onPrimaryAction: () => void | Promise<void>;
+  onPrimaryAction?: () => void | Promise<void>; // 옵셔널로 변경
+  onLink?: () => void | Promise<void>; // 추가
   onDisconnect: () => void;
   error?: string | null;
   message?: string | null;
@@ -19,4 +21,5 @@ export type WalletConnectPanelProps = {
   helperText?: ReactNode;
   primaryActionDisabled?: boolean;
   mode?: WalletConnectMode;
+  title?: string; // 추가
 };

@@ -6,6 +6,7 @@ import { LoaderCircle, Wallet } from 'lucide-react';
 import { useAccount, useSignMessage } from 'wagmi';
 import { isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
 import { textContent } from '@/lib/text-content';
+import { useLanguageStore } from '@/lib/auth/language-store';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 
 type WalletLoginSectionProps = {
@@ -14,6 +15,9 @@ type WalletLoginSectionProps = {
 
 export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSectionProps) {
   const router = useRouter();
+  const { language } = useLanguageStore();
+  const d = textContent[language].auth;
+  
   const { openWalletConnectModal } = useWalletConnectModal();
   const { address, chain, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
@@ -34,28 +38,28 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
 
   const handleWalletLogin = async () => {
     if (!address) {
-      setError('먼저 지갑을 연결하세요.');
+      setError(language === 'ko' ? '먼저 지갑을 연결하세요.' : 'Please connect your wallet first.');
       return;
     }
 
     try {
       setError(null);
-      setMessage('서명 요청을 준비하는 중입니다.');
+      setMessage(language === 'ko' ? '서명 요청을 준비하는 중입니다.' : 'Preparing signature request...');
       setIsVerifying(true);
 
       const nonceResponse = await fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`);
       if (!nonceResponse.ok) {
         const noncePayload = (await nonceResponse.json().catch(() => ({}))) as { error?: string };
-        throw new Error(noncePayload.error ?? '로그인 요청을 시작하지 못했습니다.');
+        throw new Error(noncePayload.error ?? (language === 'ko' ? '로그인 요청을 시작하지 못했습니다.' : 'Failed to start login request.'));
       }
 
       const noncePayload = (await nonceResponse.json()) as { message: string };
-      setMessage('지갑에서 서명을 완료해주세요.');
+      setMessage(language === 'ko' ? '지갑에서 서명을 완료해주세요.' : 'Please sign the message in your wallet.');
       const signature = await signMessageAsync({
         message: noncePayload.message,
       });
 
-      setMessage('서명을 확인하는 중입니다.');
+      setMessage(language === 'ko' ? '서명을 확인하는 중입니다.' : 'Verifying signature...');
       const verifyResponse = await fetch('/api/auth/wallet/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +77,7 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
           return;
         }
 
-        throw new Error(data.error ?? '회원 정보 확인에 실패했습니다.');
+        throw new Error(data.error ?? (language === 'ko' ? '회원 정보 확인에 실패했습니다.' : 'Failed to verify member info.'));
       }
 
       window.localStorage.setItem(
@@ -86,11 +90,11 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
         }),
       );
 
-      setMessage('지갑 로그인 세션이 연결되었습니다.');
+      setMessage(language === 'ko' ? '지갑 로그인 세션이 연결되었습니다.' : 'Wallet login session connected.');
       router.replace(redirectTo);
     } catch (loginError) {
       handledAddressRef.current = null;
-      setError(formatWalletLoginError(loginError));
+      setError(formatWalletLoginError(loginError, language));
       setMessage(null);
     } finally {
       setIsVerifying(false);
@@ -136,27 +140,27 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
             className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl border border-[#0e4a84] bg-[linear-gradient(135deg,#003361,#0e4a84)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,51,97,0.2)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSigning || isVerifying ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-            지갑으로 로그인
+            {language === 'ko' ? '지갑으로 로그인' : 'Login with Wallet'}
           </button>
         </div>
       ) : null}
 
       {error ? <p className="text-center text-sm text-monolith-error">{error}</p> : null}
       {message ? <p className="text-center text-sm text-monolith-primaryContainer">{message}</p> : null}
-      {!isReownProjectIdConfigured ? <p className="text-center text-sm text-monolith-onSurfaceMuted">{textContent.auth.walletLoginMissingProjectId}</p> : null}
+      {!isReownProjectIdConfigured ? <p className="text-center text-sm text-monolith-onSurfaceMuted">{d.walletLoginMissingProjectId}</p> : null}
     </div>
   );
 }
 
-function formatWalletLoginError(error: unknown) {
+function formatWalletLoginError(error: unknown, lang: 'ko' | 'en') {
   if (!(error instanceof Error)) {
-    return '지갑 로그인 중 오류가 발생했습니다.';
+    return lang === 'ko' ? '지갑 로그인 중 오류가 발생했습니다.' : 'Error occurred during wallet login.';
   }
 
   const message = error.message.toLowerCase();
 
   if (message.includes('user rejected') || message.includes('rejected the request')) {
-    return '서명이 취소되었습니다.';
+    return lang === 'ko' ? '서명이 취소되었습니다.' : 'Signature cancelled.';
   }
 
   return error.message;

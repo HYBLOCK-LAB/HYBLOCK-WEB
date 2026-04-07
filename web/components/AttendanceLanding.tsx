@@ -9,6 +9,7 @@ import CheckInForm from '@/components/CheckInForm';
 import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
 import type { ActiveAttendanceEvent, AttendanceSessionSummary } from '@/lib/supabase-attendance';
 import { textContent } from '@/lib/text-content';
+import { useLanguageStore } from '@/lib/auth/language-store';
 
 type AttendanceLandingProps = {
   sessions: AttendanceSessionSummary[];
@@ -16,19 +17,21 @@ type AttendanceLandingProps = {
   members: string[];
 };
 
-function translateCategory(category?: string) {
-  if (!category) return '세션';
-  if (category === '대외활동') return '외부 활동';
+function translateCategory(category: string | undefined, lang: 'ko' | 'en') {
+  if (!category) return lang === 'ko' ? '세션' : 'Session';
+  if (category === '대외활동') return lang === 'ko' ? '외부 활동' : 'External Activity';
   return category;
 }
 
-function getSessionPresentation(status: AttendanceSessionSummary['status'], isActive: boolean) {
+function getSessionPresentation(status: AttendanceSessionSummary['status'], isActive: boolean, lang: 'ko' | 'en') {
+  const d = textContent[lang].attendance;
+  
   if (isActive || status === 'in_progress') {
     return {
       badgeLabel: 'Active',
       badgeClassName: 'bg-monolith-primary text-monolith-onPrimary',
-      hint: textContent.attendance.activeStatusHint,
-      actionLabel: '출석 체크하기',
+      hint: d.activeStatusHint,
+      actionLabel: lang === 'ko' ? '출석 체크하기' : 'Check-In Now',
       actionClassName: 'bg-monolith-primaryContainer text-monolith-onPrimary shadow-lg shadow-monolith-primary/10',
       iconClassName: 'bg-monolith-secondaryContainer text-monolith-primaryContainer',
     };
@@ -38,8 +41,8 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
     return {
       badgeLabel: 'Closed',
       badgeClassName: 'bg-[#ffe2e0] text-[#b3261e]',
-      hint: '종료됨',
-      actionLabel: '세션 보기',
+      hint: lang === 'ko' ? '종료됨' : 'Closed',
+      actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
       actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
       iconClassName: 'bg-[#ffe2e0] text-[#b3261e]',
     };
@@ -49,8 +52,8 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
     return {
       badgeLabel: 'Cancelled',
       badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
-      hint: '취소됨',
-      actionLabel: '세션 보기',
+      hint: lang === 'ko' ? '취소됨' : 'Cancelled',
+      actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
       actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
       iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
     };
@@ -59,8 +62,8 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
   return {
     badgeLabel: 'Upcoming',
     badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
-    hint: textContent.attendance.pendingStatusHint,
-    actionLabel: '세션 보기',
+    hint: d.pendingStatusHint,
+    actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
     actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
     iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
   };
@@ -71,6 +74,9 @@ export default function AttendanceLanding({
   activeEvents = [],
   members,
 }: AttendanceLandingProps) {
+  const { language } = useLanguageStore();
+  const d = textContent[language].attendance;
+  
   const searchParams = useSearchParams();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -102,10 +108,10 @@ export default function AttendanceLanding({
             Attendance Management
           </span>
           <h1 className="max-w-3xl text-5xl font-bold leading-none tracking-[-0.06em] text-monolith-onSurface md:text-6xl">
-            세션 출석 체크
+            {language === 'ko' ? '세션 출석 체크' : 'Session Check-In'}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-onSurfaceMuted md:text-lg">
-            {textContent.attendance.description}
+            {d.description}
           </p>
         </div>
 
@@ -121,7 +127,7 @@ export default function AttendanceLanding({
             {sessions.map((session, index) => {
               const isActive = activeEvents.some((activeEvent) => activeEvent.sessionId === session.id);
               const encoded = encodeURIComponent(encodeEvent(session.name));
-              const presentation = getSessionPresentation(session.status, isActive);
+              const presentation = getSessionPresentation(session.status, isActive, language);
 
               return (
                 <div
@@ -160,14 +166,14 @@ export default function AttendanceLanding({
                       </span>
                     </div>
                     <p className="text-xs font-medium text-monolith-onSurfaceMuted">
-                      {textContent.attendance.sessionNumber(String(index + 1).padStart(2, '0'))}
+                      {language === 'ko' ? `세션 #${String(index + 1).padStart(2, '0')}` : `Session #${String(index + 1).padStart(2, '0')}`}
                     </p>
                   </div>
 
                   <div className="col-span-3">
                     <div className="flex items-center gap-2 text-sm text-monolith-onSurfaceMuted">
                       <CalendarDays className="h-4 w-4" />
-                      <span>{translateCategory(session.category)}</span>
+                      <span>{translateCategory(session.category, language)}</span>
                     </div>
                     <p className="ml-6 mt-1 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
                       <Clock3 className="h-3.5 w-3.5" />
@@ -210,10 +216,10 @@ export default function AttendanceLanding({
                 <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
                   <div className="mb-5">
                     <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
-                      {textContent.attendance.manualCheckInLabel}
+                      {d.manualCheckInLabel}
                     </p>
                     <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">
-                      {textContent.attendance.manualCheckInTitle}
+                      {d.manualCheckInTitle}
                     </h2>
                   </div>
                   <CheckInForm members={members} eventName={selectedSession.name} />
@@ -221,7 +227,9 @@ export default function AttendanceLanding({
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
-                왼쪽에서 세션을 선택하면 해당 세션의 `내 출석 QR`과 수동 출석이 이 영역에 표시됩니다.
+                {language === 'ko' 
+                  ? '왼쪽에서 세션을 선택하면 해당 세션의 내 출석 QR과 수동 출석이 이 영역에 표시됩니다.' 
+                  : 'Select a session on the left to display your attendance QR and manual check-in here.'}
               </div>
             )}
           </aside>

@@ -13,13 +13,10 @@ export default function AboutPage() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(0,0,0,0.12)_55%,rgba(0,0,0,0.28)_100%)]" />
           <div className="relative mx-auto flex min-h-[420px] max-w-7xl items-center justify-center px-6 py-20 text-center sm:min-h-[500px] lg:min-h-[580px] lg:px-8">
             <div className="flex max-w-3xl flex-col items-center">
-              <div className="relative h-28 w-24 sm:h-36 sm:w-32 md:h-44 md:w-40">
-                <Image src="/logo.png" alt="HYBLOCK logo" fill className="object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.4)]" priority />
+              <div className="relative h-40 w-40 sm:h-52 sm:w-52 md:h-64 md:w-64">
+                <Image src="/logo_original.png" alt="HYBLOCK logo" fill className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.4)]" priority />
               </div>
-              <div className="relative mt-5 h-12 w-[210px] sm:h-16 sm:w-[280px] md:h-20 md:w-[360px]">
-                <Image src="/logo_name.png" alt="HYBLOCK" fill className="object-contain drop-shadow-[0_16px_34px_rgba(0,0,0,0.35)]" priority />
-              </div>
-              <p className="mt-6 font-display text-sm font-bold uppercase tracking-[0.28em] text-white/70">
+              <p className="mt-8 font-display text-sm font-bold uppercase tracking-[0.28em] text-white/70">
                 Academic Club
               </p>
               <p className="mt-4 text-lg font-light italic tracking-[0.01em] text-white/72 sm:text-2xl">

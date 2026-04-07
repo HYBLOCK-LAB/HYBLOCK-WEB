@@ -1,6 +1,6 @@
 import { encodeAbiParameters, keccak256, type Address, type Hex } from 'viem';
 
-export type CertificateType = 'attendance' | 'external_activity' | 'assignment';
+export type CertificateType = 'attendance' | 'external_activity' | 'assignment' | 'participation_period';
 
 // EAS contract addresses per chain
 export const EAS_CONTRACT_ADDRESS: Record<number, Address> = {
@@ -12,15 +12,26 @@ export const ZERO_BYTES32 = ('0x' + '0'.repeat(64)) as Hex;
 
 // Single schema UID — configure via .env after registering on https://easscan.org
 export const EAS_SCHEMA_UID = (process.env.NEXT_PUBLIC_EAS_SCHEMA ?? ZERO_BYTES32) as Hex;
+export const HYBLOCK_ISSUER_ADDRESS = (process.env.NEXT_PUBLIC_HYBLOCK_ISSUER_ADDRESS ?? '') as Address;
+export const HYBLOCK_SBT_ADDRESS = (process.env.NEXT_PUBLIC_HYBLOCK_SBT_ADDRESS ?? '') as Address;
 
 export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   attendance: '출석',
   external_activity: '외부 세션',
   assignment: '해커톤·아이디어톤',
+  participation_period: '참여 기간',
 };
 
 export function isEasSchemaConfigured(): boolean {
   return EAS_SCHEMA_UID !== ZERO_BYTES32;
+}
+
+export function isHyblockIssuerConfigured(): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(HYBLOCK_ISSUER_ADDRESS);
+}
+
+export function isHyblockSbtConfigured(): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(HYBLOCK_SBT_ADDRESS);
 }
 
 export function getEasContractAddress(chainId: number): Address | null {
@@ -64,6 +75,51 @@ export const EAS_ABI = [
       { name: 'attester', type: 'address', indexed: true },
       { name: 'uid', type: 'bytes32', indexed: false },
       { name: 'schemaUID', type: 'bytes32', indexed: true },
+    ],
+  },
+] as const;
+
+export const HYBLOCK_ISSUER_ABI = [
+  {
+    name: 'issue',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'walletAddress', type: 'address' },
+      { name: 'personalDataHash', type: 'bytes32' },
+      { name: 'attestationType', type: 'string' },
+      { name: 'revealedData', type: 'string' },
+      { name: 'isGraduated', type: 'bool' },
+    ],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+] as const;
+
+export const HYBLOCK_SBT_ABI = [
+  {
+    name: 'safeMint',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'recipient', type: 'address' },
+      { name: 'uri', type: 'string' },
+    ],
+    outputs: [],
+  },
+  {
+    name: 'locked',
+    type: 'function',
+    stateMutability: 'pure',
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    name: 'Transfer',
+    type: 'event',
+    inputs: [
+      { name: 'from', type: 'address', indexed: true },
+      { name: 'to', type: 'address', indexed: true },
+      { name: 'tokenId', type: 'uint256', indexed: true },
     ],
   },
 ] as const;

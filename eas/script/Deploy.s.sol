@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 import "../src/ActivityTracker.sol";
 import "../src/HyblockIssuer.sol";
 import "../src/HyblockResolver.sol";
+import "../src/HyblockSBT.sol";
 
 contract Deploy is Script {
     function run() external {
@@ -25,6 +26,10 @@ contract Deploy is Script {
         // 3. HyblockResolver 배포
         HyblockResolver resolver = new HyblockResolver(address(tracker), address(issuer));
         console.log("HyblockResolver:", address(resolver));
+
+        // 4. HyblockSBT 배포
+        HyblockSBT sbt = new HyblockSBT();
+        console.log("HyblockSBT:", address(sbt));
 
         vm.stopBroadcast();
     }

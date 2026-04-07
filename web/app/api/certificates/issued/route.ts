@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApiAccess } from '@/lib/admin-auth';
-import { getCertificateCandidates } from '@/lib/supabase-certificate';
+import { getIssuedAttestations } from '@/lib/supabase-certificate';
 import type { CertificateType } from '@/lib/eas';
 
 const VALID_TYPES: CertificateType[] = ['attendance', 'external_activity', 'assignment', 'participation_period'];
@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const candidates = await getCertificateCandidates(type);
-    return NextResponse.json(candidates);
+    const issued = await getIssuedAttestations(type);
+    return NextResponse.json(issued);
   } catch (error) {
-    console.error('GET /api/certificates/members error:', error);
-    return NextResponse.json({ error: '멤버 목록을 불러오지 못했습니다.' }, { status: 500 });
+    console.error('GET /api/certificates/issued error:', error);
+    return NextResponse.json({ error: '발급 이력을 불러오지 못했습니다.' }, { status: 500 });
   }
 }

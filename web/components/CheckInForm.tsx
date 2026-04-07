@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
 import { decodeEvent } from '@/lib/utils';
+import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 
 const translateEvent = (eventName: string | null) => {
   if (!eventName) return '';
@@ -40,6 +41,7 @@ export default function CheckInForm({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const walletSessionConnected = useWalletSessionStore((state) => state.isConnected);
 
   useEffect(() => {
     const fetchEventStatus = async () => {
@@ -58,6 +60,14 @@ export default function CheckInForm({
     };
     fetchEventStatus();
   }, []);
+
+  useEffect(() => {
+    if (!walletSessionConnected) {
+      setName('');
+      setCode('');
+      setMessage(null);
+    }
+  }, [walletSessionConnected]);
 
   useEffect(() => {
     const currentActiveEvent = activeEvents.find((activeEvent) => activeEvent.name === event) ?? null;
@@ -184,7 +194,7 @@ export default function CheckInForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <div>
           <label
             htmlFor="name"
@@ -202,7 +212,7 @@ export default function CheckInForm({
             placeholder="이름을 입력하세요"
             className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
             list={members.length > 0 ? 'member-name-suggestions' : undefined}
-            autoComplete="name"
+            autoComplete="off"
           />
           {members.length > 0 ? (
             <datalist id="member-name-suggestions">
@@ -231,6 +241,7 @@ export default function CheckInForm({
             maxLength={4}
             placeholder="4자리 숫자 코드를 입력하세요"
             className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
+            autoComplete="off"
           />
         </div>
         <button

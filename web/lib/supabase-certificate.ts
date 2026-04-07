@@ -10,6 +10,18 @@ export type CertificateCandidate = {
   criteria_details: Record<string, unknown> | null;
 };
 
+export type IssuedAttestationSummary = {
+  wallet_address: string;
+  name: string;
+  major: string;
+  affiliation: string;
+  cohort: number;
+  eas_uid: string;
+  created_at: string | null;
+  attestation_type: CertificateType;
+  criteria_details: Record<string, unknown> | null;
+};
+
 export type AttendanceRecord = {
   attendance_id: string;
   session_id: string;
@@ -43,7 +55,153 @@ const CRITERIA_TYPE_MAP: Record<CertificateType, string> = {
   attendance: 'attendance',
   external_activity: 'external_activity',
   assignment: 'assignment',
+  participation_period: 'participation_period',
 };
+
+type MemberRow = {
+  id: number;
+  wallet_address: string | null;
+  name: string;
+  major: string;
+  affiliation: string;
+  cohort: number;
+  is_active?: boolean | null;
+};
+
+async function getMembersByIds(memberIds: number[]) {
+  if (memberIds.length === 0) return [];
+
+  const supabase = getSupabase();
+  const { data: members, error } = await supabase
+    .from('member')
+    .select('id, wallet_address, name, major, affiliation, cohort, is_active')
+    .in('id', memberIds)
+    .not('wallet_address', 'is', null)
+    .order('cohort', { ascending: true })
+    .order('name', { ascending: true })
+    .returns<MemberRow[]>();
+
+  if (error) throw error;
+  return members ?? [];
+}
+
+async function getFallbackCandidates(type: CertificateType, attestedSet: Set<number>): Promise<CertificateCandidate[]> {
+  const supabase = getSupabase();
+
+  if (type === 'attendance') {
+    const { data, error } = await supabase
+      .from('attendance_record')
+      .select('member_id, status')
+      .in('status', ['present', 'late'])
+      .returns<Array<{ member_id: number; status: 'present' | 'late' }>>();
+
+    if (error) throw error;
+
+    const stats = new Map<number, { present_count: number; late_count: number; total_records: number }>();
+    for (const row of data ?? []) {
+      if (attestedSet.has(row.member_id)) continue;
+      const current = stats.get(row.member_id) ?? { present_count: 0, late_count: 0, total_records: 0 };
+      if (row.status === 'present') current.present_count += 1;
+      if (row.status === 'late') current.late_count += 1;
+      current.total_records += 1;
+      stats.set(row.member_id, current);
+    }
+
+    const members = await getMembersByIds([...stats.keys()]);
+    return members
+      .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address))
+      .map((member) => ({
+        wallet_address: member.wallet_address,
+        name: member.name,
+        major: member.major,
+        affiliation: member.affiliation,
+        cohort: member.cohort,
+        criteria_details: stats.get(member.id) ?? null,
+      }));
+  }
+
+  if (type === 'external_activity') {
+    const { data, error } = await supabase
+      .from('external_activity')
+      .select('member_id')
+      .returns<Array<{ member_id: number }>>();
+
+    if (error) throw error;
+
+    const counts = new Map<number, number>();
+    for (const row of data ?? []) {
+      if (attestedSet.has(row.member_id)) continue;
+      counts.set(row.member_id, (counts.get(row.member_id) ?? 0) + 1);
+    }
+
+    const members = await getMembersByIds([...counts.keys()]);
+    return members
+      .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address))
+      .map((member) => ({
+        wallet_address: member.wallet_address,
+        name: member.name,
+        major: member.major,
+        affiliation: member.affiliation,
+        cohort: member.cohort,
+        criteria_details: { activity_count: counts.get(member.id) ?? 0, source: 'raw_external_activity' },
+      }));
+  }
+
+  if (type === 'assignment') {
+    const { data, error } = await supabase
+      .from('assignment')
+      .select('member_id, affiliation')
+      .returns<Array<{ member_id: number; affiliation: string }>>();
+
+    if (error) throw error;
+
+    const counts = new Map<number, { submission_count: number; affiliation: string | null }>();
+    for (const row of data ?? []) {
+      if (attestedSet.has(row.member_id)) continue;
+      const current = counts.get(row.member_id) ?? { submission_count: 0, affiliation: null };
+      current.submission_count += 1;
+      current.affiliation = current.affiliation ?? row.affiliation;
+      counts.set(row.member_id, current);
+    }
+
+    const members = await getMembersByIds([...counts.keys()]);
+    return members
+      .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address))
+      .map((member) => ({
+        wallet_address: member.wallet_address,
+        name: member.name,
+        major: member.major,
+        affiliation: member.affiliation,
+        cohort: member.cohort,
+        criteria_details: counts.get(member.id) ?? null,
+      }));
+  }
+
+  const { data: members, error } = await supabase
+    .from('member')
+    .select('id, wallet_address, name, major, affiliation, cohort, is_active')
+    .eq('is_active', true)
+    .not('wallet_address', 'is', null)
+    .order('cohort', { ascending: true })
+    .order('name', { ascending: true })
+    .returns<MemberRow[]>();
+
+  if (error) throw error;
+
+  return (members ?? [])
+    .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address) && !attestedSet.has(member.id))
+    .map((member) => ({
+      wallet_address: member.wallet_address,
+      name: member.name,
+      major: member.major,
+      affiliation: member.affiliation,
+      cohort: member.cohort,
+      criteria_details: {
+        current_status: 'manual_review_required',
+        source: 'active_member_fallback',
+      },
+    }));
+}
 
 export async function getCertificateCandidates(type: CertificateType): Promise<CertificateCandidate[]> {
   const supabase = getSupabase();
@@ -68,43 +226,80 @@ export async function getCertificateCandidates(type: CertificateType): Promise<C
 
   const attestedSet = new Set((attested ?? []).map((r) => r.member_id));
   const pendingMembers = (tracking ?? []).filter((r) => !attestedSet.has(r.member_id));
+  const detailsMap = new Map(pendingMembers.map((r) => [r.member_id, r.details]));
 
-  if (pendingMembers.length === 0) return [];
+  const trackedMembers = await getMembersByIds(pendingMembers.map((r) => r.member_id));
+  const trackedCandidates = trackedMembers
+    .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address))
+    .map((member) => ({
+      wallet_address: member.wallet_address,
+      name: member.name,
+      major: member.major,
+      affiliation: member.affiliation,
+      cohort: member.cohort,
+      criteria_details: detailsMap.get(member.id) ?? null,
+    }));
 
-  const memberIds = pendingMembers.map((r) => r.member_id);
+  const fallbackCandidates = await getFallbackCandidates(type, attestedSet);
+  const merged = new Map<string, CertificateCandidate>();
 
-  const { data: members, error: membersError } = await supabase
-    .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort')
-    .in('id', memberIds)
-    .not('wallet_address', 'is', null)
-    .order('cohort', { ascending: true })
-    .order('name', { ascending: true })
+  for (const candidate of fallbackCandidates) {
+    merged.set(candidate.wallet_address.toLowerCase(), candidate);
+  }
+
+  for (const candidate of trackedCandidates) {
+    merged.set(candidate.wallet_address.toLowerCase(), candidate);
+  }
+
+  return [...merged.values()].sort((a, b) => {
+    if (a.cohort !== b.cohort) return a.cohort - b.cohort;
+    return a.name.localeCompare(b.name, 'ko');
+  });
+}
+
+export async function getIssuedAttestations(type: CertificateType): Promise<IssuedAttestationSummary[]> {
+  const supabase = getSupabase();
+  const criteriaType = CRITERIA_TYPE_MAP[type];
+
+  const { data: rows, error } = await supabase
+    .from('attestation')
+    .select('member_id, eas_uid, created_at, attestation_type, revealed_data')
+    .eq('attestation_type', criteriaType)
+    .order('created_at', { ascending: false })
     .returns<
       Array<{
-        id: number;
-        wallet_address: string | null;
-        name: string;
-        major: string;
-        affiliation: string;
-        cohort: number;
+        member_id: number;
+        eas_uid: string;
+        created_at: string | null;
+        attestation_type: CertificateType;
+        revealed_data: Record<string, unknown> | null;
       }>
     >();
 
-  if (membersError) throw membersError;
+  if (error) throw error;
 
-  const detailsMap = new Map(pendingMembers.map((r) => [r.member_id, r.details]));
+  const memberIds = [...new Set((rows ?? []).map((row) => row.member_id))];
+  const members = await getMembersByIds(memberIds);
+  const memberMap = new Map(members.map((member) => [member.id, member]));
 
-  return (members ?? [])
-    .filter((m): m is typeof m & { wallet_address: string } => Boolean(m.wallet_address))
-    .map((m) => ({
-      wallet_address: m.wallet_address,
-      name: m.name,
-      major: m.major,
-      affiliation: m.affiliation,
-      cohort: m.cohort,
-      criteria_details: detailsMap.get(m.id) ?? null,
-    }));
+  return (rows ?? [])
+    .map((row) => {
+      const member = memberMap.get(row.member_id);
+      if (!member?.wallet_address) return null;
+
+      return {
+        wallet_address: member.wallet_address,
+        name: member.name,
+        major: member.major,
+        affiliation: member.affiliation,
+        cohort: member.cohort,
+        eas_uid: row.eas_uid,
+        created_at: row.created_at,
+        attestation_type: row.attestation_type,
+        criteria_details: row.revealed_data,
+      } satisfies IssuedAttestationSummary;
+    })
+    .filter((row): row is IssuedAttestationSummary => Boolean(row));
 }
 
 export async function getMemberCertificateDetail(walletAddress: string): Promise<MemberCertificateDetail> {
@@ -196,6 +391,77 @@ export async function saveAttestation(params: {
     personal_data_hash: params.personal_data_hash,
     revealed_data: params.revealed_data,
     is_graduated: params.is_graduated,
+  });
+
+  if (error) throw error;
+}
+
+export async function getSbtEligibility(walletAddress: string) {
+  const supabase = getSupabase();
+
+  const { data: member, error: memberError } = await supabase
+    .from('member')
+    .select('id')
+    .ilike('wallet_address', walletAddress)
+    .maybeSingle<{ id: number }>();
+
+  if (memberError) throw memberError;
+  if (!member) {
+    return {
+      memberId: null,
+      eligible: false,
+      alreadyMinted: false,
+      missingTypes: ['attendance', 'external_activity', 'assignment', 'participation_period'],
+      currentCount: 0,
+      totalRequired: 4,
+    };
+  }
+
+  const { data: attestations, error: attestError } = await supabase
+    .from('attestation')
+    .select('attestation_type')
+    .eq('member_id', member.id)
+    .returns<Array<{ attestation_type: string }>>();
+
+  if (attestError) throw attestError;
+
+  const requiredTypes = ['attendance', 'external_activity', 'assignment', 'participation_period'];
+  const currentTypes = (attestations ?? []).map((a) => a.attestation_type);
+  const missingTypes = requiredTypes.filter((type) => !currentTypes.includes(type));
+
+  const { data: existingSbt, error: sbtError } = await supabase
+    .from('sbt_issuance')
+    .select('issuance_id')
+    .eq('member_id', member.id)
+    .maybeSingle<{ issuance_id: string }>();
+
+  if (sbtError) throw sbtError;
+
+  return {
+    memberId: member.id,
+    eligible: missingTypes.length === 0,
+    alreadyMinted: Boolean(existingSbt),
+    missingTypes,
+    currentCount: currentTypes.length,
+    totalRequired: requiredTypes.length,
+  };
+}
+
+export async function saveSbtIssuance(params: {
+  memberId: number;
+  tokenId: bigint;
+  contractAddress: string;
+  transactionHash: string;
+  mintedAt: string;
+}) {
+  const supabase = getSupabase();
+
+  const { error } = await supabase.from('sbt_issuance').insert({
+    member_id: params.memberId,
+    token_id: Number(params.tokenId),
+    contract_address: params.contractAddress,
+    transaction_hash: params.transactionHash,
+    minted_at: params.mintedAt,
   });
 
   if (error) throw error;

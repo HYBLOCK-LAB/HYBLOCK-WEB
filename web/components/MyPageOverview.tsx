@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   BadgeCheck,
+  CircleCheck,
+  Copy,
   ExternalLink,
+  Check,
   LoaderCircle,
   ShieldCheck,
   UserRound,
   Wallet,
+  Award,
 } from 'lucide-react';
 import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
@@ -26,6 +30,15 @@ type MemberProfile = {
   is_admin: boolean;
 };
 
+type Eligibility = {
+  memberId: number | null;
+  eligible: boolean;
+  alreadyMinted: boolean;
+  missingTypes: string[];
+  currentCount: number;
+  totalRequired: number;
+};
+
 const AFFILIATION_LABELS: Record<string, string> = {
   development: 'Development',
   business: 'Business',
@@ -40,55 +53,113 @@ export default function MyPageOverview() {
   const [loadingMember, setLoadingMember] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
 
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(false);
+  const [minting, setMinting] = useState(false);
+  const [mintTxHash, setMintTxHash] = useState<string | null>(null);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
   useEffect(() => {
     if (!address) {
       setMember(null);
       setMemberError(null);
       setLoadingMember(false);
+      setEligibility(null);
       return;
     }
 
     let disposed = false;
 
-    const fetchMember = async () => {
+    const fetchData = async () => {
       setLoadingMember(true);
+      setLoadingEligibility(true);
       setMemberError(null);
 
       try {
-        const response = await fetch(`/api/members/by-wallet?wallet=${encodeURIComponent(address)}`);
-        const result = (await response.json().catch(() => ({}))) as {
-          error?: string;
-          exists?: boolean;
-          member?: MemberProfile | null;
-        };
+        const [memberRes, eligibilityRes] = await Promise.all([
+          fetch(`/api/members/by-wallet?wallet=${encodeURIComponent(address)}`),
+          fetch(`/api/certificates/sbt-eligibility?wallet=${encodeURIComponent(address)}`)
+        ]);
 
-        if (!response.ok) {
-          throw new Error(result.error ?? '회원 정보를 불러오지 못했습니다.');
-        }
+        const memberResult = await memberRes.json();
+        const eligibilityResult = await eligibilityRes.json();
 
         if (disposed) return;
 
-        setMember(result.member ?? null);
-        if (!result.member) {
-          setMemberError('연결된 지갑과 매칭되는 회원 정보가 없습니다.');
+        if (memberRes.ok) {
+          setMember(memberResult.member ?? null);
+          if (!memberResult.member) setMemberError('회원 정보를 찾을 수 없습니다.');
+        }
+        
+        if (eligibilityRes.ok) {
+          setEligibility(eligibilityResult);
         }
       } catch (error) {
         if (disposed) return;
-        setMember(null);
-        setMemberError(error instanceof Error ? error.message : '회원 정보를 불러오지 못했습니다.');
+        setMemberError('데이터를 불러오지 못했습니다.');
       } finally {
         if (!disposed) {
           setLoadingMember(false);
+          setLoadingEligibility(false);
         }
       }
     };
 
-    void fetchMember();
+    void fetchData();
 
     return () => {
       disposed = true;
     };
   }, [address]);
+
+  const handleMintSbt = async () => {
+    if (!address || !eligibility?.eligible || eligibility.alreadyMinted) return;
+
+    try {
+      setMinting(true);
+      setMintError(null);
+
+      const memberWallet = member?.wallet_address?.toLowerCase() ?? null;
+      const activeWallet = address.toLowerCase();
+      if (memberWallet && memberWallet !== activeWallet) {
+        throw new Error('현재 마이페이지 회원 정보의 지갑과 연결된 지갑이 다릅니다. 다시 로그인하거나 지갑을 다시 연결하세요.');
+      }
+
+      const response = await fetch('/api/certificates/mint-sbt', {
+        method: 'POST',
+      });
+
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        txHash?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? 'SBT 발급에 실패했습니다.');
+      }
+
+      setMintTxHash(result.txHash ?? null);
+      setEligibility((prev) => (prev ? { ...prev, alreadyMinted: true } : prev));
+    } catch (err) {
+      console.error('SBT Mint Error:', err);
+      setMintError(err instanceof Error ? err.message : 'SBT 발급 중 오류가 발생했습니다.');
+    } finally {
+      setMinting(false);
+    }
+  };
+
+  const handleCopyAddress = async () => {
+    if (!address) return;
+
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedAddress(true);
+      window.setTimeout(() => setCopiedAddress(false), 1600);
+    } catch (error) {
+      console.error('Copy wallet address error:', error);
+    }
+  };
 
   return (
     <main className="min-h-screen pb-24 pt-12 md:pt-16">
@@ -122,7 +193,22 @@ export default function MyPageOverview() {
 
               {isConnected && address ? (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <InfoTile label="지갑 주소" value={address} icon={<Wallet className="h-4 w-4" />} mono />
+                  <InfoTile
+                    label="지갑 주소"
+                    value={address}
+                    icon={<Wallet className="h-4 w-4" />}
+                    mono
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyAddress()}
+                        className="interactive-soft inline-flex items-center gap-1 rounded-lg border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-2.5 py-1 text-[11px] font-bold text-monolith-primaryContainer"
+                      >
+                        {copiedAddress ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedAddress ? '복사됨' : '복사'}
+                      </button>
+                    }
+                  />
                   <InfoTile label="네트워크" value={chainName ?? 'Wallet'} icon={<ShieldCheck className="h-4 w-4" />} />
                 </div>
               ) : (
@@ -168,7 +254,7 @@ export default function MyPageOverview() {
                     value={AFFILIATION_LABELS[member.affiliation] ?? member.affiliation}
                     icon={<BadgeCheck className="h-4 w-4" />}
                   />
-                  <InfoTile label="권한" value={member.role} icon={<ShieldCheck className="h-4 w-4" />} />
+                  <InfoTile label="권한" value={member.is_admin ? 'admin' : member.role} icon={<ShieldCheck className="h-4 w-4" />} />
                   <InfoTile label="상태" value={member.is_active ? '활성 회원' : '비활성 회원'} icon={<BadgeCheck className="h-4 w-4" />} />
                 </div>
               ) : (
@@ -199,6 +285,103 @@ export default function MyPageOverview() {
 
           <div>
             <PersonalAttendanceQrCard />
+            
+            {/* SBT Minting Section */}
+            <section className="mt-8 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                    SBT Certificate
+                  </p>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">수료증 발급</h2>
+                </div>
+                <Award className="h-5 w-5 text-monolith-primaryContainer" />
+              </div>
+
+              {loadingEligibility ? (
+                <div className="mt-6 flex items-center justify-center py-8">
+                  <LoaderCircle className="h-6 w-6 animate-spin text-monolith-onSurfaceMuted" />
+                </div>
+              ) : eligibility ? (
+                <div className="mt-6 space-y-6">
+                  {/* Attestation Status Tiles */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {['attendance', 'external_activity', 'assignment', 'participation_period'].map((type) => {
+                      const isMet = !eligibility.missingTypes.includes(type);
+                      return (
+                        <div 
+                          key={type} 
+                          className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
+                            isMet ? 'border-monolith-primaryContainer bg-monolith-primaryFixed text-monolith-primary' : 'border-monolith-outlineVariant/20 bg-monolith-surfaceLow text-monolith-onSurfaceMuted opacity-50'
+                          }`}
+                        >
+                          <CircleCheck className={`h-5 w-5 ${isMet ? 'text-monolith-primary' : 'text-monolith-onSurfaceMuted'}`} />
+                          <span className="mt-2 text-[10px] font-bold uppercase tracking-tight">
+                            {type === 'attendance' ? '출석' : type === 'external_activity' ? '외부활동' : type === 'assignment' ? '산출물' : '기간'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Minting Action */}
+                  {eligibility.alreadyMinted ? (
+                    <div className="flex items-center gap-3 rounded-xl bg-monolith-primaryFixed px-4 py-3 text-monolith-primary">
+                      <BadgeCheck className="h-5 w-5" />
+                      <p className="text-sm font-bold">이미 수료증이 발급되었습니다.</p>
+                    </div>
+                  ) : mintTxHash ? (
+                    <div className="flex flex-col items-center gap-3 rounded-xl bg-[#e6f4ea] p-6 text-center text-[#1a6831]">
+                      <BadgeCheck className="h-10 w-10" />
+                      <div>
+                        <p className="text-lg font-black">수료증 발급 완료!</p>
+                        <p className="mt-1 text-sm opacity-80">학회의 정식 수료자로 등록되셨습니다.</p>
+                      </div>
+                      <a 
+                        href={`https://sepolia.etherscan.io/tx/${mintTxHash}`}
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-bold underline"
+                      >
+                        View on Etherscan <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm leading-6 text-monolith-onSurfaceMuted">
+                        4가지 증명(출석, 외부활동, 산출물, 참여기간)을 모두 획득하면 공식 SBT 수료증을 민팅할 수 있습니다.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleMintSbt}
+                        disabled={!eligibility.eligible || minting}
+                        className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl border border-[#0e4a84] bg-[linear-gradient(135deg,#003361,#0e4a84)] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,51,97,0.2)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {minting ? (
+                          <>
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                            발급 처리 중...
+                          </>
+                        ) : (
+                          <>
+                            <Award className="h-4 w-4" />
+                            SBT 수료증 발급하기
+                          </>
+                        )}
+                      </button>
+                      {mintError ? (
+                        <p className="text-center text-[11px] font-semibold text-monolith-error">{mintError}</p>
+                      ) : null}
+                      {!eligibility.eligible && (
+                        <p className="text-center text-[11px] font-semibold text-monolith-error">
+                          모든 증명을 획득해야 발급 가능합니다. ({eligibility.currentCount}/{eligibility.totalRequired})
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </section>
           </div>
         </div>
       </section>
@@ -211,14 +394,18 @@ type InfoTileProps = {
   value: string;
   icon: React.ReactNode;
   mono?: boolean;
+  action?: React.ReactNode;
 };
 
-function InfoTile({ label, value, icon, mono = false }: InfoTileProps) {
+function InfoTile({ label, value, icon, mono = false, action }: InfoTileProps) {
   return (
     <div className="rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow p-4">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
-        {icon}
-        <span>{label}</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+          {icon}
+          <span>{label}</span>
+        </div>
+        {action}
       </div>
       <p className={['mt-3 break-all text-sm text-monolith-onSurface', mono ? 'font-mono' : 'font-semibold'].join(' ')}>
         {value}

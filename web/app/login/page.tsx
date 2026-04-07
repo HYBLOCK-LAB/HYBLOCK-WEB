@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           eyebrow="Continue with Your wallet or Google"
           title="Login"
         >
-          <SocialAuthSection mode="login" />
+          <SocialAuthSection mode="login" redirectPath={redirectTo} />
           <AuthDivider />
           <WalletLoginSection redirectTo={redirectTo} />
         </AuthShell>

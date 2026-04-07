@@ -7,15 +7,15 @@ import { AlertCircle, Award, BadgeCheck, ChevronRight, ExternalLink, LoaderCircl
 import {
   CERTIFICATE_TYPE_LABELS,
   EAS_ABI,
-  EAS_SCHEMA_UID,
-  ZERO_BYTES32,
+  HYBLOCK_ISSUER_ABI,
+  HYBLOCK_ISSUER_ADDRESS,
   computePersonalDataHash,
-  encodeAttestationData,
   getEasContractAddress,
+  isHyblockIssuerConfigured,
   isEasSchemaConfigured,
   type CertificateType,
 } from '@/lib/eas';
-import type { CertificateCandidate, MemberCertificateDetail } from '@/lib/supabase-certificate';
+import type { CertificateCandidate, IssuedAttestationSummary, MemberCertificateDetail } from '@/lib/supabase-certificate';
 
 type AttestState = 'idle' | 'signing' | 'pending' | 'success' | 'error';
 
@@ -25,12 +25,21 @@ type PendingAttest = {
   txHash: Hex | null;
 };
 
+type SelectedEntry =
+  | { kind: 'pending'; item: CertificateCandidate }
+  | { kind: 'issued'; item: IssuedAttestationSummary };
+
+type SuccessInfo = {
+  uid: string;
+  createdAt: string;
+};
+
 const AFFILIATION_LABELS: Record<string, string> = {
   development: '개발팀',
   business: '비즈니스팀',
 };
 
-const CERTIFICATE_TYPE_ARRAY: CertificateType[] = ['attendance', 'external_activity', 'assignment'];
+const CERTIFICATE_TYPE_ARRAY: CertificateType[] = ['attendance', 'external_activity', 'assignment', 'participation_period'];
 
 export default function CertificateManager() {
   const { address, chain } = useAccount();
@@ -38,7 +47,8 @@ export default function CertificateManager() {
 
   const [selectedType, setSelectedType] = useState<CertificateType>('attendance');
   const [candidates, setCandidates] = useState<CertificateCandidate[]>([]);
-  const [selectedCandidate, setSelectedCandidate] = useState<CertificateCandidate | null>(null);
+  const [issuedAttestations, setIssuedAttestations] = useState<IssuedAttestationSummary[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<SelectedEntry | null>(null);
   const [memberDetail, setMemberDetail] = useState<MemberCertificateDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
@@ -47,6 +57,7 @@ export default function CertificateManager() {
   const [attestState, setAttestState] = useState<AttestState>('idle');
   const [attestError, setAttestError] = useState<string | null>(null);
   const [pendingAttest, setPendingAttest] = useState<PendingAttest | null>(null);
+  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
 
   const pendingAttestRef = useRef<PendingAttest | null>(null);
   pendingAttestRef.current = pendingAttest;
@@ -58,11 +69,12 @@ export default function CertificateManager() {
 
   // Fetch member list when type changes
   useEffect(() => {
-    void fetchCandidates(selectedType);
-    setSelectedCandidate(null);
+    void fetchLists(selectedType);
+    setSelectedEntry(null);
     setMemberDetail(null);
     setAttestState('idle');
     setAttestError(null);
+    setSuccessInfo(null);
   }, [selectedType]);
 
   // Handle receipt after tx confirmed
@@ -107,11 +119,25 @@ export default function CertificateManager() {
         }
 
         setAttestState('success');
+        setSuccessInfo({
+          uid,
+          createdAt: new Date().toISOString(),
+        });
         setPendingAttest(null);
-        // Remove attested candidate from the list
         setCandidates((prev) => prev.filter((c) => c.wallet_address !== current.candidate.wallet_address));
-        setSelectedCandidate(null);
-        setMemberDetail(null);
+        const issuedItem: IssuedAttestationSummary = {
+          wallet_address: current.candidate.wallet_address,
+          name: current.candidate.name,
+          major: current.candidate.major,
+          affiliation: current.candidate.affiliation,
+          cohort: current.candidate.cohort,
+          eas_uid: uid,
+          created_at: new Date().toISOString(),
+          attestation_type: current.type,
+          criteria_details: buildRevealedData(current.candidate, current.type),
+        };
+        setIssuedAttestations((prev) => [issuedItem, ...prev]);
+        setSelectedEntry({ kind: 'issued', item: issuedItem });
       } catch (err) {
         setAttestError(err instanceof Error ? err.message : '증명 처리 중 오류가 발생했습니다.');
         setAttestState('error');
@@ -121,14 +147,24 @@ export default function CertificateManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txReceipt]);
 
-  async function fetchCandidates(type: CertificateType) {
+  async function fetchLists(type: CertificateType) {
     setListLoading(true);
     setListError(null);
     try {
-      const res = await fetch(`/api/certificates/members?type=${type}`);
-      if (!res.ok) throw new Error('멤버 목록 로드 실패');
-      const data = (await res.json()) as CertificateCandidate[];
-      setCandidates(data);
+      const [candidateRes, issuedRes] = await Promise.all([
+        fetch(`/api/certificates/members?type=${type}`),
+        fetch(`/api/certificates/issued?type=${type}`),
+      ]);
+
+      if (!candidateRes.ok || !issuedRes.ok) throw new Error('멤버 목록 로드 실패');
+
+      const [candidateData, issuedData] = await Promise.all([
+        candidateRes.json() as Promise<CertificateCandidate[]>,
+        issuedRes.json() as Promise<IssuedAttestationSummary[]>,
+      ]);
+
+      setCandidates(candidateData);
+      setIssuedAttestations(issuedData);
     } catch {
       setListError('멤버 목록을 불러오지 못했습니다.');
     } finally {
@@ -136,15 +172,25 @@ export default function CertificateManager() {
     }
   }
 
-  async function handleSelectCandidate(candidate: CertificateCandidate) {
-    setSelectedCandidate(candidate);
+  async function handleSelectEntry(entry: SelectedEntry) {
+    const walletAddress = entry.item.wallet_address;
+
+    setSelectedEntry(entry);
     setMemberDetail(null);
-    setAttestState('idle');
+    setAttestState(entry.kind === 'issued' ? 'success' : 'idle');
     setAttestError(null);
+    setSuccessInfo(
+      entry.kind === 'issued'
+        ? {
+            uid: entry.item.eas_uid,
+            createdAt: entry.item.created_at ?? new Date().toISOString(),
+          }
+        : null,
+    );
     setDetailLoading(true);
 
     try {
-      const res = await fetch(`/api/certificates/member-detail?wallet=${candidate.wallet_address}`);
+      const res = await fetch(`/api/certificates/member-detail?wallet=${walletAddress}`);
       if (!res.ok) throw new Error('상세 정보 로드 실패');
       const data = (await res.json()) as MemberCertificateDetail;
       setMemberDetail(data);
@@ -156,7 +202,8 @@ export default function CertificateManager() {
   }
 
   async function handleAttest() {
-    if (!selectedCandidate || !address) return;
+    if (selectedEntry?.kind !== 'pending' || !address) return;
+    const selectedCandidate = selectedEntry.item;
 
     const contractAddress = getEasContractAddress(chain?.id ?? 0);
     if (!contractAddress) {
@@ -180,24 +227,17 @@ export default function CertificateManager() {
         selectedCandidate.cohort,
       );
       const revealedData = JSON.stringify(buildRevealedData(selectedCandidate, selectedType));
-      const encodedData = buildEncodedData(selectedCandidate, selectedType, personalDataHash, revealedData);
 
       const txHash = await writeContractAsync({
-        address: contractAddress,
-        abi: EAS_ABI,
-        functionName: 'attest',
+        address: HYBLOCK_ISSUER_ADDRESS,
+        abi: HYBLOCK_ISSUER_ABI,
+        functionName: 'issue',
         args: [
-          {
-            schema: EAS_SCHEMA_UID,
-            data: {
-              recipient: selectedCandidate.wallet_address as `0x${string}`,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: encodedData,
-              value: 0n,
-            },
-          },
+          selectedCandidate.wallet_address as `0x${string}`,
+          personalDataHash,
+          selectedType,
+          revealedData,
+          false, // isGraduated - 일단 false로 설정 (수료증 발급 시 로직 확장 가능)
         ],
       });
 
@@ -215,6 +255,7 @@ export default function CertificateManager() {
   }
 
   const schemaConfigured = isEasSchemaConfigured();
+  const issuerConfigured = isHyblockIssuerConfigured();
 
   return (
     <div className="space-y-6">
@@ -238,12 +279,20 @@ export default function CertificateManager() {
       </div>
 
       {/* Schema UID warning */}
-      {!schemaConfigured ? (
+      {!schemaConfigured || !issuerConfigured ? (
         <div className="flex items-start gap-2.5 rounded-2xl bg-[#fff8e1] px-4 py-4 text-sm font-semibold text-[#8a5a00]">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            EAS Schema UID가 설정되지 않았습니다.{' '}
-            <span className="font-mono text-xs">NEXT_PUBLIC_EAS_SCHEMA</span> 환경변수를 확인해주세요. 테스트 발급은 불가합니다.
+            {!schemaConfigured ? (
+              <>
+                EAS Schema UID가 설정되지 않았습니다. <span className="font-mono text-xs">NEXT_PUBLIC_EAS_SCHEMA</span> 환경변수를 확인해주세요.
+              </>
+            ) : (
+              <>
+                Issuer 컨트랙트 주소가 설정되지 않았습니다. <span className="font-mono text-xs">NEXT_PUBLIC_HYBLOCK_ISSUER_ADDRESS</span> 환경변수를 확인해주세요.
+              </>
+            )}{' '}
+            테스트 발급은 불가합니다.
           </span>
         </div>
       ) : null}
@@ -284,12 +333,14 @@ export default function CertificateManager() {
           ) : (
             <div className="space-y-2">
               {candidates.map((candidate) => {
-                const isSelected = selectedCandidate?.wallet_address === candidate.wallet_address;
+                const isSelected =
+                  selectedEntry?.kind === 'pending' &&
+                  selectedEntry.item.wallet_address === candidate.wallet_address;
                 return (
                   <button
                     key={candidate.wallet_address}
                     type="button"
-                    onClick={() => handleSelectCandidate(candidate)}
+                    onClick={() => handleSelectEntry({ kind: 'pending', item: candidate })}
                     className={[
                       'interactive-soft group flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all',
                       isSelected
@@ -317,20 +368,79 @@ export default function CertificateManager() {
               })}
             </div>
           )}
+
+          <div className="pt-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Award className="h-4 w-4 text-monolith-onSurfaceMuted" />
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">
+                기발급 증명
+              </p>
+              {!listLoading && (
+                <span className="ml-auto rounded-full bg-monolith-surfaceHigh px-2.5 py-0.5 text-xs font-bold text-monolith-onSurfaceMuted">
+                  {issuedAttestations.length}
+                </span>
+              )}
+            </div>
+
+            {listLoading ? null : issuedAttestations.length === 0 ? (
+              <div className="rounded-2xl bg-monolith-surfaceLow px-5 py-6 text-center">
+                <p className="text-sm font-semibold text-monolith-onSurfaceMuted">아직 발급된 증명이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {issuedAttestations.map((issued) => {
+                  const isSelected =
+                    selectedEntry?.kind === 'issued' &&
+                    selectedEntry.item.wallet_address === issued.wallet_address &&
+                    selectedEntry.item.eas_uid === issued.eas_uid;
+                  return (
+                    <button
+                      key={`${issued.wallet_address}-${issued.eas_uid}`}
+                      type="button"
+                      onClick={() => handleSelectEntry({ kind: 'issued', item: issued })}
+                      className={[
+                        'interactive-soft group flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all',
+                        isSelected
+                          ? 'bg-monolith-primary text-white shadow-[0_12px_28px_rgba(0,51,97,0.2)]'
+                          : 'bg-monolith-surfaceLowest text-monolith-onSurface hover:bg-monolith-surfaceLowest/80 hover:shadow-[0_10px_24px_rgba(0,51,97,0.07)]',
+                      ].join(' ')}
+                    >
+                      <span
+                        className={[
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black',
+                          isSelected ? 'bg-white/20 text-white' : 'bg-monolith-primaryFixed text-monolith-primary',
+                        ].join(' ')}
+                      >
+                        {issued.name.charAt(0)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold">{issued.name}</p>
+                        <p className={['mt-0.5 text-xs', isSelected ? 'text-white/70' : 'text-monolith-onSurfaceMuted'].join(' ')}>
+                          {issued.created_at ? new Date(issued.created_at).toLocaleString('ko-KR') : '발급 시각 없음'}
+                        </p>
+                      </div>
+                      <ChevronRight className={['h-4 w-4 shrink-0 transition-transform', isSelected ? 'text-white/70 translate-x-0.5' : 'text-monolith-onSurfaceMuted/50'].join(' ')} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Certificate detail panel */}
         <div className="rounded-[2rem] bg-monolith-surfaceLow p-6 shadow-[0_20px_50px_rgba(0,51,97,0.06)]">
-          {!selectedCandidate ? (
+          {!selectedEntry ? (
             <EmptyDetailState />
           ) : (
             <DetailPanel
-              candidate={selectedCandidate}
+              entry={selectedEntry}
               detail={memberDetail}
               detailLoading={detailLoading}
               selectedType={selectedType}
               attestState={attestState}
               attestError={attestError}
+              successInfo={successInfo}
               onAttest={handleAttest}
               isWalletConnected={Boolean(address)}
             />
@@ -358,18 +468,21 @@ function EmptyDetailState() {
 }
 
 type DetailPanelProps = {
-  candidate: CertificateCandidate;
+  entry: SelectedEntry;
   detail: MemberCertificateDetail | null;
   detailLoading: boolean;
   selectedType: CertificateType;
   attestState: AttestState;
   attestError: string | null;
+  successInfo: SuccessInfo | null;
   onAttest: () => void;
   isWalletConnected: boolean;
 };
 
-function DetailPanel({ candidate, detail, detailLoading, selectedType, attestState, attestError, onAttest, isWalletConnected }: DetailPanelProps) {
+function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, attestError, successInfo, onAttest, isWalletConnected }: DetailPanelProps) {
   const isBusy = attestState === 'signing' || attestState === 'pending';
+  const candidate = entry.item;
+  const isIssuedEntry = entry.kind === 'issued';
 
   return (
     <div className="space-y-6">
@@ -405,6 +518,16 @@ function DetailPanel({ candidate, detail, detailLoading, selectedType, attestSta
         </p>
       </div>
 
+      {isIssuedEntry && successInfo ? (
+        <div className="rounded-xl border border-[#1a6831]/15 bg-[#e6f4ea] px-4 py-4">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1a6831]">기발급 증명 정보</p>
+          <p className="mt-2 break-all font-mono text-xs text-[#1a6831]">{successInfo.uid}</p>
+          <p className="mt-2 text-xs text-[#1a6831]/75">
+            발급 시각: {new Date(successInfo.createdAt).toLocaleString('ko-KR')}
+          </p>
+        </div>
+      ) : null}
+
       {/* Criteria details from semester_criteria_tracking */}
       {candidate.criteria_details ? (
         <CriteriaDetailsCard type={selectedType} details={candidate.criteria_details} />
@@ -425,8 +548,12 @@ function DetailPanel({ candidate, detail, detailLoading, selectedType, attestSta
         <div className="flex items-center gap-3 rounded-2xl bg-[#e6f4ea] px-5 py-4">
           <BadgeCheck className="h-5 w-5 shrink-0 text-[#1a6831]" />
           <div>
-            <p className="text-sm font-bold text-[#1a6831]">증명 발급 완료</p>
-            <p className="mt-0.5 text-xs text-[#1a6831]/70">EAS UID가 DB에 기록되었습니다.</p>
+            <p className="text-sm font-bold text-[#1a6831]">{isIssuedEntry ? '기발급 증명' : '증명 발급 완료'}</p>
+            <p className="mt-0.5 text-xs text-[#1a6831]/70">
+              {successInfo?.uid
+                ? `EAS UID ${successInfo.uid.slice(0, 10)}...${successInfo.uid.slice(-8)}`
+                : 'EAS UID가 DB에 기록되었습니다.'}
+            </p>
           </div>
         </div>
       ) : null}
@@ -439,7 +566,7 @@ function DetailPanel({ candidate, detail, detailLoading, selectedType, attestSta
       ) : null}
 
       {/* Attest button */}
-      {attestState !== 'success' ? (
+      {attestState !== 'success' && !isIssuedEntry ? (
         <button
           type="button"
           onClick={onAttest}
@@ -479,6 +606,10 @@ function CriteriaDetailsCard({ type, details }: { type: CertificateType; details
   } else if (type === 'assignment') {
     if (details.submission_count !== undefined) entries.push({ label: '제출 건수', value: `${details.submission_count}건` });
     if (details.affiliation !== undefined) entries.push({ label: '소속', value: AFFILIATION_LABELS[details.affiliation as string] ?? String(details.affiliation) });
+  } else if (type === 'participation_period') {
+    if (details.completed_semesters !== undefined) entries.push({ label: '이수 학기', value: `${details.completed_semesters}학기` });
+    if (details.minimum_required !== undefined) entries.push({ label: '최소 요건', value: `${details.minimum_required}학기` });
+    if (details.current_status !== undefined) entries.push({ label: '상태', value: String(details.current_status) });
   }
 
   if (entries.length === 0) return null;
@@ -554,6 +685,17 @@ function RecordList({ type, detail }: { type: CertificateType; detail: MemberCer
     );
   }
 
+  if (type === 'participation_period') {
+    return (
+      <div className="rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-4 py-4">
+        <p className="text-sm font-semibold text-monolith-onSurface">참여 기간 증명</p>
+        <p className="mt-1 text-xs leading-6 text-monolith-onSurfaceMuted">
+          참여 기간은 개별 레코드보다 학기별 집계 기준으로 판정됩니다. 위의 달성 현황 카드와 `semester_criteria_tracking.details` 값을 기준으로 발급하세요.
+        </p>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -607,21 +749,6 @@ function RecordRow({
 }
 
 // ---- Helpers ----
-
-function buildEncodedData(
-  candidate: CertificateCandidate,
-  type: CertificateType,
-  personalDataHash: Hex,
-  revealedData: string,
-): Hex {
-  return encodeAttestationData({
-    walletAddress: candidate.wallet_address as `0x${string}`,
-    personalDataHash,
-    attestationType: type,
-    revealedData,
-    isGraduated: false,
-  });
-}
 
 function buildRevealedData(candidate: CertificateCandidate, type: CertificateType): Record<string, unknown> {
   return {

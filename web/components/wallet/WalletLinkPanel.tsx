@@ -7,6 +7,7 @@ import WalletConnectPanel from '@/components/wallet/WalletConnectPanel';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
+import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 import type { WalletLinkPageContent } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 
@@ -25,6 +26,7 @@ export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
   const { openWalletConnectModal } = useWalletConnectModal();
   const { address, chain, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const resetWalletSession = useWalletSessionStore((state) => state.resetWalletSession);
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
   const [user, setUser] = useState<AuthUserSummary | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -112,6 +114,14 @@ export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
     }
   };
 
+  const handleDisconnect = async () => {
+    disconnect();
+    resetWalletSession();
+    window.localStorage.removeItem('hyblock_wallet_login');
+    await fetch('/api/auth/wallet/logout', { method: 'POST' }).catch(() => null);
+    setMessage(null);
+  };
+
   return (
     <div className="rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-monolith md:p-10">
       <div className="border-b border-monolith-outlineVariant/20 pb-6">
@@ -162,7 +172,7 @@ export default function WalletLinkPanel({ content }: WalletLinkPanelProps) {
           primaryActionLabel="계정에 저장"
           onConnect={handleOpenWalletModal}
           onPrimaryAction={handleLinkWallet}
-          onDisconnect={() => disconnect()}
+          onDisconnect={() => void handleDisconnect()}
           error={error}
           message={message}
           disabled={!supabaseConfigured}

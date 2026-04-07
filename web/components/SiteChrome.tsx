@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ChevronDown, LogOut, UserRound, Wallet } from 'lucide-react';
 import { Bell, CheckCircle2, Compass, Home } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
@@ -26,13 +27,15 @@ function isBrandMenuActive(activePath: string) {
 }
 
 export default function SiteChrome({ activePath, children }: SiteChromeProps) {
+  const router = useRouter();
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
   const [headerHoverActive, setHeaderHoverActive] = useState(false);
-  const { openWalletAccountModal, openWalletConnectModal } = useWalletConnectModal();
+  const { openWalletConnectModal } = useWalletConnectModal();
   const { disconnect } = useDisconnect();
   const address = useWalletSessionStore((state) => state.address);
   const chainName = useWalletSessionStore((state) => state.chainName);
   const isConnected = useWalletSessionStore((state) => state.isConnected);
+  const resetWalletSession = useWalletSessionStore((state) => state.resetWalletSession);
   const isAdmin = activePath.startsWith('/admin');
   const headerNavItems = isAdmin ? adminNavItems : navItems;
   const visibleHeaderNavItems = isAdmin
@@ -41,11 +44,19 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
 
   const handleHeaderWalletClick = async () => {
     if (isConnected && address) {
-      await openWalletAccountModal();
+      router.push('/wallet-link');
       return;
     }
 
     await openWalletConnectModal();
+  };
+
+  const handleLogout = async () => {
+    disconnect();
+    resetWalletSession();
+    window.localStorage.removeItem('hyblock_wallet_login');
+    await fetch('/api/auth/wallet/logout', { method: 'POST' }).catch(() => null);
+    router.refresh();
   };
 
   return (
@@ -155,7 +166,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => disconnect()}
+                  onClick={() => void handleLogout()}
                   className="interactive-soft flex h-11 w-11 items-center justify-center rounded-md border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest text-monolith-onSurfaceMuted transition-colors hover:bg-monolith-surface hover:text-monolith-onSurface"
                   aria-label="로그아웃"
                 >

@@ -30,6 +30,7 @@ HYBLOCK는 학회 HYBLOCK의 공식 웹사이트 레포다.
 - [기술 스택](/home/jaeman/Codes/HYBLOCK-WEB/docs/TECH_STACK.md)
 - [주요 플로우](/home/jaeman/Codes/HYBLOCK-WEB/docs/FLOWS.md)
 - [운영 가이드](/home/jaeman/Codes/HYBLOCK-WEB/docs/OPERATIONS.md)
+- [지갑 세션 및 QR 구조](/home/jaeman/Codes/HYBLOCK-WEB/web/docs/wallet-session-and-qr-attendance.md)
 - [컨트랙트 상세](/home/jaeman/Codes/HYBLOCK-WEB/eas/docs/contracts.md)
 - [DB 스키마 상세](/home/jaeman/Codes/HYBLOCK-WEB/database/docs/Schema.md)
 - [DB 구현 가이드](/home/jaeman/Codes/HYBLOCK-WEB/database/docs/IMPLEMENTATION_GUIDE.md)

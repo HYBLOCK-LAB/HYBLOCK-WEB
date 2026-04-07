@@ -24,7 +24,7 @@ export default function SocialAuthSection({ mode, redirectPath = '/wallet-link' 
 
       const targetPath =
         mode === 'signup'
-          ? `/wallet-link?intent=signup`
+          ? `/signup?source=google&redirect=${encodeURIComponent(redirectPath)}`
           : redirectPath;
       const callbackUrl = new URL('/auth/callback', window.location.origin);
       callbackUrl.searchParams.set('next', targetPath);

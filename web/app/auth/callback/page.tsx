@@ -11,6 +11,19 @@ function normalizeNextPath(rawNext: string | null) {
   return rawNext.startsWith('/') ? rawNext : '/';
 }
 
+async function hasMemberProfile(walletAddress: string) {
+  const response = await fetch(`/api/members/by-wallet?wallet=${encodeURIComponent(walletAddress)}`, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('회원 정보를 확인하지 못했습니다.');
+  }
+
+  const payload = (await response.json()) as { exists?: boolean };
+  return Boolean(payload.exists);
+}
+
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,6 +67,14 @@ function AuthCallbackContent() {
         if (!cancelled) {
           if (!linkedWallet) {
             router.replace(`/wallet-link?intent=link&next=${encodeURIComponent(next)}`);
+            return;
+          }
+
+          const memberExists = await hasMemberProfile(linkedWallet);
+          if (cancelled) return;
+
+          if (!memberExists) {
+            router.replace(`/signup?source=google&redirect=${encodeURIComponent(next)}`);
             return;
           }
 

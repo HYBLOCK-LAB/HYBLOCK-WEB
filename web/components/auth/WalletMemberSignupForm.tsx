@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LoaderCircle, Wallet } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
+import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 
 type WalletMemberSignupFormProps = {
   redirectTo?: string;
+  source?: 'wallet' | 'google';
 };
 
 type LookupResponse = {
@@ -26,22 +29,54 @@ const COHORT_OPTIONS = [
   { value: '1', label: '1기 (22학년도 1학기)' },
 ] as const;
 
-export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMemberSignupFormProps) {
+export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wallet' }: WalletMemberSignupFormProps) {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { openWalletConnectModal } = useWalletConnectModal();
+  const supabase = getBrowserSupabase();
 
   const [name, setName] = useState('');
   const [major, setMajor] = useState('');
   const [affiliation, setAffiliation] = useState<'development' | 'business'>('development');
   const [cohort, setCohort] = useState('9');
+  const [linkedWalletAddress, setLinkedWalletAddress] = useState<string | null>(null);
   const [checkingMember, setCheckingMember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resolvedWalletAddress = source === 'google' ? linkedWalletAddress : linkedWalletAddress ?? address ?? null;
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!isBrowserSupabaseConfigured() || !supabase) {
+      return;
+    }
+
+    let active = true;
+
+    void (async () => {
+      const { data, error: userError } = await supabase.auth.getUser();
+      if (!active) return;
+
+      if (userError) {
+        setError(userError.message);
+        return;
+      }
+
+      const walletAddress =
+        typeof data.user?.user_metadata?.wallet_address === 'string'
+          ? data.user.user_metadata.wallet_address
+          : null;
+
+      setLinkedWalletAddress(walletAddress);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!resolvedWalletAddress) {
       return;
     }
 
@@ -50,7 +85,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
     void (async () => {
       setCheckingMember(true);
       try {
-        const response = await fetch(`/api/members/by-wallet?wallet=${address}`);
+        const response = await fetch(`/api/members/by-wallet?wallet=${resolvedWalletAddress}`);
         if (!response.ok) {
           throw new Error('멤버 확인에 실패했습니다.');
         }
@@ -73,13 +108,13 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
     return () => {
       active = false;
     };
-  }, [address, isConnected, redirectTo, router]);
+  }, [redirectTo, resolvedWalletAddress, router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!address) {
-      setError('먼저 지갑을 연결하세요.');
+    if (!resolvedWalletAddress) {
+      setError(source === 'google' ? '먼저 Google 계정에 지갑을 연동하세요.' : '먼저 지갑을 연결하세요.');
       return;
     }
 
@@ -92,7 +127,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wallet_address: address,
+          wallet_address: resolvedWalletAddress,
           name,
           major,
           affiliation,
@@ -125,9 +160,9 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">연결된 지갑</p>
         <div className="mt-3 flex items-center justify-between gap-3">
           <p className="font-mono text-sm text-monolith-onSurface">
-            {address ?? '지갑이 연결되지 않았습니다.'}
+            {resolvedWalletAddress ?? '지갑이 연결되지 않았습니다.'}
           </p>
-          {!address ? (
+          {!resolvedWalletAddress && source === 'wallet' ? (
             <button
               type="button"
               onClick={handleConnectWallet}
@@ -138,6 +173,14 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
             </button>
           ) : null}
         </div>
+        {!resolvedWalletAddress && source === 'google' ? (
+          <div className="mt-4 rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-4 py-3 text-sm leading-6 text-monolith-onSurfaceMuted">
+            Google 회원가입은 지갑 연동이 먼저 필요합니다.{' '}
+            <Link href={`/wallet-link?intent=link&next=${encodeURIComponent(`/signup?source=google&redirect=${encodeURIComponent(redirectTo)}`)}`} className="font-semibold text-monolith-primaryContainer">
+              지갑 연동 페이지로 이동
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -195,7 +238,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/' }: WalletMembe
 
         <button
           type="submit"
-          disabled={!address || loading || checkingMember}
+          disabled={!resolvedWalletAddress || loading || checkingMember}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-monolith-primaryContainer/20 bg-monolith-primaryFixed px-5 py-4 text-sm font-semibold text-monolith-primary transition-colors hover:bg-monolith-secondaryContainer disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading || checkingMember ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}

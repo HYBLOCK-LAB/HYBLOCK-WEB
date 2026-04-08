@@ -118,9 +118,9 @@ export const aboutHeroImage = {
 export const walletLinkPageContent: WalletLinkPageContent = {
   eyebrow: 'Wallet',
   title: '지갑 연동',
-  description: '계정에 지갑을 연결합니다.',
+  description: '출석 체크와 회원 식별에 사용할 지갑을 계정에 연결합니다.',
   cardTitle: '지갑 연결',
-  cardDescription: '원하는 지갑을 연결하고 계정에 저장하세요.',
+  cardDescription: 'Google 로그인 후 출석을 사용하려면 지갑 연동이 필요합니다.',
   steps: [
     '로그인',
     '지갑 연결',
@@ -128,16 +128,16 @@ export const walletLinkPageContent: WalletLinkPageContent = {
   ],
   highlights: [
     {
-      title: '선택 사항',
-      description: '회원가입 중 건너뛰고 나중에 연결할 수 있습니다.',
+      title: '출석용 연동',
+      description: 'Google 로그인만으로 출석하려면 먼저 사용할 지갑을 계정에 연결해야 합니다.',
     },
     {
-      title: '재연동 가능',
-      description: '로그인 후 다시 연결하거나 변경할 수 있습니다.',
+      title: '회원 식별 기준',
+      description: '연동된 지갑 주소를 기준으로 회원 정보와 출석 QR이 연결됩니다.',
     },
     {
-      title: '커스텀 가능',
-      description: '문구와 레이아웃은 분리된 컴포넌트로 관리됩니다.',
+      title: '발급 기능',
+      description: '증명 발급과 SBT 발급은 연동된 지갑 주소를 기준으로 진행됩니다.',
     },
   ],
 };

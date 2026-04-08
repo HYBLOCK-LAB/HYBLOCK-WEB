@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import WalletConnectPanel from '@/components/wallet/WalletConnectPanel';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
-import { isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
+import { buildWalletLinkMessage, isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
+import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { useLanguageStore } from '@/lib/auth/language-store';
 import { textContent } from '@/lib/text-content';
 
@@ -16,9 +18,11 @@ type WalletLinkPanelProps = {
 };
 
 export default function WalletLinkPanel({ content, redirectTo = '/mypage', intent }: WalletLinkPanelProps) {
+  const router = useRouter();
   const { language } = useLanguageStore();
   const d = textContent[language];
-  
+  const supabase = getBrowserSupabase();
+  const supabaseConfigured = isBrowserSupabaseConfigured();
   const { openWalletConnectModal } = useWalletConnectModal();
   const { disconnect } = useDisconnect();
   const { address, chain, isConnected } = useAccount();
@@ -32,11 +36,25 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
+        if (!supabase) return;
+
+        const { data, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          throw userError;
         }
+
+        if (!data.user) {
+          setUser(null);
+          return;
+        }
+
+        setUser({
+          email: data.user.email ?? undefined,
+          linkedAddress:
+            typeof data.user.user_metadata?.wallet_address === 'string'
+              ? data.user.user_metadata.wallet_address
+              : null,
+        });
       } catch (err) {
         console.error('Fetch user error:', err);
       } finally {
@@ -44,32 +62,43 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
       }
     };
     void fetchUser();
-  }, []);
+  }, [supabase]);
 
   const handleLink = async () => {
-    if (!address) return;
+    if (!address || !supabase || !user) return;
 
     try {
       setLinking(true);
       setError(null);
 
-      const nonceRes = await fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`);
-      const { message: nonceMessage } = await nonceRes.json();
-
-      const signature = await signMessageAsync({ message: nonceMessage });
-
-      const linkRes = await fetch('/api/auth/wallet/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, message: nonceMessage, signature }),
+      const signature = await signMessageAsync({
+        message: buildWalletLinkMessage(address),
       });
 
-      if (!linkRes.ok) {
-        const { error: linkError } = await linkRes.json();
-        throw new Error(linkError || '연동에 실패했습니다.');
-      }
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          wallet_address: address,
+          wallet_chain_id: chain?.id ?? null,
+          wallet_linked_at: new Date().toISOString(),
+          wallet_signature_preview: `${signature.slice(0, 10)}...${signature.slice(-8)}`,
+        },
+      });
+      if (updateError) throw updateError;
 
-      window.location.href = redirectTo;
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              linkedAddress: address,
+            }
+          : current,
+      );
+
+      router.refresh();
+      router.replace(redirectTo);
     } catch (err: any) {
       setError(err.message || '알 수 없는 오류가 발생했습니다.');
     } finally {
@@ -147,7 +176,15 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
           onLink={handleLink}
           error={error}
           title={d.walletLink.connectedWalletLabel}
-          helperText={!isReownProjectIdConfigured ? <p>{d.auth.walletLinkMissingProjectId}</p> : undefined}
+          helperText={
+            !supabaseConfigured
+              ? <p>Supabase 브라우저 인증 설정이 필요합니다.</p>
+              : !isReownProjectIdConfigured
+                ? <p>{d.auth.walletLinkMissingProjectId}</p>
+                : intent === 'link' && !user.linkedAddress
+                  ? <p>{language === 'ko' ? 'Google 로그인은 완료되었습니다. 출석을 Google 로그인만으로 사용하려면 지갑을 연결하세요.' : 'Google login is complete. Link a wallet to use attendance with Google login only.'}</p>
+                  : undefined
+          }
         />
       </div>
     </div>

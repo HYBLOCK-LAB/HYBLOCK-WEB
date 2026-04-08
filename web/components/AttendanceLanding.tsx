@@ -29,7 +29,7 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
   if (isActive || status === 'in_progress') {
     return {
       badgeLabel: 'Active',
-      badgeClassName: 'bg-monolith-primary text-monolith-onPrimary',
+      badgeClassName: 'bg-monolith-primary text-white',
       hint: d.activeStatusHint,
       actionLabel: lang === 'ko' ? '출석 체크하기' : 'Check-In Now',
       actionClassName: 'bg-monolith-primaryContainer text-monolith-onPrimary shadow-lg shadow-monolith-primary/10',
@@ -124,7 +124,7 @@ export default function AttendanceLanding({
               <div className="col-span-3 text-right">Status / Action</div>
             </div>
 
-            {sessions.map((session, index) => {
+            {sessions.map((session) => {
               const isActive = activeEvents.some((activeEvent) => activeEvent.sessionId === session.id);
               const encoded = encodeURIComponent(encodeEvent(session.name));
               const presentation = getSessionPresentation(session.status, isActive, language);
@@ -165,9 +165,6 @@ export default function AttendanceLanding({
                         {presentation.badgeLabel}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-monolith-onSurfaceMuted">
-                      {language === 'ko' ? `세션 #${String(index + 1).padStart(2, '0')}` : `Session #${String(index + 1).padStart(2, '0')}`}
-                    </p>
                   </div>
 
                   <div className="col-span-3">

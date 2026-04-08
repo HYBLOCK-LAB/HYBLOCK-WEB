@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera, CheckCircle2, LoaderCircle, ScanQrCode, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import decodeQR from '@paulmillr/qr/decode.js';
+import { AlertCircle, Camera, CheckCircle2, LoaderCircle, ScanQrCode, Upload, X } from 'lucide-react';
 
 type ScanResult = {
   success: boolean;
@@ -12,18 +13,11 @@ type ScanResult = {
   error?: string;
 };
 
-type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
-  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
-};
-
-function getBarcodeDetector() {
-  return (globalThis as typeof globalThis & { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector ?? null;
-}
-
 export default function AdminAttendanceScanner() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectorRef = useRef<InstanceType<BarcodeDetectorConstructor> | null>(null);
   const intervalRef = useRef<number | null>(null);
   const processingRef = useRef(false);
 
@@ -32,8 +26,6 @@ export default function AdminAttendanceScanner() {
   const [initializingCamera, setInitializingCamera] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
-
-  const barcodeAvailable = useMemo(() => Boolean(getBarcodeDetector()), []);
 
   const stopCamera = () => {
     if (intervalRef.current) {
@@ -49,6 +41,43 @@ export default function AdminAttendanceScanner() {
     }
 
     setCameraEnabled(false);
+  };
+
+  const decodeImageSource = async (source: CanvasImageSource) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const width =
+      source instanceof HTMLVideoElement
+        ? source.videoWidth
+        : source instanceof HTMLImageElement
+          ? source.naturalWidth
+          : source instanceof HTMLCanvasElement
+            ? source.width
+            : 0;
+    const height =
+      source instanceof HTMLVideoElement
+        ? source.videoHeight
+        : source instanceof HTMLImageElement
+          ? source.naturalHeight
+          : source instanceof HTMLCanvasElement
+            ? source.height
+            : 0;
+
+    if (!width || !height) return null;
+
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+
+    context.drawImage(source, 0, 0, width, height);
+    const imageData = context.getImageData(0, 0, width, height);
+    return decodeQR({
+      width,
+      height,
+      data: imageData.data,
+    });
   };
 
   const submitToken = async (rawValue: string) => {
@@ -88,15 +117,6 @@ export default function AdminAttendanceScanner() {
   };
 
   const startCamera = async () => {
-    const Detector = getBarcodeDetector();
-    if (!Detector) {
-      setResult({
-        success: false,
-        error: '이 브라우저는 QR 카메라 스캔을 지원하지 않습니다.',
-      });
-      return;
-    }
-
     setInitializingCamera(true);
     setResult(null);
 
@@ -107,7 +127,6 @@ export default function AdminAttendanceScanner() {
       });
 
       streamRef.current = stream;
-      detectorRef.current = new Detector({ formats: ['qr_code'] });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -115,13 +134,12 @@ export default function AdminAttendanceScanner() {
       }
 
       intervalRef.current = window.setInterval(async () => {
-        if (!videoRef.current || !detectorRef.current || processingRef.current) {
+        if (!videoRef.current || processingRef.current) {
           return;
         }
 
         try {
-          const barcodes = await detectorRef.current.detect(videoRef.current);
-          const qrValue = barcodes.find((barcode) => typeof barcode.rawValue === 'string')?.rawValue;
+          const qrValue = await decodeImageSource(videoRef.current);
           if (qrValue) {
             await submitToken(qrValue);
           }
@@ -139,6 +157,43 @@ export default function AdminAttendanceScanner() {
       stopCamera();
     } finally {
       setInitializingCamera(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File | null) => {
+    if (!file) return;
+
+    setSubmitting(true);
+    setResult(null);
+
+    try {
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
+        image.src = objectUrl;
+      });
+
+      const decoded = await decodeImageSource(image);
+      URL.revokeObjectURL(objectUrl);
+
+      if (!decoded) {
+        throw new Error('업로드한 이미지에서 QR을 찾지 못했습니다.');
+      }
+
+      await submitToken(decoded);
+    } catch (error) {
+      setResult({
+        success: false,
+        error: error instanceof Error ? error.message : '이미지에서 QR을 읽지 못했습니다.',
+      });
+    } finally {
+      setSubmitting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -168,7 +223,7 @@ export default function AdminAttendanceScanner() {
             setResult(null);
             setScannerOpen(true);
           }}
-          disabled={initializingCamera || !barcodeAvailable}
+          disabled={initializingCamera}
           className="interactive-soft inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.22)] transition-all hover:brightness-105 disabled:opacity-60"
         >
           {initializingCamera ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
@@ -177,7 +232,7 @@ export default function AdminAttendanceScanner() {
       </div>
 
       <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">
-        활성 세션에 대해서만 개인 QR을 검증합니다. `QR 찍기`를 누르면 모달에서 카메라가 열리고 QR을 자동 감지합니다.
+        활성 세션에 대해서만 개인 QR을 검증합니다. 카메라로 바로 스캔하거나, 촬영한 QR 이미지를 업로드해 테스트할 수 있습니다.
       </p>
 
       {result ? (
@@ -226,7 +281,7 @@ export default function AdminAttendanceScanner() {
             </div>
 
             <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">
-              개인 QR을 카메라 중앙에 맞추면 자동으로 검증합니다.
+              개인 QR을 카메라 중앙에 맞추면 자동으로 검증합니다. 카메라가 불안정하면 아래에서 이미지 업로드로도 확인할 수 있습니다.
             </p>
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-monolith-outlineVariant/20 bg-[#0a2037]">
@@ -234,9 +289,31 @@ export default function AdminAttendanceScanner() {
               {!cameraEnabled ? (
                 <div className="flex items-center justify-center gap-3 px-6 py-10 text-sm font-semibold text-white/80">
                   {initializingCamera ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <ScanQrCode className="h-5 w-5" />}
-                  {barcodeAvailable ? '카메라 연결 중입니다.' : '이 브라우저는 카메라 QR 감지를 지원하지 않습니다.'}
+                  카메라 연결 중입니다.
                 </div>
               ) : null}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4 text-left">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-monolith-primaryContainer">대체 테스트</p>
+              <p className="mt-2 text-sm leading-7 text-monolith-onSurfaceMuted">
+                휴대폰으로 개인 QR을 띄운 뒤 스크린샷을 업로드해도 같은 검증 플로우로 출석을 테스트할 수 있습니다.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => void handleImageUpload(event.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surface"
+              >
+                <Upload className="h-4 w-4" />
+                QR 이미지 업로드
+              </button>
             </div>
 
             {submitting ? (
@@ -248,6 +325,8 @@ export default function AdminAttendanceScanner() {
           </div>
         </div>
       ) : null}
+
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }

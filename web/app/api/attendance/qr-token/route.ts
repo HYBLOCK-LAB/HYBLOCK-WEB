@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ATTENDANCE_QR_TTL_SECONDS, buildAttendanceQrPayload } from '@/lib/attendance-qr';
 import { getAuthenticatedUserFromAccessToken } from '@/lib/supabase-auth';
-import { getActiveEvent, getActiveEventByName } from '@/lib/supabase-attendance';
+import { getActiveEventByName, getActiveEvents, isEventVisibleToAffiliation } from '@/lib/supabase-attendance';
 import { getMemberByWallet } from '@/lib/supabase-member';
 import { executeRedisCommand } from '@/lib/upstash-redis';
 import { getWalletSessionMember } from '@/lib/wallet-session';
@@ -18,13 +18,6 @@ export async function POST(request: Request) {
     const accessToken = getBearerToken(request);
     const requestBody = (await request.json().catch(() => ({}))) as { eventName?: string };
     const requestedEventName = typeof requestBody.eventName === 'string' ? requestBody.eventName.trim() : '';
-
-    const activeEvent = requestedEventName
-      ? await getActiveEventByName(requestedEventName)
-      : await getActiveEvent();
-    if (!activeEvent?.name) {
-      return NextResponse.json({ error: '현재 활성화된 세션이 없습니다.' }, { status: 400 });
-    }
 
     let member = await getWalletSessionMember();
 
@@ -43,6 +36,17 @@ export async function POST(request: Request) {
         { error: '로그인 세션이 없거나 연결된 활성 멤버를 찾지 못했습니다.' },
         { status: 401 },
       );
+    }
+
+    const activeEvent = requestedEventName
+      ? await getActiveEventByName(requestedEventName)
+      : (await getActiveEvents()).find((event) => isEventVisibleToAffiliation(event, member.affiliation)) ?? null;
+    if (!activeEvent?.name) {
+      return NextResponse.json({ error: '현재 발급 가능한 활성 세션이 없습니다.' }, { status: 400 });
+    }
+
+    if (!isEventVisibleToAffiliation(activeEvent, member.affiliation)) {
+      return NextResponse.json({ error: '현재 로그인한 회원 파트에서는 이 출석 QR을 발급할 수 없습니다.' }, { status: 403 });
     }
 
     const token = `${randomUUID()}${randomBytes(8).toString('hex')}`;

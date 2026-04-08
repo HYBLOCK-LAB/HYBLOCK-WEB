@@ -1,12 +1,14 @@
 import { getSupabase } from '@/lib/supabase';
 
 export type ActivitySessionType = 'basic' | 'advanced' | 'misc' | 'external' | 'hackathon';
+export type ActivityTargetAffiliation = 'development' | 'business' | null;
 
 export type ActivityItem = {
   id: string;
   name: string;
   description: string | null;
   sessionType: ActivitySessionType;
+  targetAffiliation: ActivityTargetAffiliation;
   date: string;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   cohort: number;
@@ -24,11 +26,17 @@ export function getActivityTypeLabel(type: ActivitySessionType) {
   return ACTIVITY_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type;
 }
 
+export function getActivityTargetAffiliationLabel(targetAffiliation: ActivityTargetAffiliation) {
+  if (targetAffiliation === 'development') return 'Development';
+  if (targetAffiliation === 'business') return 'Business';
+  return '전체';
+}
+
 export async function getActivities() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('attendance_session')
-    .select('session_id, title, content, session_type, session_start_time, status, cohort')
+    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
     .order('session_start_time', { ascending: false })
     .returns<
       Array<{
@@ -36,6 +44,7 @@ export async function getActivities() {
         title: string;
         content: string | null;
         session_type: ActivitySessionType;
+        target_affiliation?: ActivityTargetAffiliation;
         session_start_time: string;
         status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
         cohort: number;
@@ -49,6 +58,7 @@ export async function getActivities() {
     name: item.title,
     description: item.content,
     sessionType: item.session_type,
+    targetAffiliation: item.target_affiliation ?? null,
     date: item.session_start_time,
     status: item.status,
     cohort: item.cohort,
@@ -59,6 +69,7 @@ export async function createActivity(params: {
   name: string;
   description?: string;
   sessionType: ActivitySessionType;
+  targetAffiliation?: ActivityTargetAffiliation;
   date: string;
   cohort: number;
 }) {
@@ -69,17 +80,19 @@ export async function createActivity(params: {
       title: params.name,
       content: params.description?.trim() || null,
       session_type: params.sessionType,
+      target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
       session_start_time: params.date,
       cohort: params.cohort,
       status: 'scheduled',
       updated_at: new Date().toISOString(),
     })
-    .select('session_id, title, content, session_type, session_start_time, status, cohort')
+    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
     .single<{
       session_id: string;
       title: string;
       content: string | null;
       session_type: ActivitySessionType;
+      target_affiliation?: ActivityTargetAffiliation;
       session_start_time: string;
       status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
       cohort: number;
@@ -92,6 +105,7 @@ export async function createActivity(params: {
     name: data.title,
     description: data.content,
     sessionType: data.session_type,
+    targetAffiliation: data.target_affiliation ?? null,
     date: data.session_start_time,
     status: data.status,
     cohort: data.cohort,
@@ -103,6 +117,7 @@ export async function updateActivity(params: {
   name: string;
   description?: string;
   sessionType: ActivitySessionType;
+  targetAffiliation?: ActivityTargetAffiliation;
   date: string;
   cohort?: number;
 }) {
@@ -111,6 +126,7 @@ export async function updateActivity(params: {
     title: string;
     content: string | null;
     session_type: ActivitySessionType;
+    target_affiliation: ActivityTargetAffiliation;
     session_start_time: string;
     updated_at: string;
     cohort?: number;
@@ -118,6 +134,7 @@ export async function updateActivity(params: {
     title: params.name,
     content: params.description?.trim() || null,
     session_type: params.sessionType,
+    target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
     session_start_time: params.date,
     updated_at: new Date().toISOString(),
   };
@@ -130,12 +147,13 @@ export async function updateActivity(params: {
     .from('attendance_session')
     .update(updatePayload)
     .eq('session_id', params.id)
-    .select('session_id, title, content, session_type, session_start_time, status, cohort')
+    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
     .single<{
       session_id: string;
       title: string;
       content: string | null;
       session_type: ActivitySessionType;
+      target_affiliation?: ActivityTargetAffiliation;
       session_start_time: string;
       status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
       cohort: number;
@@ -148,6 +166,7 @@ export async function updateActivity(params: {
     name: data.title,
     description: data.content,
     sessionType: data.session_type,
+    targetAffiliation: data.target_affiliation ?? null,
     date: data.session_start_time,
     status: data.status,
     cohort: data.cohort,

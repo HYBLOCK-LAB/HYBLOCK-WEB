@@ -56,6 +56,11 @@ HYBLOCK는 별도 수료증 서비스가 아니라 학회 홈페이지 레포이
 구현 포인트:
 - QR 출석은 반드시 활성 세션과 연결되어야 한다
 - 세션 상태 기반으로 출석 허용 범위를 제어할 수 있다
+- `session_type = advanced`이면 `target_affiliation`을 함께 저장해야 한다
+- `member.affiliation`과 `attendance_session.target_affiliation`을 비교해 심화 세션 QR 노출 여부를 결정한다
+- `check_in_code`는 관리자 수동 출석 확인 코드로 사용한다
+- `session_end_time`은 활성 세션 만료 시각으로도 사용한다
+- 현재 기본 활성 시간은 20분이며, 만료 후에는 QR 발급/스캔을 비활성으로 본다
 
 ### `attendance_record`
 
@@ -131,6 +136,15 @@ HYBLOCK는 별도 수료증 서비스가 아니라 학회 홈페이지 레포이
 4. `sbt_issuance` 저장
 
 ## 5. 운영상 주의점
+
+### 출석 QR이 안 보이거나 잘못 보이는 경우
+
+확인 순서:
+1. `attendance_session.status = in_progress` 세션이 있는지
+2. `advanced` 세션이면 `target_affiliation`이 채워져 있는지
+3. `member.affiliation`과 `attendance_session.target_affiliation`이 맞는지
+4. `session_end_time`이 이미 지나지 않았는지
+5. `check_in_code` 컬럼이 실제 DB에 존재하는지
 
 ### 증명 후보가 비어 보이는 경우
 

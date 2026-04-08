@@ -33,13 +33,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ participants });
     }
 
-    const events = await getEvents();
-    const attendanceData = await getAttendanceData();
-    const activeEvents = await getActiveEvents();
+    const events = await getEvents().catch((error) => {
+      console.error('Events GET getEvents error:', error);
+      return [];
+    });
+    const attendanceData = await getAttendanceData().catch((error) => {
+      console.error('Events GET getAttendanceData error:', error);
+      return [];
+    });
+    const activeEvents = await getActiveEvents().catch((error) => {
+      console.error('Events GET getActiveEvents error:', error);
+      return [];
+    });
     const activeEvent = activeEvents[0] ?? null;
-    const categories = await getEventCategories();
-    const contents = await getEventContents();
-    const statuses = await getEventStatuses();
+    const categories = await getEventCategories().catch((error) => {
+      console.error('Events GET getEventCategories error:', error);
+      return {};
+    });
+    const contents = await getEventContents().catch((error) => {
+      console.error('Events GET getEventContents error:', error);
+      return {};
+    });
+    const statuses = await getEventStatuses().catch((error) => {
+      console.error('Events GET getEventStatuses error:', error);
+      return {};
+    });
     return NextResponse.json({ events, attendanceData, activeEvent, activeEvents, categories, contents, statuses });
   } catch (error) {
     console.error('Events GET error:', error);
@@ -52,7 +70,7 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
 
   try {
-    const { eventName, setActive, deactivate, category } = await request.json();
+    const { eventName, setActive, deactivate, category, targetAffiliation } = await request.json();
     
     if (deactivate) {
       await deactivateEvent(typeof eventName === 'string' ? eventName : undefined);
@@ -67,11 +85,18 @@ export async function POST(request: Request) {
     if (!eventName) {
       return NextResponse.json({ error: '이벤트 이름을 입력해주세요.' }, { status: 400 });
     }
-    await addEvent(eventName, category || '세션');
+    await addEvent(
+      eventName,
+      category || '세션',
+      targetAffiliation === 'development' || targetAffiliation === 'business' ? targetAffiliation : null,
+    );
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Events POST error:', error);
-    return NextResponse.json({ error: '이벤트를 업데이트하지 못했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '이벤트를 업데이트하지 못했습니다.' },
+      { status: 500 },
+    );
   }
 }
 

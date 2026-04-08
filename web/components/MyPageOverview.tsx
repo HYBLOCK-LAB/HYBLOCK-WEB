@@ -15,8 +15,10 @@ import {
   Award,
 } from 'lucide-react';
 import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
+import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
+import { isEventVisibleToAffiliation, type ActiveAttendanceEvent } from '@/lib/supabase-attendance';
 
 type MemberProfile = {
   id: number;
@@ -44,7 +46,7 @@ const AFFILIATION_LABELS: Record<string, string> = {
   business: 'Business',
 };
 
-export default function MyPageOverview() {
+export default function MyPageOverview({ initialActiveEvents = [] }: { initialActiveEvents?: ActiveAttendanceEvent[] }) {
   const { openWalletConnectModal } = useWalletConnectModal();
   const address = useWalletSessionStore((state) => state.address);
   const chainName = useWalletSessionStore((state) => state.chainName);
@@ -59,6 +61,33 @@ export default function MyPageOverview() {
   const [mintTxHash, setMintTxHash] = useState<string | null>(null);
   const [mintError, setMintError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [hasGoogleSession, setHasGoogleSession] = useState(false);
+  const [activeEvents] = useState<ActiveAttendanceEvent[]>(initialActiveEvents);
+
+  useEffect(() => {
+    if (!isBrowserSupabaseConfigured()) {
+      setHasGoogleSession(false);
+      return;
+    }
+
+    const supabase = getBrowserSupabase();
+    if (!supabase) {
+      setHasGoogleSession(false);
+      return;
+    }
+
+    let disposed = false;
+
+    void (async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (disposed) return;
+      setHasGoogleSession(!error && Boolean(data.user));
+    })();
+
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!address) {
@@ -161,6 +190,11 @@ export default function MyPageOverview() {
     }
   };
 
+  const availableQrEvents = member
+    ? activeEvents.filter((event) => isEventVisibleToAffiliation(event, member.affiliation))
+    : [];
+  const availableQrEventNames = availableQrEvents.map((event) => event.name);
+
   return (
     <main className="min-h-screen pb-24 pt-12 md:pt-16">
       <section className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -192,7 +226,8 @@ export default function MyPageOverview() {
               </div>
 
               {isConnected && address ? (
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="mt-6 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
                   <InfoTile
                     label="지갑 주소"
                     value={address}
@@ -210,6 +245,34 @@ export default function MyPageOverview() {
                     }
                   />
                   <InfoTile label="네트워크" value={chainName ?? 'Wallet'} icon={<ShieldCheck className="h-4 w-4" />} />
+                  </div>
+                  {!hasGoogleSession ? (
+                    <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4">
+                      <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                        Google 계정을 연동하면 다음부터는 Google 로그인만으로 출석 QR을 발급할 수 있습니다.
+                      </p>
+                      <Link
+                        href="/login?redirect=/wallet-link"
+                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                      >
+                        Google 계정 연동
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4">
+                      <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                        Google 계정 연동이 완료되어 있습니다. 필요하면 지갑 연동 페이지에서 연결 상태를 변경할 수 있습니다.
+                      </p>
+                      <Link
+                        href="/wallet-link"
+                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                      >
+                        지갑 연동 관리
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6">
@@ -284,7 +347,7 @@ export default function MyPageOverview() {
           </div>
 
           <div>
-            <PersonalAttendanceQrCard />
+            <PersonalAttendanceQrCard activeEventNames={availableQrEventNames} requireWalletSession />
             
             {/* SBT Minting Section */}
             <section className="mt-8 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">

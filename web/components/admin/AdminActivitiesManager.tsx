@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, CalendarDays, LoaderCircle, X } from 'lucide-react';
 import {
   ACTIVITY_TYPE_OPTIONS,
+  getActivityTargetAffiliationLabel,
   getActivityTypeLabel,
   type ActivityItem,
+  type ActivityTargetAffiliation,
   type ActivitySessionType,
 } from '@/lib/supabase-activities';
 
@@ -20,6 +22,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [sessionType, setSessionType] = useState<ActivitySessionType>('basic');
+  const [targetAffiliation, setTargetAffiliation] = useState<ActivityTargetAffiliation>(null);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 16));
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -29,11 +32,18 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
     setActivities(initialActivities);
   }, [initialActivities]);
 
+  useEffect(() => {
+    if (sessionType !== 'advanced' && targetAffiliation !== null) {
+      setTargetAffiliation(null);
+    }
+  }, [sessionType, targetAffiliation]);
+
   const resetForm = () => {
     setEditingActivityId(null);
     setName('');
     setDescription('');
     setSessionType('basic');
+    setTargetAffiliation(null);
     setDate(new Date().toISOString().slice(0, 16));
   };
 
@@ -49,6 +59,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
     setName(activity.name);
     setDescription(activity.description ?? '');
     setSessionType(activity.sessionType);
+    setTargetAffiliation(activity.targetAffiliation);
     setDate(activity.date.slice(0, 16));
     setIsModalOpen(true);
   };
@@ -67,6 +78,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
           name,
           description,
           sessionType,
+          targetAffiliation: sessionType === 'advanced' ? targetAffiliation : null,
           date: new Date(date).toISOString(),
         }),
       });
@@ -145,6 +157,11 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
                     {getActivityTypeLabel(activity.sessionType)}
                   </p>
+                  {activity.sessionType === 'advanced' ? (
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-monolith-onSurfaceMuted">
+                      {getActivityTargetAffiliationLabel(activity.targetAffiliation)}
+                    </p>
+                  ) : null}
                   <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-onSurface">{activity.name}</h3>
                   <p className="mt-2 text-sm leading-7 text-monolith-onSurfaceMuted">
                     {activity.description?.trim() || '설명이 없습니다.'}
@@ -241,6 +258,30 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                   ))}
                 </select>
               </label>
+
+              {sessionType === 'advanced' ? (
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">대상 파트</span>
+                  <select
+                    value={targetAffiliation ?? ''}
+                    onChange={(event) =>
+                      setTargetAffiliation(
+                        event.target.value === 'development' || event.target.value === 'business'
+                          ? event.target.value
+                          : null,
+                      )
+                    }
+                    className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    required
+                  >
+                    <option value="" disabled>
+                      파트를 선택하세요
+                    </option>
+                    <option value="development">Development</option>
+                    <option value="business">Business</option>
+                  </select>
+                </label>
+              ) : null}
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">이름</span>

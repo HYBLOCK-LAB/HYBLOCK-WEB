@@ -4,6 +4,7 @@ type SessionRow = {
   session_id: string;
   cohort: number;
   session_type: 'basic' | 'advanced' | 'misc' | 'external' | 'hackathon';
+  target_affiliation: 'development' | 'business' | null;
   title: string;
   content: string | null;
   check_in_code: string | null;
@@ -35,6 +36,8 @@ export type AttendanceSessionSummary = {
   content: string | null;
   category: string;
   status: SessionRow['status'];
+  sessionType: SessionRow['session_type'];
+  targetAffiliation: SessionRow['target_affiliation'];
 };
 
 export type ActiveAttendanceEvent = {
@@ -42,6 +45,8 @@ export type ActiveAttendanceEvent = {
   name: string;
   activatedAt: string | null;
   checkInCode?: string | null;
+  sessionType: SessionRow['session_type'];
+  targetAffiliation: SessionRow['target_affiliation'];
 };
 
 export type AdminParticipantAttendanceStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
@@ -53,6 +58,7 @@ export type AdminEventParticipant = {
 };
 
 const DEFAULT_COHORT = Number(process.env.DEFAULT_SESSION_COHORT ?? '1');
+const ACTIVE_SESSION_DURATION_MINUTES = Number(process.env.ACTIVE_SESSION_DURATION_MINUTES ?? '20');
 
 const categoryToSessionType = (category: string): SessionRow['session_type'] => {
   if (category === '심화 세션') return 'advanced';
@@ -89,31 +95,45 @@ function isMissingCheckInCodeColumnError(error: unknown) {
   );
 }
 
+function isMissingTargetAffiliationColumnError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    (error.code === '42703' || error.code === 'PGRST204') &&
+    typeof error.message === 'string' &&
+    (error.message.includes('attendance_session.target_affiliation') ||
+      error.message.includes("'target_affiliation' column of 'attendance_session'"))
+  );
+}
+
 async function selectSessions(includeCheckInCode: boolean) {
   const supabase = getSupabase();
   const selectColumns = includeCheckInCode
-    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
-    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+    ? 'session_id, cohort, session_type, target_affiliation, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, target_affiliation, title, content, session_start_time, session_end_time, status, created_at, updated_at';
 
   const query = supabase.from('attendance_session').select(selectColumns);
 
   const { data, error } = await query
     .order('created_at', { ascending: true })
-    .returns<Array<Omit<SessionRow, 'check_in_code'> & { check_in_code?: string | null }>>();
+    .returns<Array<Omit<SessionRow, 'check_in_code' | 'target_affiliation'> & { check_in_code?: string | null; target_affiliation?: 'development' | 'business' | null }>>();
 
   if (error) throw error;
 
   return (data ?? []).map((session) => ({
     ...session,
     check_in_code: session.check_in_code ?? null,
+    target_affiliation: session.target_affiliation ?? null,
   })) as SessionRow[];
 }
 
 async function selectSessionByEventName(eventName: string, includeCheckInCode: boolean) {
   const supabase = getSupabase();
   const selectColumns = includeCheckInCode
-    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
-    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+    ? 'session_id, cohort, session_type, target_affiliation, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, target_affiliation, title, content, session_start_time, session_end_time, status, created_at, updated_at';
 
   const { data, error } = await supabase
     .from('attendance_session')
@@ -121,7 +141,7 @@ async function selectSessionByEventName(eventName: string, includeCheckInCode: b
     .eq('title', eventName)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle<Omit<SessionRow, 'check_in_code'> & { check_in_code?: string | null }>();
+    .maybeSingle<Omit<SessionRow, 'check_in_code' | 'target_affiliation'> & { check_in_code?: string | null; target_affiliation?: 'development' | 'business' | null }>();
 
   if (error) throw error;
   if (!data) return null;
@@ -129,6 +149,7 @@ async function selectSessionByEventName(eventName: string, includeCheckInCode: b
   return {
     ...data,
     check_in_code: data.check_in_code ?? null,
+    target_affiliation: data.target_affiliation ?? null,
   } as SessionRow;
 }
 
@@ -176,8 +197,20 @@ async function getSessionByEventName(eventName: string) {
   try {
     return await selectSessionByEventName(eventName, true);
   } catch (error) {
-    if (!isMissingCheckInCodeColumnError(error)) throw error;
-    return selectSessionByEventName(eventName, false);
+    if (isMissingTargetAffiliationColumnError(error)) {
+      const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, true);
+      return session ? { ...session, target_affiliation: null } : null;
+    }
+    if (isMissingCheckInCodeColumnError(error)) {
+      try {
+        return await selectSessionByEventName(eventName, false);
+      } catch (fallbackError) {
+        if (!isMissingTargetAffiliationColumnError(fallbackError)) throw fallbackError;
+        const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, false);
+        return session ? { ...session, target_affiliation: null } : null;
+      }
+    }
+    throw error;
   }
 }
 
@@ -185,9 +218,79 @@ async function getSessions() {
   try {
     return await selectSessions(true);
   } catch (error) {
-    if (!isMissingCheckInCodeColumnError(error)) throw error;
-    return selectSessions(false);
+    if (isMissingTargetAffiliationColumnError(error)) {
+      const sessions = await selectSessionsWithoutTargetAffiliation(true);
+      return sessions.map((session) => ({ ...session, target_affiliation: null }));
+    }
+    if (isMissingCheckInCodeColumnError(error)) {
+      try {
+        return await selectSessions(false);
+      } catch (fallbackError) {
+        if (!isMissingTargetAffiliationColumnError(fallbackError)) throw fallbackError;
+        const sessions = await selectSessionsWithoutTargetAffiliation(false);
+        return sessions.map((session) => ({ ...session, target_affiliation: null }));
+      }
+    }
+    throw error;
   }
+}
+
+async function selectSessionsWithoutTargetAffiliation(includeCheckInCode: boolean) {
+  const supabase = getSupabase();
+  const selectColumns = includeCheckInCode
+    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+
+  const { data, error } = await supabase
+    .from('attendance_session')
+    .select(selectColumns)
+    .order('created_at', { ascending: true })
+    .returns<Array<Omit<SessionRow, 'check_in_code' | 'target_affiliation'> & { check_in_code?: string | null }>>();
+
+  if (error) throw error;
+
+  return (data ?? []).map((session) => ({
+    ...session,
+    check_in_code: session.check_in_code ?? null,
+  }));
+}
+
+async function selectSessionByEventNameWithoutTargetAffiliation(eventName: string, includeCheckInCode: boolean) {
+  const supabase = getSupabase();
+  const selectColumns = includeCheckInCode
+    ? 'session_id, cohort, session_type, title, content, check_in_code, session_start_time, session_end_time, status, created_at, updated_at'
+    : 'session_id, cohort, session_type, title, content, session_start_time, session_end_time, status, created_at, updated_at';
+
+  const { data, error } = await supabase
+    .from('attendance_session')
+    .select(selectColumns)
+    .eq('title', eventName)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<Omit<SessionRow, 'check_in_code' | 'target_affiliation'> & { check_in_code?: string | null }>();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    ...data,
+    check_in_code: data.check_in_code ?? null,
+  };
+}
+
+export function isEventVisibleToAffiliation(
+  event: Pick<ActiveAttendanceEvent, 'sessionType' | 'targetAffiliation'> | Pick<AttendanceSessionSummary, 'sessionType' | 'targetAffiliation'>,
+  affiliation: 'development' | 'business' | null | undefined,
+) {
+  if (event.sessionType !== 'advanced') {
+    return true;
+  }
+
+  if (!event.targetAffiliation) {
+    return false;
+  }
+
+  return Boolean(affiliation && event.targetAffiliation === affiliation);
 }
 
 function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
@@ -200,6 +303,14 @@ function generateCheckInCode(length = 6) {
   return Array.from({ length }, () => charset[Math.floor(Math.random() * charset.length)]).join('');
 }
 
+function getSessionExpiryTime(baseTime = Date.now()) {
+  return new Date(baseTime + ACTIVE_SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+}
+
+function isSessionExpired(session: Pick<SessionRow, 'status' | 'session_end_time'>) {
+  return session.status === 'in_progress' && Boolean(session.session_end_time) && new Date(session.session_end_time!).getTime() <= Date.now();
+}
+
 export async function getActiveEvent() {
   const activeEvents = await getActiveEvents();
   return activeEvents[0] ?? null;
@@ -209,40 +320,114 @@ export async function getActiveEvents(): Promise<ActiveAttendanceEvent[]> {
   try {
     const supabase = getSupabase();
     let data:
-      | Array<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>
-      | Array<{ session_id: string; title: string; updated_at: string | null; check_in_code?: string | null }>;
+      | Array<{
+          session_id: string;
+          title: string;
+          updated_at: string | null;
+          session_end_time: string | null;
+          check_in_code: string | null;
+          session_type: SessionRow['session_type'];
+          target_affiliation: SessionRow['target_affiliation'];
+        }>
+      | Array<{
+          session_id: string;
+          title: string;
+          updated_at: string | null;
+          session_end_time: string | null;
+          check_in_code?: string | null;
+          session_type: SessionRow['session_type'];
+          target_affiliation?: SessionRow['target_affiliation'];
+        }>
+      | null = null;
 
     try {
       const result = await supabase
         .from('attendance_session')
-        .select('session_id, title, updated_at, check_in_code')
+        .select('session_id, title, updated_at, session_end_time, check_in_code, session_type, target_affiliation')
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false })
-        .returns<Array<{ session_id: string; title: string; updated_at: string | null; check_in_code: string | null }>>();
+        .returns<Array<{
+          session_id: string;
+          title: string;
+          updated_at: string | null;
+          session_end_time: string | null;
+          check_in_code: string | null;
+          session_type: SessionRow['session_type'];
+          target_affiliation: SessionRow['target_affiliation'];
+        }>>();
 
       if (result.error) throw result.error;
       data = result.data ?? [];
     } catch (error) {
+      if (isMissingTargetAffiliationColumnError(error)) {
+        const fallbackResult = await supabase
+          .from('attendance_session')
+          .select('session_id, title, updated_at, session_end_time, check_in_code, session_type')
+          .eq('status', 'in_progress')
+          .order('updated_at', { ascending: false })
+          .returns<Array<{
+            session_id: string;
+            title: string;
+            updated_at: string | null;
+            session_end_time: string | null;
+            check_in_code: string | null;
+            session_type: SessionRow['session_type'];
+          }>>();
+
+        if (fallbackResult.error) throw fallbackResult.error;
+        data = (fallbackResult.data ?? []).map((session) => ({ ...session, target_affiliation: null }));
+      } else if (!isMissingCheckInCodeColumnError(error)) throw error;
+
+      if (data) {
+        return (data ?? [])
+          .filter((session) => Boolean(session.title?.trim()) && !isSessionExpired({ status: 'in_progress', session_end_time: session.session_end_time }))
+          .map((session) => ({
+            sessionId: session.session_id,
+            name: session.title.trim(),
+            activatedAt: session.updated_at,
+            checkInCode: session.check_in_code ?? null,
+            sessionType: session.session_type,
+            targetAffiliation: session.target_affiliation ?? null,
+          }));
+      }
+
       if (!isMissingCheckInCodeColumnError(error)) throw error;
 
       const fallbackResult = await supabase
         .from('attendance_session')
-        .select('session_id, title, updated_at')
+        .select('session_id, title, updated_at, session_end_time, session_type')
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false })
-        .returns<Array<{ session_id: string; title: string; updated_at: string | null }>>();
+        .returns<Array<{ session_id: string; title: string; updated_at: string | null; session_end_time: string | null; session_type: SessionRow['session_type'] }>>();
 
       if (fallbackResult.error) throw fallbackResult.error;
-      data = (fallbackResult.data ?? []).map((session) => ({ ...session, check_in_code: null }));
+      data = (fallbackResult.data ?? []).map((session) => ({
+        ...session,
+        check_in_code: null,
+        target_affiliation: null,
+      }));
+    }
+
+    const expiredSessions = (data ?? []).filter((session) =>
+      isSessionExpired({ status: 'in_progress', session_end_time: session.session_end_time }),
+    );
+    if (expiredSessions.length > 0) {
+      await Promise.all(
+        expiredSessions
+          .filter((session) => Boolean(session.title?.trim()))
+          .map((session) => deactivateEvent(session.title.trim())),
+      );
     }
 
     return (data ?? [])
-      .filter((session) => Boolean(session.title?.trim()))
+      .filter((session) => Boolean(session.title?.trim()) && !isSessionExpired({ status: 'in_progress', session_end_time: session.session_end_time }))
       .map((session) => ({
         sessionId: session.session_id,
         name: session.title.trim(),
         activatedAt: session.updated_at,
         checkInCode: session.check_in_code ?? null,
+        sessionType: session.session_type,
+        targetAffiliation: session.target_affiliation ?? null,
       }));
   } catch (error) {
     console.error('getActiveEvents error:', error);
@@ -256,12 +441,45 @@ export async function setActiveEvent(eventName: string) {
     throw new Error(`Event not found: ${eventName}`);
   }
 
+  const activeEvents = await getActiveEvents();
+  const otherActiveEvents = activeEvents.filter((activeEvent) => activeEvent.sessionId !== session.session_id);
+
+  if (session.session_type === 'basic') {
+    if (otherActiveEvents.length > 0) {
+      throw new Error('기본 세션은 다른 활성 출석이 없을 때만 시작할 수 있습니다.');
+    }
+  } else if (session.session_type === 'advanced') {
+    if (!session.target_affiliation) {
+      throw new Error('심화 세션은 대상 파트를 지정해야 활성화할 수 있습니다.');
+    }
+
+    const hasGlobalActiveEvent = otherActiveEvents.some((activeEvent) => activeEvent.sessionType !== 'advanced');
+    if (hasGlobalActiveEvent) {
+      throw new Error('기본 세션 또는 공용 활동이 활성화되어 있으면 심화 세션을 동시에 시작할 수 없습니다.');
+    }
+
+    const hasSameAffiliationActive = otherActiveEvents.some(
+      (activeEvent) =>
+        activeEvent.sessionType === 'advanced' && activeEvent.targetAffiliation === session.target_affiliation,
+    );
+    if (hasSameAffiliationActive) {
+      throw new Error('같은 파트의 심화 세션은 동시에 하나만 활성화할 수 있습니다.');
+    }
+  } else if (otherActiveEvents.length > 0) {
+    throw new Error('공용 활동은 다른 활성 출석이 없을 때만 시작할 수 있습니다.');
+  }
+
   const now = new Date().toISOString();
   const checkInCode = generateCheckInCode();
+  const nextEndTime =
+    session.status === 'in_progress' && session.session_end_time && new Date(session.session_end_time).getTime() > Date.now()
+      ? session.session_end_time
+      : getSessionExpiryTime();
 
   await updateSessionWithOptionalCheckInCode(session.session_id, {
     status: 'in_progress',
-    session_start_time: now,
+    session_start_time: session.status === 'in_progress' ? session.session_start_time : now,
+    session_end_time: nextEndTime,
     updated_at: now,
     check_in_code: checkInCode,
   });
@@ -345,11 +563,18 @@ export async function getActiveEventByName(eventName: string): Promise<ActiveAtt
     return null;
   }
 
+  if (isSessionExpired(session)) {
+    await deactivateEvent(eventName);
+    return null;
+  }
+
   return {
     sessionId: session.session_id,
     name: session.title.trim(),
     activatedAt: session.updated_at ?? null,
     checkInCode: session.check_in_code ?? null,
+    sessionType: session.session_type,
+    targetAffiliation: session.target_affiliation,
   };
 }
 
@@ -440,6 +665,8 @@ export async function getAttendanceSessions() {
         content: session.content,
         category: sessionTypeToCategory(session.session_type),
         status: session.status,
+        sessionType: session.session_type,
+        targetAffiliation: session.target_affiliation,
       }));
   } catch (error) {
     console.error('getAttendanceSessions error:', error);
@@ -492,7 +719,11 @@ export async function getEventStatuses() {
   }
 }
 
-export async function addEvent(eventName: string, category: string) {
+export async function addEvent(
+  eventName: string,
+  category: string,
+  targetAffiliation: SessionRow['target_affiliation'] = null,
+) {
   try {
     const supabase = getSupabase();
     const existing = await getSessionByEventName(eventName);
@@ -500,10 +731,16 @@ export async function addEvent(eventName: string, category: string) {
       throw new Error(`Event already exists: ${eventName}`);
     }
 
+    const sessionType = categoryToSessionType(category);
+    if (sessionType === 'advanced' && !targetAffiliation) {
+      throw new Error('심화 세션은 대상 파트를 선택해야 합니다.');
+    }
+
     const now = new Date().toISOString();
     const { error } = await supabase.from('attendance_session').insert({
       cohort: DEFAULT_COHORT,
-      session_type: categoryToSessionType(category),
+      session_type: sessionType,
+      target_affiliation: sessionType === 'advanced' ? targetAffiliation : null,
       title: eventName,
       content: null,
       session_start_time: now,
@@ -526,6 +763,10 @@ export async function checkIn(name: string, event: string) {
       throw new Error(`Invalid event: ${event}`);
     }
     if (session.status !== 'in_progress') {
+      return { success: false, reason: 'inactive' as const };
+    }
+    if (isSessionExpired(session)) {
+      await deactivateEvent(event);
       return { success: false, reason: 'inactive' as const };
     }
 
@@ -560,6 +801,10 @@ export async function checkInByMemberId(memberId: number, event: string, memberN
       throw new Error(`Invalid event: ${event}`);
     }
     if (session.status !== 'in_progress') {
+      return { success: false, reason: 'inactive' as const };
+    }
+    if (isSessionExpired(session)) {
+      await deactivateEvent(event);
       return { success: false, reason: 'inactive' as const };
     }
 
@@ -616,6 +861,10 @@ export async function verifyActiveEventCode(eventName: string, code: string) {
   }
 
   if (session.status !== 'in_progress') {
+    return { valid: false, reason: 'inactive' as const };
+  }
+  if (isSessionExpired(session)) {
+    await deactivateEvent(eventName);
     return { valid: false, reason: 'inactive' as const };
   }
 

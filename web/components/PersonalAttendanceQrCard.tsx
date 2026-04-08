@@ -31,10 +31,12 @@ export default function PersonalAttendanceQrCard({
   selectedEventName,
   activeEventName,
   activeEventNames,
+  requireWalletSession = false,
 }: {
   selectedEventName?: string | null;
   activeEventName?: string | null;
   activeEventNames?: string[];
+  requireWalletSession?: boolean;
 }) {
   const [loading, setLoading] = useState(true);
   const [fetchingToken, setFetchingToken] = useState(false);
@@ -67,6 +69,16 @@ export default function PersonalAttendanceQrCard({
     const supabase = getBrowserSupabase();
     setFetchingToken(true);
     setError(null);
+    const hasWalletSession = useWalletSessionStore.getState().isConnected;
+
+    if (requireWalletSession && !hasWalletSession) {
+      setPayload(null);
+      setTimeLeft(null);
+      setError('마이페이지에서 개인 QR을 사용하려면 먼저 지갑 로그인을 완료하세요.');
+      setLoading(false);
+      setFetchingToken(false);
+      return;
+    }
 
     try {
       let accessToken: string | null = null;
@@ -78,7 +90,7 @@ export default function PersonalAttendanceQrCard({
         accessToken = session?.access_token ?? null;
       }
 
-      setIsLoggedIn(true);
+      setIsLoggedIn(Boolean(hasWalletSession || accessToken));
 
       const response = await fetch('/api/attendance/qr-token', {
         method: 'POST',
@@ -108,7 +120,7 @@ export default function PersonalAttendanceQrCard({
       setError(null);
     } catch (fetchError) {
       setPayload(null);
-      setIsLoggedIn(false);
+      setIsLoggedIn(hasWalletSession);
       setError(fetchError instanceof Error ? fetchError.message : '개인 QR을 발급하지 못했습니다.');
     } finally {
       setFetchingToken(false);
@@ -136,15 +148,15 @@ export default function PersonalAttendanceQrCard({
       const hasWalletSession = useWalletSessionStore.getState().isConnected;
       setIsLoggedIn(loggedIn);
 
-      if (!loggedIn) {
-        if (hasWalletSession) {
-          void refreshToken();
-          return;
+        if (!loggedIn) {
+          if (hasWalletSession) {
+            void refreshToken();
+            return;
         }
 
         setPayload(null);
         setTimeLeft(null);
-        setError('로그인한 사용자만 개인 QR을 발급할 수 있습니다.');
+        setError(requireWalletSession ? '지갑 로그인이 필요합니다.' : '로그인한 사용자만 개인 QR을 발급할 수 있습니다.');
         return;
       }
 
@@ -152,7 +164,7 @@ export default function PersonalAttendanceQrCard({
     });
 
     return () => subscription.unsubscribe();
-  }, [selectedEventName, activeEventName, resolvedActiveEventNames]);
+  }, [requireWalletSession, selectedEventName, activeEventName, resolvedActiveEventNames]);
 
   useEffect(() => {
     if (!walletSessionConnected || !isSelectedEventActive) {
@@ -186,11 +198,17 @@ export default function PersonalAttendanceQrCard({
     if (!isSelectedEventActive) {
       return requiresSessionMatch
         ? '선택한 세션이 현재 활성화된 세션과 일치할 때만 개인 QR을 생성할 수 있습니다.'
-        : '현재 활성화된 세션이 있을 때만 개인 QR을 생성할 수 있습니다.';
+        : '현재 내 파트에 맞는 활성 출석이 있을 때만 개인 QR을 생성할 수 있습니다.';
     }
 
     if (walletSessionConnected) {
       return '지갑 로그인 세션으로 개인 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.';
+    }
+
+    if (requireWalletSession) {
+      return walletSessionConnected
+        ? '지갑 로그인 세션으로 개인 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.'
+        : '마이페이지 출석 QR은 지갑 로그인 후 사용할 수 있습니다.';
     }
 
     if (!canUseSupabase) {
@@ -202,7 +220,7 @@ export default function PersonalAttendanceQrCard({
     }
 
     return 'QR은 45초 후 자동 갱신됩니다. 운영진이 관리자 화면에서 스캔하면 즉시 소모됩니다.';
-  }, [canUseSupabase, isLoggedIn, isSelectedEventActive, requiresSessionMatch, walletSessionConnected]);
+  }, [canUseSupabase, isLoggedIn, isSelectedEventActive, requireWalletSession, requiresSessionMatch, walletSessionConnected]);
 
   return (
     <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
@@ -250,12 +268,18 @@ export default function PersonalAttendanceQrCard({
         </div>
       ) : (
         <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
-          로그인 상태를 확인한 뒤 QR을 발급합니다. 이메일 로그인 후 지갑을 연결해 두면 멤버 식별이 안정적입니다.
-          <div className="mt-4">
-            <Link href="/login" className="font-semibold text-monolith-primaryContainer transition hover:text-monolith-primary">
-              로그인하러 가기
-            </Link>
-          </div>
+          {requireWalletSession || walletSessionConnected || isLoggedIn ? (
+            '현재 조건에서 발급 가능한 활성 출석 QR이 없습니다. 출석이 시작되었는지와 연결된 회원 상태를 확인하세요.'
+          ) : (
+            <>
+              로그인 상태를 확인한 뒤 QR을 발급합니다.
+              <div className="mt-4">
+                <Link href="/login" className="font-semibold text-monolith-primaryContainer transition hover:text-monolith-primary">
+                  로그인하러 가기
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -17,8 +17,8 @@ type EventParticipant = {
 type EventPayload = {
   events: string[];
   attendanceData: AttendanceRow[];
-  activeEvent: { name: string; activatedAt: string; checkInCode?: string | null } | null;
-  activeEvents: Array<{ name: string; activatedAt: string; checkInCode?: string | null }>;
+  activeEvent: { name: string; activatedAt: string; checkInCode?: string | null; sessionType?: string; targetAffiliation?: string | null } | null;
+  activeEvents: Array<{ name: string; activatedAt: string; checkInCode?: string | null; sessionType?: string; targetAffiliation?: string | null }>;
   categories: Record<string, string>;
   contents: Record<string, string | null>;
   statuses: Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>;
@@ -103,6 +103,12 @@ export default function AdminAttendanceManager() {
     } finally {
       setParticipantsLoading(false);
     }
+  };
+
+  const formatTargetAffiliation = (targetAffiliation?: string | null) => {
+    if (targetAffiliation === 'development') return 'Development';
+    if (targetAffiliation === 'business') return 'Business';
+    return '전체';
   };
 
   const handleSetActive = async (eventName: string) => {
@@ -257,18 +263,72 @@ export default function AdminAttendanceManager() {
       <AdminAttendanceScanner />
 
       <div className="rounded-2xl bg-monolith-surfaceLow p-6">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 활성 세션</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">현재 활성 세션</p>
+            <p className="mt-2 text-sm leading-7 text-monolith-onSurfaceMuted">
+              진행 중인 출석만 표시합니다. 심화 세션은 파트별로 따로 활성화될 수 있고, 공용 세션은 단독으로만 활성화됩니다.
+            </p>
+          </div>
+        </div>
         {data?.activeEvents?.length ? (
-          <div className="mt-3 space-y-2">
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
             {data.activeEvents.map((activeEvent) => (
               <div
                 key={activeEvent.name}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-monolith-surfaceLowest px-4 py-3"
+                className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-4"
               >
-                <p className="text-lg font-black tracking-tight text-monolith-onSurface">{activeEvent.name}</p>
-                <p className="text-sm font-semibold text-monolith-onSurfaceMuted">
-                  출석 코드: <span className="font-mono text-monolith-primaryContainer">{activeEvent.checkInCode ?? '-'}</span>
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-monolith-primaryContainer">
+                      {data.categories[activeEvent.name] ?? '미분류'}
+                    </p>
+                    <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-onSurface">{activeEvent.name}</h3>
+                    <p className="mt-1 text-sm text-monolith-onSurfaceMuted">
+                      대상: {activeEvent.sessionType === 'advanced' ? formatTargetAffiliation(activeEvent.targetAffiliation) : '전체'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQrModalEvent(activeEvent.name);
+                    }}
+                    className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface text-monolith-onSurface transition hover:bg-monolith-surfaceLow"
+                    aria-label={`${activeEvent.name} QR 보기`}
+                    title="QR 보기"
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-4 rounded-xl bg-monolith-surface px-3 py-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-monolith-onSurfaceMuted">출석 코드</p>
+                  <p className="mt-2 font-mono text-base font-bold text-monolith-primaryContainer">
+                    {activeEvent.checkInCode ?? '아직 생성되지 않음'}
+                  </p>
+                  <p className="mt-2 text-xs leading-6 text-monolith-onSurfaceMuted">
+                    {activeEvent.checkInCode
+                      ? '수동 출석 확인용 코드입니다.'
+                      : '이전에 활성화된 세션이라 코드가 비어 있을 수 있습니다. 아래 버튼으로 다시 발급할 수 있습니다.'}
+                  </p>
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleSetActive(activeEvent.name)}
+                    disabled={processingEvent === activeEvent.name}
+                    className="interactive-soft flex flex-1 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.18)] transition-all hover:brightness-105 disabled:opacity-60"
+                  >
+                    {processingEvent === activeEvent.name ? '재발급 중...' : activeEvent.checkInCode ? '코드 재발급' : '코드 발급'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeactivate(activeEvent.name)}
+                    disabled={processingEvent === `deactivate:${activeEvent.name}`}
+                    className="interactive-soft flex flex-1 items-center justify-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface px-4 py-3 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceLow disabled:opacity-60"
+                  >
+                    세션 마감
+                  </button>
+                </div>
               </div>
             ))}
           </div>

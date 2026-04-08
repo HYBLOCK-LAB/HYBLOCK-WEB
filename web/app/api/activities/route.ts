@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApiAccess } from '@/lib/admin-auth';
-import { createActivity, deleteActivity, getActivities, updateActivity, type ActivitySessionType } from '@/lib/supabase-activities';
+import {
+  createActivity,
+  deleteActivity,
+  getActivities,
+  updateActivity,
+  type ActivitySessionType,
+  type ActivityTargetAffiliation,
+} from '@/lib/supabase-activities';
 
 export async function GET() {
   const auth = await requireAdminApiAccess();
@@ -23,6 +30,7 @@ export async function POST(request: NextRequest) {
     name: string;
     description?: string;
     sessionType: ActivitySessionType;
+    targetAffiliation?: ActivityTargetAffiliation;
     date: string;
     cohort?: number;
   };
@@ -41,11 +49,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '유효하지 않은 세션 타입입니다.' }, { status: 400 });
   }
 
+  if (body.sessionType === 'advanced' && !['development', 'business'].includes(body.targetAffiliation ?? '')) {
+    return NextResponse.json({ error: '심화 세션은 대상 파트를 선택해야 합니다.' }, { status: 400 });
+  }
+
   try {
     const activity = await createActivity({
       name: body.name.trim(),
       description: body.description,
       sessionType: body.sessionType,
+      targetAffiliation: body.sessionType === 'advanced' ? body.targetAffiliation ?? null : null,
       date: body.date,
       cohort: body.cohort ?? Number(process.env.DEFAULT_SESSION_COHORT ?? '1'),
     });
@@ -85,6 +98,7 @@ export async function PATCH(request: NextRequest) {
     name: string;
     description?: string;
     sessionType: ActivitySessionType;
+    targetAffiliation?: ActivityTargetAffiliation;
     date: string;
     cohort?: number;
   };
@@ -103,12 +117,17 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: '유효하지 않은 세션 타입입니다.' }, { status: 400 });
   }
 
+  if (body.sessionType === 'advanced' && !['development', 'business'].includes(body.targetAffiliation ?? '')) {
+    return NextResponse.json({ error: '심화 세션은 대상 파트를 선택해야 합니다.' }, { status: 400 });
+  }
+
   try {
     const activity = await updateActivity({
       id: body.id.trim(),
       name: body.name.trim(),
       description: body.description,
       sessionType: body.sessionType,
+      targetAffiliation: body.sessionType === 'advanced' ? body.targetAffiliation ?? null : null,
       date: body.date,
       cohort: body.cohort,
     });

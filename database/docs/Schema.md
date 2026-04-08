@@ -68,8 +68,31 @@ attendance_session
 - `session_id`
 - `title`
 - `cohort`
+- `session_type`
+- `target_affiliation`
+- `check_in_code`
 - `status`
-- `starts_at`, `ends_at` 계열 시간 정보
+- `session_start_time`
+- `session_end_time`
+
+`session_type` 값:
+- `basic`
+- `advanced`
+- `misc`
+- `external`
+- `hackathon`
+
+`target_affiliation` 값:
+- `development`
+- `business`
+- `null`
+
+운영 포인트:
+- `basic`, `misc`, `external`, `hackathon`은 전체 회원 대상 세션으로 취급한다.
+- `advanced`는 `target_affiliation`이 있어야 어느 파트 대상인지 판별할 수 있다.
+- `check_in_code`는 운영진의 수동 출석 확인 코드로 사용한다.
+- `session_end_time`은 단순 종료 시각뿐 아니라 활성 세션 만료 시각으로도 사용한다.
+- 현재 구현에서는 활성화 시 기본 20분 만료를 잡고, 시간이 지나면 QR 발급/스캔에서 비활성으로 처리한다.
 
 ### `attendance_record`
 
@@ -164,6 +187,15 @@ SBT 발급 결과를 저장한다.
 - 같은 회원이 이미 발급받았는지 확인하는 기준 테이블이다.
 
 ## 5. 현재 플로우에서 실제로 쓰는 판단 기준
+
+### 출석 QR 노출
+
+기본 규칙:
+- `basic`, `misc`, `external`, `hackathon`은 전체 회원에게 노출 가능
+- `advanced`는 `member.affiliation = attendance_session.target_affiliation`일 때만 노출
+
+주의:
+- `advanced`인데 `target_affiliation`이 비어 있으면 회원 QR 후보에서 숨긴다.
 
 ### 증명 발급 후보
 

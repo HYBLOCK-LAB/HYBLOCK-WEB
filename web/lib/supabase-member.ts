@@ -10,18 +10,20 @@ export type MemberProfile = {
   role: string;
   is_active: boolean;
   is_admin: boolean;
+  has_assignment: boolean;
 };
 
 type MemberRow = Omit<MemberProfile, 'is_admin'> & {
   is_admin?: boolean | null;
 };
 
-const MEMBER_SELECT_COLUMNS = 'id, wallet_address, name, major, affiliation, cohort, role, is_active, is_admin';
+const MEMBER_SELECT_COLUMNS = 'id, wallet_address, name, major, affiliation, cohort, role, is_active, is_admin, has_assignment';
 
 function toMemberProfile(member: MemberRow): MemberProfile {
   return {
     ...member,
     is_admin: member.is_admin ?? false,
+    has_assignment: member.has_assignment ?? false,
   };
 }
 
@@ -98,7 +100,21 @@ export async function createMember(params: {
       role: 'member',
       period_start: new Date().toISOString(),
       is_active: true,
+      has_assignment: false,
     })
+    .select(MEMBER_SELECT_COLUMNS)
+    .single<MemberRow>();
+
+  if (error) throw error;
+  return toMemberProfile(data);
+}
+
+export async function updateMemberAssignmentStatus(memberId: number, hasAssignment: boolean) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('member')
+    .update({ has_assignment: hasAssignment })
+    .eq('id', memberId)
     .select(MEMBER_SELECT_COLUMNS)
     .single<MemberRow>();
 

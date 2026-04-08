@@ -17,7 +17,6 @@ HYBLOCK는 별도 수료증 서비스가 아니라 학회 홈페이지 레포이
 원본 활동 데이터:
 - `attendance_record`
 - `external_activity`
-- `assignment`
 
 발급 결과 데이터:
 - `attestation`
@@ -47,6 +46,7 @@ HYBLOCK는 별도 수료증 서비스가 아니라 학회 홈페이지 레포이
 - 관리자 페이지 접근은 `is_admin = true` 기준
 - 지갑 로그인 이후 `wallet_address`로 회원을 찾는다
 - `is_active`는 운영 중인 회원 여부 판단에 사용한다
+- `has_assignment`는 산출물 요건 충족 여부를 단순 boolean으로 저장한다
 
 ### `attendance_session`
 
@@ -79,15 +79,6 @@ HYBLOCK는 별도 수료증 서비스가 아니라 학회 홈페이지 레포이
 구현 포인트:
 - 증명 후보 조회의 raw fallback 데이터로 사용된다
 - `evidence_url`은 운영 검토 시 근거 자료 역할을 한다
-
-### `assignment`
-
-역할:
-- 산출물 기록 저장
-
-구현 포인트:
-- 관리자 증명 후보 조회 시 raw fallback 데이터로 사용된다
-- `affiliation`과 함께 저장하면 팀 기준 판별에 유리하다
 
 ### `semester_criteria_tracking`
 

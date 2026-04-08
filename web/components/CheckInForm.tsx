@@ -77,7 +77,7 @@ export default function CheckInForm({
     const timer = setInterval(() => {
       const activatedAt = new Date(activatedAtValue).getTime();
       const now = new Date().getTime();
-      const diff = (activatedAt + 15 * 60 * 1000) - now;
+      const diff = (activatedAt + 20 * 60 * 1000) - now;
 
       if (diff <= 0) {
         setTimeLeft('00:00');
@@ -233,20 +233,17 @@ export default function CheckInForm({
             id="code"
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onChange={(e) => setCode(e.target.value.replace(/\s+/g, '').toUpperCase())}
             required
             disabled={loading || !isEventOpen}
-            inputMode="numeric"
-            pattern="[0-9]{4}"
-            maxLength={4}
-            placeholder="4자리 숫자 코드를 입력하세요"
+            placeholder="출석 코드를 입력하세요"
             className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
             autoComplete="off"
           />
         </div>
         <button
           type="submit"
-          disabled={loading || !isEventOpen || !name || code.trim().length !== 4}
+          disabled={loading || !isEventOpen || !name.trim() || !code.trim()}
           className="w-full rounded-lg bg-monolith-primaryContainer px-5 py-3 font-display text-base font-bold text-monolith-onPrimary transition hover:bg-monolith-primary disabled:cursor-not-allowed disabled:bg-monolith-primaryContainer/45"
         >
           {loading ? '처리 중...' : '출석하기'}

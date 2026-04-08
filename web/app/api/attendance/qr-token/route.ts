@@ -2,7 +2,12 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ATTENDANCE_QR_TTL_SECONDS, buildAttendanceQrPayload } from '@/lib/attendance-qr';
 import { getAuthenticatedUserFromAccessToken } from '@/lib/supabase-auth';
-import { getActiveEventByName, getActiveEvents, isEventVisibleToAffiliation } from '@/lib/supabase-attendance';
+import {
+  getActiveEventByName,
+  getActiveEvents,
+  getMemberAttendanceStatusForEvent,
+  isEventVisibleToAffiliation,
+} from '@/lib/supabase-attendance';
 import { getMemberByWallet } from '@/lib/supabase-member';
 import { executeRedisCommand } from '@/lib/upstash-redis';
 import { getWalletSessionMember } from '@/lib/wallet-session';
@@ -12,6 +17,8 @@ function getBearerToken(request: Request) {
   if (!authorization?.startsWith('Bearer ')) return null;
   return authorization.slice('Bearer '.length).trim();
 }
+
+type AttendanceStatus = 'present' | 'late' | 'absent' | null;
 
 export async function POST(request: Request) {
   try {
@@ -49,6 +56,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '현재 로그인한 회원 파트에서는 이 출석 QR을 발급할 수 없습니다.' }, { status: 403 });
     }
 
+    const attendanceStatus = (await getMemberAttendanceStatusForEvent(member.id, activeEvent.name)) as AttendanceStatus;
+    if (attendanceStatus === 'present' || attendanceStatus === 'late') {
+      return NextResponse.json({
+        alreadyCheckedIn: true,
+        attendanceStatus,
+        eventName: activeEvent.name,
+        memberName: member.name,
+      });
+    }
+
     const token = `${randomUUID()}${randomBytes(8).toString('hex')}`;
     const expiresAt = new Date(Date.now() + ATTENDANCE_QR_TTL_SECONDS * 1000).toISOString();
 
@@ -72,6 +89,7 @@ export async function POST(request: Request) {
       expiresAt,
       eventName: activeEvent.name,
       memberName: member.name,
+      alreadyCheckedIn: false,
     });
   } catch (error) {
     console.error('POST /api/attendance/qr-token error:', error);

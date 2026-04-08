@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
-import { AlertCircle, LoaderCircle, QrCode } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LoaderCircle, QrCode } from 'lucide-react';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 
@@ -13,6 +13,8 @@ type QrTokenResponse = {
   expiresAt: string;
   eventName: string;
   memberName: string;
+  alreadyCheckedIn?: boolean;
+  attendanceStatus?: 'present' | 'late' | 'absent' | null;
 };
 
 function formatTimeLeft(expiresAt: string | null) {
@@ -44,6 +46,8 @@ export default function PersonalAttendanceQrCard({
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<QrTokenResponse | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'late' | 'absent' | null>(null);
 
   const canUseSupabase = isBrowserSupabaseConfigured();
   const walletSessionConnected = useWalletSessionStore((state) => state.isConnected);
@@ -61,7 +65,9 @@ export default function PersonalAttendanceQrCard({
     if (!isSelectedEventActive) {
       setPayload(null);
       setTimeLeft(null);
-      setError('선택한 세션이 현재 활성 세션일 때만 개인 QR을 발급할 수 있습니다.');
+      setAlreadyCheckedIn(false);
+      setAttendanceStatus(null);
+      setError('참여가능한 세션이 현재 활성 상태일 때만 개인 QR이 발급됩니다.');
       setLoading(false);
       return;
     }
@@ -74,6 +80,8 @@ export default function PersonalAttendanceQrCard({
     if (requireWalletSession && !hasWalletSession) {
       setPayload(null);
       setTimeLeft(null);
+      setAlreadyCheckedIn(false);
+      setAttendanceStatus(null);
       setError('마이페이지에서 개인 QR을 사용하려면 먼저 지갑 로그인을 완료하세요.');
       setLoading(false);
       setFetchingToken(false);
@@ -106,6 +114,15 @@ export default function PersonalAttendanceQrCard({
       });
 
       const result = (await response.json().catch(() => ({}))) as Partial<QrTokenResponse> & { error?: string };
+      if (response.ok && result.alreadyCheckedIn && result.eventName && result.memberName) {
+        setPayload(null);
+        setTimeLeft(null);
+        setAlreadyCheckedIn(true);
+        setAttendanceStatus(result.attendanceStatus ?? 'present');
+        setError(null);
+        return;
+      }
+
       if (!response.ok || !result.token || !result.qrValue || !result.expiresAt || !result.eventName || !result.memberName) {
         throw new Error(result.error ?? '개인 QR을 발급하지 못했습니다.');
       }
@@ -117,9 +134,13 @@ export default function PersonalAttendanceQrCard({
         eventName: result.eventName,
         memberName: result.memberName,
       });
+      setAlreadyCheckedIn(false);
+      setAttendanceStatus(null);
       setError(null);
     } catch (fetchError) {
       setPayload(null);
+      setAlreadyCheckedIn(false);
+      setAttendanceStatus(null);
       setIsLoggedIn(hasWalletSession);
       setError(fetchError instanceof Error ? fetchError.message : '개인 QR을 발급하지 못했습니다.');
     } finally {
@@ -132,6 +153,8 @@ export default function PersonalAttendanceQrCard({
     const supabase = getBrowserSupabase();
     setPayload(null);
     setTimeLeft(null);
+    setAlreadyCheckedIn(false);
+    setAttendanceStatus(null);
     setLoading(true);
     setError(null);
     setIsLoggedIn(false);
@@ -156,6 +179,8 @@ export default function PersonalAttendanceQrCard({
 
         setPayload(null);
         setTimeLeft(null);
+        setAlreadyCheckedIn(false);
+        setAttendanceStatus(null);
         setError(requireWalletSession ? '지갑 로그인이 필요합니다.' : '로그인한 사용자만 개인 QR을 발급할 수 있습니다.');
         return;
       }
@@ -195,10 +220,10 @@ export default function PersonalAttendanceQrCard({
   }, [payload?.expiresAt]);
 
   const helperText = useMemo(() => {
-    if (!isSelectedEventActive) {
-      return requiresSessionMatch
-        ? '선택한 세션이 현재 활성화된 세션과 일치할 때만 개인 QR을 생성할 수 있습니다.'
-        : '현재 내 파트에 맞는 활성 출석이 있을 때만 개인 QR을 생성할 수 있습니다.';
+    if (alreadyCheckedIn) {
+      return attendanceStatus === 'late'
+        ? '이미 지각으로 출석 처리되었습니다.'
+        : '이미 출석 처리되었습니다.';
     }
 
     if (walletSessionConnected) {
@@ -220,7 +245,7 @@ export default function PersonalAttendanceQrCard({
     }
 
     return 'QR은 45초 후 자동 갱신됩니다. 운영진이 관리자 화면에서 스캔하면 즉시 소모됩니다.';
-  }, [canUseSupabase, isLoggedIn, isSelectedEventActive, requireWalletSession, requiresSessionMatch, walletSessionConnected]);
+  }, [alreadyCheckedIn, attendanceStatus, canUseSupabase, isLoggedIn, requireWalletSession, walletSessionConnected]);
 
   return (
     <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
@@ -235,7 +260,7 @@ export default function PersonalAttendanceQrCard({
         <button
           type="button"
           onClick={() => void refreshToken()}
-          disabled={fetchingToken || !isSelectedEventActive || (!isLoggedIn && !canUseSupabase && !walletSessionConnected)}
+          disabled={fetchingToken || alreadyCheckedIn || !isSelectedEventActive || (!isLoggedIn && !canUseSupabase && !walletSessionConnected)}
           className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow px-4 py-2 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surface"
         >
           {fetchingToken ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
@@ -243,7 +268,9 @@ export default function PersonalAttendanceQrCard({
         </button>
       </div>
 
-      <p className="mt-4 text-sm leading-7 text-monolith-onSurfaceMuted">{helperText}</p>
+      {!alreadyCheckedIn && helperText ? (
+        <p className="mt-4 text-sm leading-7 text-monolith-onSurfaceMuted">{helperText}</p>
+      ) : null}
 
       {error ? (
         <div className="mt-5 flex items-start gap-2 rounded-xl bg-monolith-errorContainer px-4 py-3 text-sm font-semibold text-monolith-error">
@@ -257,6 +284,18 @@ export default function PersonalAttendanceQrCard({
           <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
           개인 QR 준비 중
         </div>
+      ) : alreadyCheckedIn ? (
+        <div className="mt-6 rounded-2xl bg-[#e7f6ec] p-6 text-center text-[#1f7a3d] shadow-[0_14px_30px_rgba(31,122,61,0.08)]">
+          <div className="flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+          </div>
+          <p className="mt-4 text-xl font-black">출석되었습니다</p>
+          <p className="mt-2 text-sm font-semibold opacity-90">
+            {attendanceStatus === 'late' ? '지각으로 처리되었습니다.' : '운영진 스캔 또는 수동 코드로 이미 출석이 완료되었습니다.'}
+          </p>
+        </div>
       ) : payload ? (
         <div className="mt-6 rounded-2xl bg-white p-5 text-center shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
           <div className="flex justify-center">
@@ -266,7 +305,7 @@ export default function PersonalAttendanceQrCard({
           <p className="mt-1 text-sm text-monolith-onSurfaceMuted">{payload.eventName}</p>
           <p className="mt-3 font-mono text-sm text-monolith-primaryContainer">{timeLeft ?? '00:00'}</p>
         </div>
-      ) : (
+      ) : !error ? (
         <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
           {requireWalletSession || walletSessionConnected || isLoggedIn ? (
             '현재 조건에서 발급 가능한 활성 출석 QR이 없습니다. 출석이 시작되었는지와 연결된 회원 상태를 확인하세요.'
@@ -281,7 +320,8 @@ export default function PersonalAttendanceQrCard({
             </>
           )}
         </div>
-      )}
+      ) : null
+      }
     </div>
   );
 }

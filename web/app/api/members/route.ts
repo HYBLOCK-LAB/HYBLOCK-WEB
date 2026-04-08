@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMember } from '@/lib/supabase-member';
+import { requireAdminApiAccess } from '@/lib/admin-auth';
+import { createMember, updateMemberAssignmentStatus } from '@/lib/supabase-member';
 
 type CreateMemberBody = {
   wallet_address: string;
@@ -55,5 +56,30 @@ export async function POST(request: NextRequest) {
       { error: isDuplicate ? '이미 등록된 지갑입니다.' : '회원가입에 실패했습니다.' },
       { status: isDuplicate ? 409 : 500 },
     );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const { response } = await requireAdminApiAccess();
+  if (response) return response;
+
+  let body: { memberId?: number; hasAssignment?: boolean };
+
+  try {
+    body = (await request.json()) as { memberId?: number; hasAssignment?: boolean };
+  } catch {
+    return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 });
+  }
+
+  if (typeof body.memberId !== 'number' || typeof body.hasAssignment !== 'boolean') {
+    return NextResponse.json({ error: 'memberId와 hasAssignment 값이 필요합니다.' }, { status: 400 });
+  }
+
+  try {
+    const member = await updateMemberAssignmentStatus(body.memberId, body.hasAssignment);
+    return NextResponse.json({ success: true, member });
+  } catch (error) {
+    console.error('PATCH /api/members error:', error);
+    return NextResponse.json({ error: '산출물 상태 업데이트에 실패했습니다.' }, { status: 500 });
   }
 }

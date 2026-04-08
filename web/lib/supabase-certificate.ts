@@ -65,6 +65,7 @@ type MemberRow = {
   major: string;
   affiliation: string;
   cohort: number;
+  has_assignment?: boolean | null;
   is_active?: boolean | null;
 };
 
@@ -74,7 +75,7 @@ async function getMembersByIds(memberIds: number[]) {
   const supabase = getSupabase();
   const { data: members, error } = await supabase
     .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort, is_active')
+    .select('id, wallet_address, name, major, affiliation, cohort, has_assignment, is_active')
     .in('id', memberIds)
     .not('wallet_address', 'is', null)
     .order('cohort', { ascending: true })
@@ -149,23 +150,18 @@ async function getFallbackCandidates(type: CertificateType, attestedSet: Set<num
 
   if (type === 'assignment') {
     const { data, error } = await supabase
-      .from('assignment')
-      .select('member_id, affiliation')
-      .returns<Array<{ member_id: number; affiliation: string }>>();
+      .from('member')
+      .select('id, wallet_address, name, major, affiliation, cohort, has_assignment, is_active')
+      .eq('has_assignment', true)
+      .not('wallet_address', 'is', null)
+      .order('cohort', { ascending: true })
+      .order('name', { ascending: true })
+      .returns<MemberRow[]>();
 
     if (error) throw error;
 
-    const counts = new Map<number, { submission_count: number; affiliation: string | null }>();
-    for (const row of data ?? []) {
-      if (attestedSet.has(row.member_id)) continue;
-      const current = counts.get(row.member_id) ?? { submission_count: 0, affiliation: null };
-      current.submission_count += 1;
-      current.affiliation = current.affiliation ?? row.affiliation;
-      counts.set(row.member_id, current);
-    }
-
-    const members = await getMembersByIds([...counts.keys()]);
-    return members
+    return (data ?? [])
+      .filter((member) => !attestedSet.has(member.id))
       .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address))
       .map((member) => ({
         wallet_address: member.wallet_address,
@@ -173,13 +169,16 @@ async function getFallbackCandidates(type: CertificateType, attestedSet: Set<num
         major: member.major,
         affiliation: member.affiliation,
         cohort: member.cohort,
-        criteria_details: counts.get(member.id) ?? null,
+        criteria_details: {
+          submission_count: 1,
+          source: 'member_has_assignment',
+        },
       }));
   }
 
   const { data: members, error } = await supabase
     .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort, is_active')
+    .select('id, wallet_address, name, major, affiliation, cohort, has_assignment, is_active')
     .eq('is_active', true)
     .not('wallet_address', 'is', null)
     .order('cohort', { ascending: true })
@@ -307,16 +306,16 @@ export async function getMemberCertificateDetail(walletAddress: string): Promise
 
   const { data: member, error: memberError } = await supabase
     .from('member')
-    .select('id')
+    .select('id, affiliation, has_assignment')
     .eq('wallet_address', walletAddress)
-    .maybeSingle<{ id: number }>();
+    .maybeSingle<{ id: number; affiliation: string; has_assignment: boolean | null }>();
 
   if (memberError) throw memberError;
   if (!member) {
     return { attendance: [], external_activity: [], assignment: [] };
   }
 
-  const [attendanceResult, externalResult, assignmentResult, sessionResult] = await Promise.all([
+  const [attendanceResult, externalResult, sessionResult] = await Promise.all([
     supabase
       .from('attendance_record')
       .select('attendance_id, session_id, status, attended_at')
@@ -329,12 +328,6 @@ export async function getMemberCertificateDetail(walletAddress: string): Promise
       .select('activity_id, session_id, evidence_url')
       .eq('member_id', member.id)
       .returns<Array<{ activity_id: string; session_id: string; evidence_url: string }>>(),
-    supabase
-      .from('assignment')
-      .select('assignment_id, assignment_title, affiliation, evidence_url')
-      .eq('member_id', member.id)
-      .order('assignment_title', { ascending: true })
-      .returns<Array<{ assignment_id: string; assignment_title: string; affiliation: string; evidence_url: string | null }>>(),
     supabase
       .from('attendance_session')
       .select('session_id, title')
@@ -358,7 +351,14 @@ export async function getMemberCertificateDetail(walletAddress: string): Promise
     evidence_url: r.evidence_url,
   }));
 
-  const assignment: AssignmentRecord[] = assignmentResult.data ?? [];
+  const assignment: AssignmentRecord[] = member.has_assignment
+    ? [{
+        assignment_id: `member-${member.id}-assignment`,
+        assignment_title: '산출물 제출 확인',
+        affiliation: member.affiliation,
+        evidence_url: null,
+      }]
+    : [];
 
   return { attendance, external_activity, assignment };
 }

@@ -411,9 +411,6 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm leading-6 text-monolith-onSurfaceMuted">
-                        4가지 증명(출석, 외부활동, 산출물, 참여기간)을 모두 획득하면 공식 SBT 수료증을 민팅할 수 있습니다.
-                      </p>
                       <button
                         type="button"
                         onClick={handleMintSbt}

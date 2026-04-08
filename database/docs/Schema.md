@@ -6,7 +6,8 @@ HYBLOCK의 데이터베이스는 학회원 정보, 활동 기록, 증명 발급 
 
 현재 구현 기준의 핵심 흐름은 아래와 같다.
 - `member`에 회원과 권한 정보 저장
-- 출석/활동/산출물 원본 데이터를 개별 테이블에 저장
+- 출석/활동 원본 데이터를 개별 테이블에 저장
+- 산출물 여부는 `member.has_assignment`로 저장
 - 관리자 증명 발급 후 `attestation`에 UID 기록
 - SBT 민팅 후 `sbt_issuance`에 발급 결과 기록
 
@@ -18,7 +19,6 @@ HYBLOCK의 데이터베이스는 학회원 정보, 활동 기록, 증명 발급 
 | `attendance_session` | 출석 세션 정보 |
 | `attendance_record` | 출석 기록 |
 | `external_activity` | 외부 활동 기록 |
-| `assignment` | 산출물 기록 |
 | `semester_criteria_tracking` | 수료 조건 집계 결과 |
 | `attestation` | EAS attestation UID 및 메타 정보 |
 | `sbt_issuance` | SBT 발급 이력 |
@@ -29,7 +29,6 @@ HYBLOCK의 데이터베이스는 학회원 정보, 활동 기록, 증명 발급 
 member
   ├─ attendance_record
   ├─ external_activity
-  ├─ assignment
   ├─ semester_criteria_tracking
   ├─ attestation
   └─ sbt_issuance
@@ -55,10 +54,12 @@ attendance_session
 - `role`
 - `is_active`
 - `is_admin`
+- `has_assignment`
 
 운영 포인트:
 - 관리자 접근 제어는 `is_admin` 기준
 - wallet session 로그인 후 `wallet_address`로 회원을 매핑
+- 산출물 요건 충족 여부는 `has_assignment` boolean으로 관리한다
 
 ### `attendance_session`
 
@@ -118,17 +119,6 @@ attendance_session
 - `activity_id`
 - `member_id`
 - `session_id`
-- `evidence_url`
-
-### `assignment`
-
-산출물 제출 기록을 저장한다.
-
-주요 컬럼:
-- `assignment_id`
-- `member_id`
-- `assignment_title`
-- `affiliation`
 - `evidence_url`
 
 ### `semester_criteria_tracking`

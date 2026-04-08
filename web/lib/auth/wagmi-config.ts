@@ -10,8 +10,8 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ?? 'missing-project-i
 const metadata = {
   name: 'HYBLOCK',
   description: 'HYBLOCK Official',
-  url: 'https://hyblock.kr',
-  icons: ['https://hyblock.kr/logo.png'],
+  url: 'https://www.hy-block.com',
+  icons: ['https://www.hy-block.com/logo.png'],
 };
 
 const networks: [AppKitNetwork, ...AppKitNetwork[]] = [mainnet, sepolia];

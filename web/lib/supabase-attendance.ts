@@ -20,6 +20,7 @@ type MemberRow = {
   name: string;
   cohort?: number;
   is_active?: boolean;
+  affiliation?: 'development' | 'business' | null;
 };
 
 type AttendanceRow = {
@@ -191,6 +192,22 @@ function requireTitle(session: Pick<SessionRow, 'title' | 'session_id'>): string
     throw new Error(`Session ${session.session_id} is missing title.`);
   }
   return session.title;
+}
+
+async function getEligibleMembersForSession(session: Pick<SessionRow, 'session_type' | 'target_affiliation'>) {
+  const supabase = getSupabase();
+  let query = supabase
+    .from('member')
+    .select('id, name, affiliation')
+    .eq('is_active', true);
+
+  if (session.session_type === 'advanced' && session.target_affiliation) {
+    query = query.eq('affiliation', session.target_affiliation);
+  }
+
+  const { data, error } = await query.returns<MemberRow[]>();
+  if (error) throw error;
+  return data ?? [];
 }
 
 async function getSessionByEventName(eventName: string) {
@@ -532,7 +549,13 @@ export async function deactivateActiveEvent() {
 
 export async function deactivateEvent(eventName?: string) {
   const supabase = getSupabase();
-  let activeSessions: Array<{ session_id: string; cohort: number; title: string }> = [];
+  let activeSessions: Array<{
+    session_id: string;
+    cohort: number;
+    title: string;
+    session_type: SessionRow['session_type'];
+    target_affiliation: SessionRow['target_affiliation'];
+  }> = [];
 
   if (eventName) {
     const session = await getSessionByEventName(eventName);
@@ -540,13 +563,25 @@ export async function deactivateEvent(eventName?: string) {
       return;
     }
 
-    activeSessions = [{ session_id: session.session_id, cohort: session.cohort, title: session.title }];
+    activeSessions = [{
+      session_id: session.session_id,
+      cohort: session.cohort,
+      title: session.title,
+      session_type: session.session_type,
+      target_affiliation: session.target_affiliation,
+    }];
   } else {
     const { data, error } = await supabase
       .from('attendance_session')
-      .select('session_id, cohort, title')
+      .select('session_id, cohort, title, session_type, target_affiliation')
       .eq('status', 'in_progress')
-      .returns<Array<{ session_id: string; cohort: number; title: string }>>();
+      .returns<Array<{
+        session_id: string;
+        cohort: number;
+        title: string;
+        session_type: SessionRow['session_type'];
+        target_affiliation: SessionRow['target_affiliation'];
+      }>>();
 
     if (error) throw error;
     activeSessions = data ?? [];
@@ -562,14 +597,10 @@ export async function deactivateEvent(eventName?: string) {
       check_in_code: null,
     });
 
-    const { data: members, error: membersError } = await supabase
-      .from('member')
-      .select('id, name')
-      .eq('cohort', activeSession.cohort)
-      .eq('is_active', true)
-      .returns<MemberRow[]>();
-
-    if (membersError) throw membersError;
+    const members = await getEligibleMembersForSession({
+      session_type: activeSession.session_type,
+      target_affiliation: activeSession.target_affiliation,
+    });
 
     const { data: existingAttendance, error: existingAttendanceError } = await supabase
       .from('attendance_record')
@@ -647,14 +678,7 @@ export async function updateEventStatus(eventName: string, nextStatus: SessionRo
   await updateSessionWithOptionalCheckInCode(session.session_id, updatePayload);
 
   if (session.status === 'in_progress' && nextStatus === 'completed') {
-    const { data: members, error: membersError } = await supabase
-      .from('member')
-      .select('id, name')
-      .eq('cohort', session.cohort)
-      .eq('is_active', true)
-      .returns<MemberRow[]>();
-
-    if (membersError) throw membersError;
+    const members = await getEligibleMembersForSession(session);
 
     const { data: existingAttendance, error: existingAttendanceError } = await supabase
       .from('attendance_record')
@@ -893,6 +917,25 @@ export async function checkInByMemberId(memberId: number, event: string, memberN
   }
 }
 
+export async function getMemberAttendanceStatusForEvent(memberId: number, eventName: string) {
+  const supabase = getSupabase();
+  const session = await getSessionByEventName(eventName);
+
+  if (!session) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('attendance_record')
+    .select('status')
+    .eq('session_id', session.session_id)
+    .eq('member_id', memberId)
+    .maybeSingle<{ status: 'present' | 'late' | 'absent' | null }>();
+
+  if (error) throw error;
+  return data?.status ?? null;
+}
+
 export async function verifyActiveEventCode(eventName: string, code: string) {
   const session = await getSessionByEventName(eventName);
   if (!session) {
@@ -1070,10 +1113,10 @@ export async function getAdminMembers() {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('member')
-      .select('id, name, cohort, is_active')
+      .select('id, name, cohort, affiliation, has_assignment, is_active')
       .order('cohort', { ascending: true })
       .order('name', { ascending: true })
-      .returns<Array<{ id: number; name: string; cohort: number | null; is_active: boolean | null }>>();
+      .returns<Array<{ id: number; name: string; cohort: number | null; affiliation: 'development' | 'business' | null; has_assignment: boolean | null; is_active: boolean | null }>>();
 
     if (error) throw error;
 
@@ -1081,6 +1124,8 @@ export async function getAdminMembers() {
       id: member.id,
       name: member.name,
       cohort: member.cohort ?? DEFAULT_COHORT,
+      affiliation: member.affiliation,
+      hasAssignment: Boolean(member.has_assignment),
       isActive: Boolean(member.is_active),
     }));
   } catch (error) {

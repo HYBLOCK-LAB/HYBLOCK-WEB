@@ -198,16 +198,24 @@ async function getSessionByEventName(eventName: string) {
     return await selectSessionByEventName(eventName, true);
   } catch (error) {
     if (isMissingTargetAffiliationColumnError(error)) {
-      const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, true);
-      return session ? { ...session, target_affiliation: null } : null;
+      try {
+        const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, true);
+        return session ? { ...session, target_affiliation: null } : null;
+      } catch (fallbackError) {
+        if (!isMissingCheckInCodeColumnError(fallbackError)) throw fallbackError;
+        const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, false);
+        return session ? { ...session, target_affiliation: null } : null;
+      }
     }
     if (isMissingCheckInCodeColumnError(error)) {
       try {
         return await selectSessionByEventName(eventName, false);
       } catch (fallbackError) {
-        if (!isMissingTargetAffiliationColumnError(fallbackError)) throw fallbackError;
-        const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, false);
-        return session ? { ...session, target_affiliation: null } : null;
+        if (isMissingTargetAffiliationColumnError(fallbackError)) {
+          const session = await selectSessionByEventNameWithoutTargetAffiliation(eventName, false);
+          return session ? { ...session, target_affiliation: null } : null;
+        }
+        throw fallbackError;
       }
     }
     throw error;
@@ -219,16 +227,24 @@ async function getSessions() {
     return await selectSessions(true);
   } catch (error) {
     if (isMissingTargetAffiliationColumnError(error)) {
-      const sessions = await selectSessionsWithoutTargetAffiliation(true);
-      return sessions.map((session) => ({ ...session, target_affiliation: null }));
+      try {
+        const sessions = await selectSessionsWithoutTargetAffiliation(true);
+        return sessions.map((session) => ({ ...session, target_affiliation: null }));
+      } catch (fallbackError) {
+        if (!isMissingCheckInCodeColumnError(fallbackError)) throw fallbackError;
+        const sessions = await selectSessionsWithoutTargetAffiliation(false);
+        return sessions.map((session) => ({ ...session, target_affiliation: null }));
+      }
     }
     if (isMissingCheckInCodeColumnError(error)) {
       try {
         return await selectSessions(false);
       } catch (fallbackError) {
-        if (!isMissingTargetAffiliationColumnError(fallbackError)) throw fallbackError;
-        const sessions = await selectSessionsWithoutTargetAffiliation(false);
-        return sessions.map((session) => ({ ...session, target_affiliation: null }));
+        if (isMissingTargetAffiliationColumnError(fallbackError)) {
+          const sessions = await selectSessionsWithoutTargetAffiliation(false);
+          return sessions.map((session) => ({ ...session, target_affiliation: null }));
+        }
+        throw fallbackError;
       }
     }
     throw error;
@@ -360,22 +376,45 @@ export async function getActiveEvents(): Promise<ActiveAttendanceEvent[]> {
       data = result.data ?? [];
     } catch (error) {
       if (isMissingTargetAffiliationColumnError(error)) {
-        const fallbackResult = await supabase
-          .from('attendance_session')
-          .select('session_id, title, updated_at, session_end_time, check_in_code, session_type')
-          .eq('status', 'in_progress')
-          .order('updated_at', { ascending: false })
-          .returns<Array<{
-            session_id: string;
-            title: string;
-            updated_at: string | null;
-            session_end_time: string | null;
-            check_in_code: string | null;
-            session_type: SessionRow['session_type'];
-          }>>();
+        try {
+          const fallbackResult = await supabase
+            .from('attendance_session')
+            .select('session_id, title, updated_at, session_end_time, check_in_code, session_type')
+            .eq('status', 'in_progress')
+            .order('updated_at', { ascending: false })
+            .returns<Array<{
+              session_id: string;
+              title: string;
+              updated_at: string | null;
+              session_end_time: string | null;
+              check_in_code: string | null;
+              session_type: SessionRow['session_type'];
+            }>>();
 
-        if (fallbackResult.error) throw fallbackResult.error;
-        data = (fallbackResult.data ?? []).map((session) => ({ ...session, target_affiliation: null }));
+          if (fallbackResult.error) throw fallbackResult.error;
+          data = (fallbackResult.data ?? []).map((session) => ({ ...session, target_affiliation: null }));
+        } catch (fallbackError) {
+          if (!isMissingCheckInCodeColumnError(fallbackError)) throw fallbackError;
+          const fallbackResult = await supabase
+            .from('attendance_session')
+            .select('session_id, title, updated_at, session_end_time, session_type')
+            .eq('status', 'in_progress')
+            .order('updated_at', { ascending: false })
+            .returns<Array<{
+              session_id: string;
+              title: string;
+              updated_at: string | null;
+              session_end_time: string | null;
+              session_type: SessionRow['session_type'];
+            }>>();
+
+          if (fallbackResult.error) throw fallbackResult.error;
+          data = (fallbackResult.data ?? []).map((session) => ({
+            ...session,
+            check_in_code: null,
+            target_affiliation: null,
+          }));
+        }
       } else if (!isMissingCheckInCodeColumnError(error)) throw error;
 
       if (data) {

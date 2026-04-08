@@ -32,28 +32,30 @@ export function getActivityTargetAffiliationLabel(targetAffiliation: ActivityTar
   return '전체';
 }
 
-export async function getActivities() {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('attendance_session')
-    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
-    .order('session_start_time', { ascending: false })
-    .returns<
-      Array<{
-        session_id: string;
-        title: string;
-        content: string | null;
-        session_type: ActivitySessionType;
-        target_affiliation?: ActivityTargetAffiliation;
-        session_start_time: string;
-        status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-        cohort: number;
-      }>
-    >();
+function isMissingTargetAffiliationColumnError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    (error.code === '42703' || error.code === 'PGRST204') &&
+    typeof error.message === 'string' &&
+    (error.message.includes('attendance_session.target_affiliation') ||
+      error.message.includes("'target_affiliation' column of 'attendance_session'"))
+  );
+}
 
-  if (error) throw error;
-
-  return (data ?? []).map<ActivityItem>((item) => ({
+function mapActivity(item: {
+  session_id: string;
+  title: string;
+  content: string | null;
+  session_type: ActivitySessionType;
+  target_affiliation?: ActivityTargetAffiliation;
+  session_start_time: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  cohort: number;
+}): ActivityItem {
+  return {
     id: item.session_id,
     name: item.title,
     description: item.content,
@@ -62,7 +64,54 @@ export async function getActivities() {
     date: item.session_start_time,
     status: item.status,
     cohort: item.cohort,
-  }));
+  };
+}
+
+export async function getActivities() {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('attendance_session')
+      .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
+      .order('session_start_time', { ascending: false })
+      .returns<
+        Array<{
+          session_id: string;
+          title: string;
+          content: string | null;
+          session_type: ActivitySessionType;
+          target_affiliation?: ActivityTargetAffiliation;
+          session_start_time: string;
+          status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+          cohort: number;
+        }>
+      >();
+
+    if (error) throw error;
+    return (data ?? []).map(mapActivity);
+  } catch (error) {
+    if (!isMissingTargetAffiliationColumnError(error)) throw error;
+
+    const { data, error: fallbackError } = await supabase
+      .from('attendance_session')
+      .select('session_id, title, content, session_type, session_start_time, status, cohort')
+      .order('session_start_time', { ascending: false })
+      .returns<
+        Array<{
+          session_id: string;
+          title: string;
+          content: string | null;
+          session_type: ActivitySessionType;
+          session_start_time: string;
+          status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+          cohort: number;
+        }>
+      >();
+
+    if (fallbackError) throw fallbackError;
+    return (data ?? []).map((item) => mapActivity({ ...item, target_affiliation: null }));
+  }
 }
 
 export async function createActivity(params: {
@@ -74,42 +123,57 @@ export async function createActivity(params: {
   cohort: number;
 }) {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('attendance_session')
-    .insert({
-      title: params.name,
-      content: params.description?.trim() || null,
-      session_type: params.sessionType,
-      target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
-      session_start_time: params.date,
-      cohort: params.cohort,
-      status: 'scheduled',
-      updated_at: new Date().toISOString(),
-    })
-    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
-    .single<{
-      session_id: string;
-      title: string;
-      content: string | null;
-      session_type: ActivitySessionType;
-      target_affiliation?: ActivityTargetAffiliation;
-      session_start_time: string;
-      status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-      cohort: number;
-    }>();
+  const basePayload = {
+    title: params.name,
+    content: params.description?.trim() || null,
+    session_type: params.sessionType,
+    session_start_time: params.date,
+    cohort: params.cohort,
+    status: 'scheduled' as const,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) throw error;
+  try {
+    const { data, error } = await supabase
+      .from('attendance_session')
+      .insert({
+        ...basePayload,
+        target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
+      })
+      .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
+      .single<{
+        session_id: string;
+        title: string;
+        content: string | null;
+        session_type: ActivitySessionType;
+        target_affiliation?: ActivityTargetAffiliation;
+        session_start_time: string;
+        status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+        cohort: number;
+      }>();
 
-  return {
-    id: data.session_id,
-    name: data.title,
-    description: data.content,
-    sessionType: data.session_type,
-    targetAffiliation: data.target_affiliation ?? null,
-    date: data.session_start_time,
-    status: data.status,
-    cohort: data.cohort,
-  } satisfies ActivityItem;
+    if (error) throw error;
+    return mapActivity(data);
+  } catch (error) {
+    if (!isMissingTargetAffiliationColumnError(error)) throw error;
+
+    const { data, error: fallbackError } = await supabase
+      .from('attendance_session')
+      .insert(basePayload)
+      .select('session_id, title, content, session_type, session_start_time, status, cohort')
+      .single<{
+        session_id: string;
+        title: string;
+        content: string | null;
+        session_type: ActivitySessionType;
+        session_start_time: string;
+        status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+        cohort: number;
+      }>();
+
+    if (fallbackError) throw fallbackError;
+    return mapActivity({ ...data, target_affiliation: null });
+  }
 }
 
 export async function updateActivity(params: {
@@ -122,11 +186,10 @@ export async function updateActivity(params: {
   cohort?: number;
 }) {
   const supabase = getSupabase();
-  const updatePayload: {
+  const basePayload: {
     title: string;
     content: string | null;
     session_type: ActivitySessionType;
-    target_affiliation: ActivityTargetAffiliation;
     session_start_time: string;
     updated_at: string;
     cohort?: number;
@@ -134,43 +197,57 @@ export async function updateActivity(params: {
     title: params.name,
     content: params.description?.trim() || null,
     session_type: params.sessionType,
-    target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
     session_start_time: params.date,
     updated_at: new Date().toISOString(),
   };
 
   if (typeof params.cohort === 'number') {
-    updatePayload.cohort = params.cohort;
+    basePayload.cohort = params.cohort;
   }
 
-  const { data, error } = await supabase
-    .from('attendance_session')
-    .update(updatePayload)
-    .eq('session_id', params.id)
-    .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
-    .single<{
-      session_id: string;
-      title: string;
-      content: string | null;
-      session_type: ActivitySessionType;
-      target_affiliation?: ActivityTargetAffiliation;
-      session_start_time: string;
-      status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-      cohort: number;
-    }>();
+  try {
+    const { data, error } = await supabase
+      .from('attendance_session')
+      .update({
+        ...basePayload,
+        target_affiliation: params.sessionType === 'advanced' ? params.targetAffiliation ?? null : null,
+      })
+      .eq('session_id', params.id)
+      .select('session_id, title, content, session_type, target_affiliation, session_start_time, status, cohort')
+      .single<{
+        session_id: string;
+        title: string;
+        content: string | null;
+        session_type: ActivitySessionType;
+        target_affiliation?: ActivityTargetAffiliation;
+        session_start_time: string;
+        status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+        cohort: number;
+      }>();
 
-  if (error) throw error;
+    if (error) throw error;
+    return mapActivity(data);
+  } catch (error) {
+    if (!isMissingTargetAffiliationColumnError(error)) throw error;
 
-  return {
-    id: data.session_id,
-    name: data.title,
-    description: data.content,
-    sessionType: data.session_type,
-    targetAffiliation: data.target_affiliation ?? null,
-    date: data.session_start_time,
-    status: data.status,
-    cohort: data.cohort,
-  } satisfies ActivityItem;
+    const { data, error: fallbackError } = await supabase
+      .from('attendance_session')
+      .update(basePayload)
+      .eq('session_id', params.id)
+      .select('session_id, title, content, session_type, session_start_time, status, cohort')
+      .single<{
+        session_id: string;
+        title: string;
+        content: string | null;
+        session_type: ActivitySessionType;
+        session_start_time: string;
+        status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+        cohort: number;
+      }>();
+
+    if (fallbackError) throw fallbackError;
+    return mapActivity({ ...data, target_affiliation: null });
+  }
 }
 
 export async function deleteActivity(activityId: string) {

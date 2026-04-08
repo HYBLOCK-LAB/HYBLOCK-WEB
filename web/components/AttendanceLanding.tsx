@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CalendarDays, CheckCircle2, Clock3, Lock, QrCode } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock3 } from 'lucide-react';
 import { decodeEvent, encodeEvent } from '@/lib/utils';
 import CheckInForm from '@/components/CheckInForm';
 import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
@@ -172,31 +172,26 @@ export default function AttendanceLanding({
                       <CalendarDays className="h-4 w-4" />
                       <span>{translateCategory(session.category, language)}</span>
                     </div>
-                    <p className="ml-6 mt-1 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
+                    <p className="ml-6 mt-1.5 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
                       <Clock3 className="h-3.5 w-3.5" />
                       {presentation.hint}
                     </p>
                   </div>
 
-                  <div className="col-span-3 flex gap-2 md:justify-end">
-                    <Link
-                      href={`/attendance?event=${encoded}`}
-                      onClick={(event) => event.stopPropagation()}
-                      className="flex flex-1 items-center justify-center rounded-lg bg-monolith-surfaceContainer px-4 py-2.5 font-display text-sm font-bold text-monolith-primaryContainer transition hover:bg-monolith-surfaceHigh md:flex-none"
-                    >
-                      <QrCode className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      href={`/attendance?event=${encoded}`}
-                      onClick={(event) => event.stopPropagation()}
-                      className={[
-                        'flex flex-[2] items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition md:flex-none',
-                        presentation.actionClassName,
-                      ].join(' ')}
-                    >
-                      {isActive ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                      {presentation.actionLabel}
-                    </Link>
+                  <div className="col-span-3 flex md:justify-end">
+                    {isActive ? (
+                      <Link
+                        href={`/attendance?event=${encoded}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className={[
+                          'flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition',
+                          presentation.actionClassName,
+                        ].join(' ')}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {presentation.actionLabel}
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               );

@@ -24,7 +24,7 @@ type EventPayload = {
   statuses: Record<string, 'scheduled' | 'in_progress' | 'completed' | 'cancelled'>;
 };
 
-type TabType = '전체' | '기본 세션' | '심화 세션' | '기타 활동' | '외부 활동' | '해커톤';
+type TabType = '전체' | '기본 세션' | '심화 세션' | '기타 활동' | '외부 활동' | '해커톤/아이디어톤';
 type SessionStatus = EventPayload['statuses'][string];
 
 type EventStats = {
@@ -339,7 +339,7 @@ export default function AdminAttendanceManager() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {(['전체', '기본 세션', '심화 세션', '기타 활동', '외부 활동', '해커톤'] as TabType[]).map((tab) => (
+        {(['전체', '기본 세션', '심화 세션', '기타 활동', '외부 활동', '해커톤/아이디어톤'] as TabType[]).map((tab) => (
           <button
             key={tab}
             type="button"

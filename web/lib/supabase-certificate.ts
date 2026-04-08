@@ -401,9 +401,9 @@ export async function getSbtEligibility(walletAddress: string) {
 
   const { data: member, error: memberError } = await supabase
     .from('member')
-    .select('id')
+    .select('id, has_assignment')
     .ilike('wallet_address', walletAddress)
-    .maybeSingle<{ id: number }>();
+    .maybeSingle<{ id: number; has_assignment: boolean | null }>();
 
   if (memberError) throw memberError;
   if (!member) {
@@ -412,22 +412,114 @@ export async function getSbtEligibility(walletAddress: string) {
       eligible: false,
       alreadyMinted: false,
       missingTypes: ['attendance', 'external_activity', 'assignment', 'participation_period'],
+      criteriaMetTypes: [],
+      attestedTypes: [],
+      criteriaCount: 0,
+      attestedCount: 0,
       currentCount: 0,
       totalRequired: 4,
     };
   }
 
-  const { data: attestations, error: attestError } = await supabase
-    .from('attestation')
-    .select('attestation_type')
-    .eq('member_id', member.id)
-    .returns<Array<{ attestation_type: string }>>();
+  const requiredTypes = ['attendance', 'external_activity', 'assignment', 'participation_period'] as const;
+
+  const [
+    { data: attestations, error: attestError },
+    { data: trackedCriteria, error: trackedError },
+    { data: coreSessionRows, error: coreSessionError },
+    { data: eventSessionRows, error: eventSessionError },
+    { data: externalActivities, error: externalError },
+  ] = await Promise.all([
+    supabase
+      .from('attestation')
+      .select('attestation_type')
+      .eq('member_id', member.id)
+      .returns<Array<{ attestation_type: string }>>(),
+    supabase
+      .from('semester_criteria_tracking')
+      .select('criteria_type')
+      .eq('member_id', member.id)
+      .eq('is_met', true)
+      .in('criteria_type', [...requiredTypes])
+      .returns<Array<{ criteria_type: string }>>(),
+    supabase
+      .from('attendance_session')
+      .select('session_id')
+      .in('session_type', ['basic', 'advanced'])
+      .returns<Array<{ session_id: string }>>(),
+    supabase
+      .from('attendance_session')
+      .select('session_id')
+      .in('session_type', ['external', 'hackathon'])
+      .returns<Array<{ session_id: string }>>(),
+    supabase
+      .from('external_activity')
+      .select('activity_id')
+      .eq('member_id', member.id)
+      .returns<Array<{ activity_id: string }>>(),
+  ]);
 
   if (attestError) throw attestError;
+  if (trackedError) throw trackedError;
+  if (coreSessionError) throw coreSessionError;
+  if (eventSessionError) throw eventSessionError;
+  if (externalError) throw externalError;
 
-  const requiredTypes = ['attendance', 'external_activity', 'assignment', 'participation_period'];
-  const currentTypes = (attestations ?? []).map((a) => a.attestation_type);
-  const missingTypes = requiredTypes.filter((type) => !currentTypes.includes(type));
+  const coreSessionIds = (coreSessionRows ?? []).map((row) => row.session_id);
+  const eventSessionIds = (eventSessionRows ?? []).map((row) => row.session_id);
+
+  const [{ data: attendanceRows, error: attendanceError }, { data: eventAttendanceRows, error: eventAttendanceError }] =
+    await Promise.all([
+      coreSessionIds.length > 0
+        ? supabase
+            .from('attendance_record')
+            .select('attendance_id')
+            .eq('member_id', member.id)
+            .in('status', ['present', 'late'])
+            .in('session_id', coreSessionIds)
+            .returns<Array<{ attendance_id: string }>>()
+        : Promise.resolve({ data: [], error: null }),
+      eventSessionIds.length > 0
+        ? supabase
+            .from('attendance_record')
+            .select('attendance_id')
+            .eq('member_id', member.id)
+            .in('status', ['present', 'late'])
+            .in('session_id', eventSessionIds)
+            .returns<Array<{ attendance_id: string }>>()
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+  if (attendanceError) throw attendanceError;
+  if (eventAttendanceError) throw eventAttendanceError;
+
+  const attestedTypes = Array.from(new Set((attestations ?? []).map((a) => a.attestation_type))).filter((type) =>
+    requiredTypes.includes(type as (typeof requiredTypes)[number]),
+  );
+
+  const criteriaMetSet = new Set<string>(attestedTypes);
+  const trackedTypes = new Set((trackedCriteria ?? []).map((row) => row.criteria_type));
+
+  if ((attendanceRows ?? []).length >= 6) {
+    criteriaMetSet.add('attendance');
+  }
+
+  if ((externalActivities ?? []).length > 0 || (eventAttendanceRows ?? []).length > 0) {
+    criteriaMetSet.add('external_activity');
+  }
+
+  if (member.has_assignment) {
+    criteriaMetSet.add('assignment');
+  }
+
+  for (const type of trackedTypes) {
+    if (requiredTypes.includes(type as (typeof requiredTypes)[number])) {
+      criteriaMetSet.add(type);
+    }
+  }
+
+  const criteriaMetTypes = requiredTypes.filter((type) => criteriaMetSet.has(type));
+  const missingTypes = requiredTypes.filter((type) => !attestedTypes.includes(type));
 
   const { data: existingSbt, error: sbtError } = await supabase
     .from('sbt_issuance')
@@ -442,7 +534,11 @@ export async function getSbtEligibility(walletAddress: string) {
     eligible: missingTypes.length === 0,
     alreadyMinted: Boolean(existingSbt),
     missingTypes,
-    currentCount: currentTypes.length,
+    criteriaMetTypes,
+    attestedTypes,
+    criteriaCount: criteriaMetTypes.length,
+    attestedCount: attestedTypes.length,
+    currentCount: attestedTypes.length,
     totalRequired: requiredTypes.length,
   };
 }

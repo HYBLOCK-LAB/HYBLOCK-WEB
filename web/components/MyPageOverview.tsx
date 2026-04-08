@@ -37,6 +37,10 @@ type Eligibility = {
   eligible: boolean;
   alreadyMinted: boolean;
   missingTypes: string[];
+  criteriaMetTypes: string[];
+  attestedTypes: string[];
+  criteriaCount: number;
+  attestedCount: number;
   currentCount: number;
   totalRequired: number;
 };
@@ -370,7 +374,7 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                   {/* Attestation Status Tiles */}
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {['attendance', 'external_activity', 'assignment', 'participation_period'].map((type) => {
-                      const isMet = !eligibility.missingTypes.includes(type);
+                      const isMet = eligibility.criteriaMetTypes.includes(type);
                       return (
                         <div 
                           key={type} 
@@ -434,7 +438,7 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                       ) : null}
                       {!eligibility.eligible && (
                         <p className="text-center text-[11px] font-semibold text-monolith-error">
-                          모든 증명을 획득해야 발급 가능합니다. ({eligibility.currentCount}/{eligibility.totalRequired})
+                          증명 획득 {eligibility.criteriaCount}/{eligibility.totalRequired}
                         </p>
                       )}
                     </div>

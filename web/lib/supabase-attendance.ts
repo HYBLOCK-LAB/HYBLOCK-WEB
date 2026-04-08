@@ -65,7 +65,7 @@ const categoryToSessionType = (category: string): SessionRow['session_type'] => 
   if (category === '심화 세션') return 'advanced';
   if (category === '기타 활동') return 'misc';
   if (category === '외부 활동') return 'external';
-  if (category === '해커톤') return 'hackathon';
+  if (category === '해커톤' || category === '해커톤/아이디어톤') return 'hackathon';
   return 'basic';
 };
 
@@ -73,7 +73,7 @@ const sessionTypeToCategory = (sessionType: SessionRow['session_type']): string 
   if (sessionType === 'advanced') return '심화 세션';
   if (sessionType === 'misc') return '기타 활동';
   if (sessionType === 'external') return '외부 활동';
-  if (sessionType === 'hackathon') return '해커톤';
+  if (sessionType === 'hackathon') return '해커톤/아이디어톤';
   return '기본 세션';
 };
 

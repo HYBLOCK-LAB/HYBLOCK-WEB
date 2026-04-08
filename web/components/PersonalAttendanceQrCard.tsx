@@ -226,14 +226,14 @@ export default function PersonalAttendanceQrCard({
         : '이미 출석 처리되었습니다.';
     }
 
-    if (walletSessionConnected) {
-      return '지갑 로그인 세션으로 개인 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.';
-    }
-
     if (requireWalletSession) {
       return walletSessionConnected
-        ? '지갑 로그인 세션으로 개인 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.'
+        ? '개인용 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.'
         : '마이페이지 출석 QR은 지갑 로그인 후 사용할 수 있습니다.';
+    }
+
+    if (walletSessionConnected) {
+      return '개인용 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.';
     }
 
     if (!canUseSupabase) {
@@ -244,7 +244,7 @@ export default function PersonalAttendanceQrCard({
       return '개인 QR은 로그인한 사용자만 발급할 수 있습니다.';
     }
 
-    return 'QR은 45초 후 자동 갱신됩니다. 운영진이 관리자 화면에서 스캔하면 즉시 소모됩니다.';
+    return '개인용 QR을 발급합니다. QR은 45초 후 자동 갱신됩니다.';
   }, [alreadyCheckedIn, attendanceStatus, canUseSupabase, isLoggedIn, requireWalletSession, walletSessionConnected]);
 
   return (

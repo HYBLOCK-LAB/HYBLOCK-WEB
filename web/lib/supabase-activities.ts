@@ -19,7 +19,7 @@ export const ACTIVITY_TYPE_OPTIONS: Array<{ value: ActivitySessionType; label: s
   { value: 'advanced', label: '심화 세션' },
   { value: 'misc', label: '기타 활동' },
   { value: 'external', label: '외부 활동' },
-  { value: 'hackathon', label: '해커톤' },
+  { value: 'hackathon', label: '해커톤/아이디어톤' },
 ];
 
 export function getActivityTypeLabel(type: ActivitySessionType) {

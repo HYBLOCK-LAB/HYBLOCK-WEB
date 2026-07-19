@@ -21,6 +21,18 @@ export const textContent = {
     activities: {
       title: 'Activities',
       intro: '함께 배우고 성장하는 HYBLOCK의 다양한 활동 기록입니다.',
+      filterLabel: '활동 분류',
+      resultCount: '개의 기록',
+      datePending: '날짜 확인 중',
+      emptyTitle: '해당 분류의 활동이 없습니다.',
+      emptyDescription: '다른 분류를 선택해 HYBLOCK의 활동 기록을 확인해보세요.',
+      filters: {
+        all: '전체',
+        'basic-session': '기본 세션',
+        'advanced-session': '심화 세션',
+        hackathon: '해커톤',
+        'external-activity': '기타 외부 활동',
+      },
     },
     notices: {
       title: 'Notices',
@@ -87,6 +99,18 @@ export const textContent = {
     activities: {
       title: 'Activities',
       intro: 'A record of HYBLOCK\'s diverse activities where we learn and grow together.',
+      filterLabel: 'Activity categories',
+      resultCount: 'records',
+      datePending: 'Date pending',
+      emptyTitle: 'No activities found in this category.',
+      emptyDescription: 'Choose another category to explore more of the HYBLOCK archive.',
+      filters: {
+        all: 'All',
+        'basic-session': 'Basic Sessions',
+        'advanced-session': 'Advanced Sessions',
+        hackathon: 'Hackathons',
+        'external-activity': 'External Activities',
+      },
     },
     notices: {
       title: 'Notices',

@@ -2,7 +2,7 @@
 
 import SiteChrome from '@/components/SiteChrome';
 import ActivitiesGallery from '@/components/activities/ActivitiesGallery';
-import { mockActivityGalleryPhotos } from '@/lib/site-content';
+import { activityFilters, mockActivityGalleryPhotos } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 import { useLanguageStore } from '@/lib/auth/language-store';
 
@@ -25,7 +25,7 @@ export default function ActivitiesPage() {
           </p>
         </div>
 
-        <ActivitiesGallery photos={mockActivityGalleryPhotos} />
+        <ActivitiesGallery filters={activityFilters} photos={mockActivityGalleryPhotos} />
       </main>
     </SiteChrome>
   );

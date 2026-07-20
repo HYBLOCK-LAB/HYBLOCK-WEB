@@ -1,31 +1,21 @@
 import SiteChrome from '@/components/SiteChrome';
-import AuthShell from '@/components/auth/AuthShell';
-import SocialAuthSection from '@/components/auth/SocialAuthSection';
-import WalletLoginSection from '@/components/auth/WalletLoginSection';
-import AuthDivider from '@/components/auth/AuthDivider';
+import PageUnderConstruction from '@/components/PageUnderConstruction';
 
-type LoginPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+export const metadata = {
+  title: '페이지 작업중 | HYBLOCK',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const params = (await searchParams) ?? {};
-  const rawRedirect = typeof params.redirect === 'string' ? params.redirect : '/';
-  const redirectTo = rawRedirect.startsWith('/') ? rawRedirect : '/';
-
+export default function LoginPage() {
   return (
     <SiteChrome activePath="/login">
-      <main className="min-h-screen">
-        <AuthShell
-          mode="login"
-          eyebrow="Continue with Your wallet or Google"
-          title="Login"
-        >
-          <SocialAuthSection mode="login" redirectPath={redirectTo} />
-          <AuthDivider />
-          <WalletLoginSection redirectTo={redirectTo} />
-        </AuthShell>
-      </main>
+      <PageUnderConstruction
+        eyebrow="Login · Temporarily Closed"
+        description="로그인과 회원 연결 과정을 점검하고 있습니다. 작업이 끝날 때까지 로그인 기능과 관련 입력 화면은 임시로 사용할 수 없습니다."
+      />
     </SiteChrome>
   );
 }

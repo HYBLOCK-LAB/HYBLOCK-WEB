@@ -73,8 +73,8 @@ export default function NoticesContent({
               className={[
                 'interactive-soft rounded-lg px-4 py-2 text-sm transition',
                 currentCategory === category
-                  ? 'bg-monolith-surfaceLowest font-bold text-monolith-primary shadow-sm'
-                  : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceHigh',
+                  ? 'bg-monolith-primary font-bold text-white shadow-[0_8px_18px_rgba(14,74,132,0.18)]'
+                  : 'border border-monolith-outlineVariant/35 bg-monolith-surfaceContainer text-monolith-onSurfaceMuted hover:border-monolith-primary/20 hover:bg-monolith-surfaceHigh hover:text-monolith-primary',
               ].join(' ')}
             >
               {category}

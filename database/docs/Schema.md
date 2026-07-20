@@ -1,211 +1,191 @@
-# HYBLOCK Database Schema
+# HYBLOCK 데이터베이스 스키마
 
 ## 1. 개요
 
-HYBLOCK의 데이터베이스는 학회원 정보, 활동 기록, 증명 발급 이력, SBT 발급 이력을 관리한다.
+Supabase Postgres가 회원과 운영 데이터의 source of truth다. Google 계정은 Supabase Auth에 저장되며, Auth user와 `member`를 연결하는 별도 FK는 없다. 애플리케이션은 Auth user metadata의 `wallet_address`와 `member.wallet_address`를 맞춰 회원을 찾는다.
 
-현재 구현 기준의 핵심 흐름은 아래와 같다.
-- `member`에 회원과 권한 정보 저장
-- 출석/활동 원본 데이터를 개별 테이블에 저장
-- 산출물 여부는 `member.has_assignment`로 저장
-- 관리자 증명 발급 후 `attestation`에 UID 기록
-- SBT 민팅 후 `sbt_issuance`에 발급 결과 기록
+## 2. 테이블 사용 상태
 
-## 2. 핵심 테이블
+| 테이블 | 역할 | Web 런타임 |
+| --- | --- | --- |
+| `member` | 회원, 지갑, 소속, 권한, 산출물 여부 | 사용 |
+| `attendance_session` | 활동/세션과 출석 활성 상태 | 사용 |
+| `attendance_record` | 회원별 출석 결과 | 사용 |
+| `external_activity` | 회원별 외부 활동 증빙 | 사용 |
+| `assignment` | 산출물별 증빙 스키마 | 현재 미사용 |
+| `semester_criteria_tracking` | 조건별 사전 집계 | 사용 |
+| `attestation` | EAS UID와 공개 데이터 | 사용 |
+| `sbt_issuance` | SBT 민팅 이력 | 사용 |
+| `notice` | 공지와 첨부 이미지 URL | 사용 |
 
-| 테이블 | 역할 |
-| --- | --- |
-| `member` | 회원 기본 정보, 지갑 주소, admin 여부 |
-| `attendance_session` | 출석 세션 정보 |
-| `attendance_record` | 출석 기록 |
-| `external_activity` | 외부 활동 기록 |
-| `semester_criteria_tracking` | 수료 조건 집계 결과 |
-| `attestation` | EAS attestation UID 및 메타 정보 |
-| `sbt_issuance` | SBT 발급 이력 |
+`assignment` 마이그레이션은 남아 있지만 현재 후보 조회, 상세 조회, 자격 표시는 모두 `member.has_assignment`를 사용한다.
 
-## 3. 관계 요약
+## 3. 관계
 
 ```text
 member
-  ├─ attendance_record
-  ├─ external_activity
+  ├─ attendance_record ───── attendance_session
+  ├─ external_activity ───── attendance_session
+  ├─ assignment ──────────── attendance_session  (현재 web 미사용)
   ├─ semester_criteria_tracking
   ├─ attestation
   └─ sbt_issuance
 
-attendance_session
-  ├─ attendance_record
-  └─ external_activity
+notice  (독립)
 ```
 
-## 4. 테이블 설명
+## 4. `member`
 
-### `member`
-
-회원의 기본 정보와 권한 정보를 저장한다.
+회원 기본 정보와 서버 권한의 기준이다.
 
 주요 컬럼:
-- `id`
-- `wallet_address`
-- `name`
-- `major`
-- `affiliation`
-- `cohort`
-- `role`
-- `is_active`
-- `is_admin`
-- `has_assignment`
 
-운영 포인트:
-- 관리자 접근 제어는 `is_admin` 기준
-- wallet session 로그인 후 `wallet_address`로 회원을 매핑
-- 산출물 요건 충족 여부는 `has_assignment` boolean으로 관리한다
+| 컬럼 | 의미 |
+| --- | --- |
+| `id` | identity PK |
+| `wallet_address` | nullable, unique EVM 주소 |
+| `name`, `major` | 회원 프로필 |
+| `affiliation` | `development` 또는 `business` |
+| `cohort` | 기수 |
+| `role` | member/리드/회장단 역할 |
+| `period_start`, `period_end` | 활동 기간 |
+| `is_active` | 로그인·출석 대상 활성 여부 |
+| `is_admin` | 관리자 페이지/API 권한 |
+| `has_assignment` | 현재 산출물 조건 충족 여부 |
 
-### `attendance_session`
+애플리케이션의 지갑 로그인은 소문자 주소로 조회하지만 DB 컬럼 자체가 항상 소문자로 저장되도록 강제하는 constraint는 없다. 회원 생성 코드는 소문자로 정규화한다.
 
-출석 가능한 세션 단위를 저장한다.
+## 5. `attendance_session`
+
+공개 활동의 운영 정보와 출석 세션을 하나의 테이블로 관리한다.
 
 주요 컬럼:
-- `session_id`
-- `title`
+
+- `session_id` UUID PK
 - `cohort`
-- `session_type`
-- `target_affiliation`
+- `session_type`: `basic`, `advanced`, `misc`, `external`, `hackathon`
+- `target_affiliation`: `development`, `business`, `null`
+- `title`, `content`
 - `check_in_code`
-- `status`
-- `session_start_time`
-- `session_end_time`
+- `session_start_time`, `session_end_time`
+- `status`: `scheduled`, `in_progress`, `completed`, `cancelled`
+- `created_at`, `updated_at`
 
-`session_type` 값:
-- `basic`
-- `advanced`
-- `misc`
-- `external`
-- `hackathon`
+운영 규칙:
 
-`target_affiliation` 값:
-- `development`
-- `business`
-- `null`
+- `advanced`는 애플리케이션에서 target affiliation을 필수로 요구한다.
+- 활성화 시 6자리 code와 기본 20분 종료 시각을 설정한다.
+- `session_start_time`은 출석의 10분 지각 기준에도 사용한다.
+- 만료를 감지하면 애플리케이션이 세션을 완료하고 결석 레코드를 채운다.
 
-운영 포인트:
-- `basic`, `misc`, `external`, `hackathon`은 전체 회원 대상 세션으로 취급한다.
-- `advanced`는 `target_affiliation`이 있어야 어느 파트 대상인지 판별할 수 있다.
-- `check_in_code`는 운영진의 수동 출석 확인 코드로 사용한다.
-- `session_end_time`은 단순 종료 시각뿐 아니라 활성 세션 만료 시각으로도 사용한다.
-- 현재 구현에서는 활성화 시 기본 20분 만료를 잡고, 시간이 지나면 QR 발급/스캔에서 비활성으로 처리한다.
+## 6. `attendance_record`
 
-### `attendance_record`
-
-회원의 출석 기록을 저장한다.
+member/session당 하나의 출석 결과를 저장한다.
 
 주요 컬럼:
-- `attendance_id`
-- `member_id`
-- `session_id`
-- `status`
-- `attended_at`
 
-상태 예시:
-- `present`
-- `late`
-- `absent`
-
-### `external_activity`
-
-외부 활동 참여 및 증빙 링크를 저장한다.
-
-주요 컬럼:
-- `activity_id`
-- `member_id`
-- `session_id`
-- `evidence_url`
-
-### `semester_criteria_tracking`
-
-수료 조건 집계 결과를 저장한다.
-
-주요 컬럼:
-- `tracking_id`
-- `member_id`
-- `cohort`
-- `criteria_type`
-- `is_met`
-- `details`
-
-`criteria_type` 값:
-- `attendance`
-- `external_activity`
-- `assignment`
-- `participation_period`
-
-주의:
-- 현재 관리자 증명 화면은 이 테이블을 우선 사용한다.
-- 집계가 비어 있으면 raw 활동 데이터 fallback도 사용한다.
-
-### `attestation`
-
-관리자가 발급한 EAS 증명 정보를 저장한다.
-
-주요 컬럼:
-- `attestation_id`
-- `member_id`
-- `attestation_type`
-- `eas_uid`
-- `personal_data_hash`
-- `revealed_data`
-- `is_graduated`
+- `attendance_id` UUID PK
+- `session_id` FK
+- `member_id` FK
+- `attended_at`: 결석이면 `null`
+- `status`: `present`, `late`, `absent`
 - `created_at`
 
-운영 포인트:
-- 학회원의 SBT 발급 자격 판정은 이 테이블 기준으로 한다.
-- 같은 타입의 증명이 이미 있으면 관리자 화면에서 `기발급 증명`으로 확인 가능하다.
+`UNIQUE(session_id, member_id)`가 중복 레코드를 막는다. 관리자의 `nonParticipation` 상태는 DB enum 값이 아니라 해당 레코드가 없는 상태로 표현한다.
 
-### `sbt_issuance`
+## 7. `external_activity`
 
-SBT 발급 결과를 저장한다.
+외부 활동 증빙을 저장한다.
 
-주요 컬럼:
-- `issuance_id`
-- `member_id`
-- `token_id`
+- `activity_id` UUID PK
+- `member_id`, `session_id` FK
+- `evidence_url`
+- `created_at`, `updated_at`
+- `UNIQUE(session_id, member_id)`
+
+external activity 증명 fallback과 SBT 조건 현황 표시에 사용한다.
+
+## 8. `assignment`
+
+산출물 제목, 소속, evidence URL을 저장하도록 만든 초기 스키마다.
+
+- `assignment_id` UUID PK
+- `member_id`, `session_id` FK
+- `affiliation`
+- `assignment_title`
+- `evidence_url`
+- timestamps
+
+현재 Web은 이 테이블에 CRUD/query를 수행하지 않는다. 운영에서는 `member.has_assignment=true/false`만 사용하며, 관리자 후보 상세도 이 boolean을 가상 산출물 한 건으로 변환한다. 두 모델 중 하나로 통합하기 전까지 문서와 기능에서 혼용하지 않는다.
+
+## 9. `semester_criteria_tracking`
+
+회원·기수·조건 타입별 집계 결과다.
+
+- `tracking_id` UUID PK
+- `member_id` FK
+- `cohort`
+- `criteria_type`: `attendance`, `external_activity`, `assignment`, `participation_period`
+- `is_met`
+- `details` JSONB
+- timestamps
+- `UNIQUE(member_id, cohort, criteria_type)`
+
+증명 후보 조회는 `is_met=true`를 우선 사용하지만, 데이터가 없거나 일부만 있어도 원본 fallback 후보를 합친다. 이 저장소에는 tracking 값을 자동 계산하는 batch/job이 없다.
+
+## 10. `attestation`
+
+EAS 발급 결과의 off-chain 인덱스다.
+
+- `attestation_id` UUID PK
+- `member_id` FK
+- `personal_data_hash` 66자 hex
+- `revealed_data` JSONB
+- `is_graduated`
+- `eas_uid` unique 66자 hex
+- `attestation_type` 네 조건 타입 중 하나
+- `created_at`
+- `UNIQUE(member_id, attestation_type)`
+
+SBT 민팅의 최종 자격은 이 테이블에 네 타입이 모두 있는지로 판단한다. `is_graduated`는 현재 웹 발급에서 항상 false다.
+
+## 11. `sbt_issuance`
+
+member당 한 번의 SBT 발급 결과를 저장한다.
+
+- `issuance_id` UUID PK
+- `member_id` unique FK
+- `token_id` unique bigint
 - `contract_address`
-- `transaction_hash`
-- `minted_at`
+- `transaction_hash` unique
+- `minted_at`, `created_at`
 
-운영 포인트:
-- 같은 회원이 이미 발급받았는지 확인하는 기준 테이블이다.
+중복 민팅 방지와 마이페이지 발급 상태 확인에 사용한다.
 
-## 5. 현재 플로우에서 실제로 쓰는 판단 기준
+## 12. `notice`
 
-### 출석 QR 노출
+공지 목록과 상세의 source of truth다.
 
-기본 규칙:
-- `basic`, `misc`, `external`, `hackathon`은 전체 회원에게 노출 가능
-- `advanced`는 `member.affiliation = attendance_session.target_affiliation`일 때만 노출
+- `id` bigserial PK
+- `category`, `title`, `author`, `date`
+- `content` text
+- `images` text array
+- timestamps
 
-주의:
-- `advanced`인데 `target_affiliation`이 비어 있으면 회원 QR 후보에서 숨긴다.
+본문은 Markdown/GFM으로 렌더링한다. `images`는 파일 저장소가 아니라 외부 이미지 URL 목록이다. 홈 화면 공지 요약은 이 테이블과 자동 동기화되지 않는다.
 
-### 증명 발급 후보
+## 13. 마이그레이션 주의
 
-우선순위:
-1. `semester_criteria_tracking`
-2. raw 활동 데이터
+- 자동 migration runner가 없다.
+- `008_create_sbt_issuance.sql`과 `008_add_check_in_code_to_attendance_session.sql`이 번호를 공유한다.
+- `002_create_session.sql`에도 `check_in_code`가 이미 있어 추가 migration은 idempotent 보정 역할이다.
+- RLS policy, storage bucket, seed/admin 데이터 migration은 저장소에 없다.
+- 현재 소스에는 `target_affiliation`/`check_in_code`가 없는 구 스키마를 위한 일부 fallback query가 남아 있다.
 
-### SBT 발급 가능 여부
+적용 순서는 [운영 가이드](../../docs/OPERATIONS.md)를 따른다.
 
-필수 증명 4종:
-- `attendance`
-- `external_activity`
-- `assignment`
-- `participation_period`
+## 14. 관련 문서
 
-중복 발급 방지:
-- `sbt_issuance` 존재 여부로 확인
-
-## 6. 참고 문서
-
-- [아키텍처](/home/jaeman/Codes/HYBLOCK-WEB/docs/ARCHITECTURE.md)
-- [플로우](/home/jaeman/Codes/HYBLOCK-WEB/docs/FLOWS.md)
-- [운영 가이드](/home/jaeman/Codes/HYBLOCK-WEB/docs/OPERATIONS.md)
+- [DB 구현 가이드](IMPLEMENTATION_GUIDE.md)
+- [아키텍처](../../docs/ARCHITECTURE.md)
+- [플로우](../../docs/FLOWS.md)

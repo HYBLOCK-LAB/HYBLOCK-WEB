@@ -80,7 +80,7 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
   if (!allowed) {
     return (
       <main className="min-h-screen px-6 py-20">
-        <div className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest py-14 text-sm text-monolith-onSurfaceMuted shadow-monolith">
+        <div className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest py-14 text-sm text-monolith-on-surface-muted shadow-monolith">
           <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
           로그인 상태를 확인하는 중입니다.
         </div>
@@ -91,7 +91,7 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
   if (checking) {
     return (
       <main className="min-h-screen px-6 py-20">
-        <div className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest py-14 text-sm text-monolith-onSurfaceMuted shadow-monolith">
+        <div className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest py-14 text-sm text-monolith-on-surface-muted shadow-monolith">
           <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
           로그인 상태를 확인하는 중입니다.
         </div>

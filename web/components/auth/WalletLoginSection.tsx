@@ -122,9 +122,9 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
           type="button"
           onClick={handleOpenConnectModal}
           disabled={!isReownProjectIdConfigured}
-          className="interactive-soft flex w-full items-center justify-center gap-3 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-5 py-2 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface disabled:cursor-not-allowed disabled:opacity-50"
+          className="interactive-soft flex w-full items-center justify-center gap-3 rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-5 py-2 text-sm font-semibold text-monolith-on-surface transition-colors hover:bg-monolith-surface disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-monolith-primaryFixed text-monolith-primary">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-monolith-primary-fixed text-monolith-primary">
             <Wallet className="h-4 w-4" />
           </span>
           Connect Wallet
@@ -132,7 +132,7 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
       ) : null}
 
       {isConnected && address ? (
-        <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-5 text-center shadow-[0_16px_40px_rgba(0,51,97,0.06)]">
+        <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-5 text-center shadow-[0_16px_40px_rgba(0,51,97,0.06)]">
           <button
             type="button"
             onClick={handleWalletLogin}
@@ -146,8 +146,8 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
       ) : null}
 
       {error ? <p className="text-center text-sm text-monolith-error">{error}</p> : null}
-      {message ? <p className="text-center text-sm text-monolith-primaryContainer">{message}</p> : null}
-      {!isReownProjectIdConfigured ? <p className="text-center text-sm text-monolith-onSurfaceMuted">{d.walletLoginMissingProjectId}</p> : null}
+      {message ? <p className="text-center text-sm text-monolith-primary-container">{message}</p> : null}
+      {!isReownProjectIdConfigured ? <p className="text-center text-sm text-monolith-on-surface-muted">{d.walletLoginMissingProjectId}</p> : null}
     </div>
   );
 }

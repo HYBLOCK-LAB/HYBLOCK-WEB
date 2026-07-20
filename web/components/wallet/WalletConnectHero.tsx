@@ -12,7 +12,7 @@ export default function WalletConnectHero({ mode }: WalletConnectHeroProps) {
   const actionClass = mode === 'centered' ? 'justify-center' : 'justify-start';
 
   return (
-    <div className="relative overflow-hidden border-b border-monolith-outlineVariant/15 bg-[linear-gradient(135deg,rgba(0,51,97,0.98),rgba(14,74,132,0.9))] px-6 py-6 text-white">
+    <div className="relative overflow-hidden border-b border-monolith-outline-variant/15 bg-[linear-gradient(135deg,rgba(0,51,97,0.98),rgba(14,74,132,0.9))] px-6 py-6 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(212,227,255,0.3),transparent_32%),linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:auto,32px_32px,32px_32px]" />
       <div className={['relative', layoutClass].join(' ')}>
         <div className={['flex items-center gap-3', actionClass].join(' ')}>
@@ -20,7 +20,7 @@ export default function WalletConnectHero({ mode }: WalletConnectHeroProps) {
             <Wallet className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-monolith-primaryFixed">Wallet</p>
+            <p className="font-display text-xs font-bold uppercase tracking-[0.24em] text-monolith-primary-fixed">Wallet</p>
             <h3 className="mt-1 text-2xl font-black tracking-[-0.05em] text-white">지갑 연결</h3>
           </div>
         </div>

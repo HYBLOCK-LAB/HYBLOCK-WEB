@@ -19,8 +19,8 @@ export default function AdminSectionShell({ title, description, currentPath, chi
   return (
     <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-16">
       <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-[2rem] bg-monolith-surfaceLowest p-6 shadow-[0_10px_24px_rgba(0,51,97,0.08)]">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">Admin</p>
+        <aside className="rounded-[2rem] bg-monolith-surface-lowest p-6 shadow-[0_10px_24px_rgba(0,51,97,0.08)]">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">Admin</p>
           <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-monolith-primary">관리 메뉴</h2>
           <div className="mt-6 space-y-2">
             {adminLinks.map((link) => (
@@ -30,8 +30,8 @@ export default function AdminSectionShell({ title, description, currentPath, chi
                 className={[
                   'flex rounded-xl border px-4 py-3 text-sm font-semibold transition-colors',
                   currentPath === link.href
-                    ? 'border-monolith-primary bg-monolith-primaryFixed text-monolith-primary shadow-[0_8px_20px_rgba(0,51,97,0.08)]'
-                    : 'border-transparent bg-monolith-surfaceLow text-monolith-onSurface hover:border-monolith-primaryContainer/30 hover:bg-monolith-surface',
+                    ? 'border-monolith-primary bg-monolith-primary-fixed text-monolith-primary shadow-[0_8px_20px_rgba(0,51,97,0.08)]'
+                    : 'border-transparent bg-monolith-surface-low text-monolith-on-surface hover:border-monolith-primary-container/30 hover:bg-monolith-surface',
                 ].join(' ')}
               >
                 {link.label}
@@ -40,10 +40,10 @@ export default function AdminSectionShell({ title, description, currentPath, chi
           </div>
         </aside>
 
-        <div className="rounded-[2rem] bg-monolith-surfaceLowest p-8 shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">Dashboard</p>
+        <div className="rounded-[2rem] bg-monolith-surface-lowest p-8 shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">Dashboard</p>
           <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] text-monolith-primary">{title}</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-monolith-onSurfaceMuted">{description}</p>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-monolith-on-surface-muted">{description}</p>
           <div className="mt-8">{children}</div>
         </div>
       </div>

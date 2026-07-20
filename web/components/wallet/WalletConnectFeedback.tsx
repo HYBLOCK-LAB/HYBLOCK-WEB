@@ -14,8 +14,8 @@ export default function WalletConnectFeedback({ mode, error, message, helperText
   return (
     <>
       {error ? <p className={['text-sm text-monolith-error', layoutClass].join(' ')}>{error}</p> : null}
-      {message ? <p className={['text-sm text-monolith-primaryContainer', layoutClass].join(' ')}>{message}</p> : null}
-      {helperText ? <div className={['text-sm text-monolith-onSurfaceMuted', layoutClass].join(' ')}>{helperText}</div> : null}
+      {message ? <p className={['text-sm text-monolith-primary-container', layoutClass].join(' ')}>{message}</p> : null}
+      {helperText ? <div className={['text-sm text-monolith-on-surface-muted', layoutClass].join(' ')}>{helperText}</div> : null}
     </>
   );
 }

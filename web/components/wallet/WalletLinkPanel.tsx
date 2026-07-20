@@ -115,7 +115,7 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest">
+      <div className="flex h-64 items-center justify-center rounded-3xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-monolith-primary border-t-transparent" />
       </div>
     );
@@ -123,8 +123,8 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
 
   if (!user) {
     return (
-      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 text-center shadow-ambient">
-        <p className="font-bold text-monolith-onSurface">{d.walletLink.loginRequired}</p>
+      <div className="rounded-3xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-8 text-center shadow-ambient">
+        <p className="font-bold text-monolith-on-surface">{d.walletLink.loginRequired}</p>
         <Link
           href="/login"
           className="mt-6 inline-block rounded-full bg-monolith-primary px-8 py-3 text-sm font-bold text-white transition hover:brightness-110"
@@ -138,18 +138,18 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
   return (
     <div className="space-y-8">
       {/* Account Info */}
-      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-ambient">
+      <div className="rounded-3xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-8 shadow-ambient">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-black tracking-tight text-monolith-onSurface">{d.walletLink.stepsLabel} 01. {content.cardTitle}</h2>
-          <span className="rounded-full bg-monolith-primaryFixed px-3 py-1 text-[10px] font-black uppercase tracking-widest text-monolith-primary">
+          <h2 className="text-2xl font-black tracking-tight text-monolith-on-surface">{d.walletLink.stepsLabel} 01. {content.cardTitle}</h2>
+          <span className="rounded-full bg-monolith-primary-fixed px-3 py-1 text-[10px] font-black uppercase tracking-widest text-monolith-primary">
             Account Info
           </span>
         </div>
 
-        <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
+        <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-5">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary/60">{d.walletLink.currentAccountLabel}</p>
-          <p className="mt-2 text-lg font-bold text-monolith-onSurface">{user.email}</p>
-          <div className="mt-4 border-t border-monolith-outlineVariant/20 pt-4 text-xs font-bold text-monolith-onSurfaceMuted">
+          <p className="mt-2 text-lg font-bold text-monolith-on-surface">{user.email}</p>
+          <div className="mt-4 border-t border-monolith-outline-variant/20 pt-4 text-xs font-bold text-monolith-on-surface-muted">
             {!user.linkedAddress ? <p>{language === 'ko' ? '연결된 지갑' : 'Linked Wallet'}: {d.walletLink.emptyLinkedWallet}</p> : (
               <p className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
@@ -161,9 +161,9 @@ export default function WalletLinkPanel({ content, redirectTo = '/mypage', inten
       </div>
 
       {/* Wallet Link Action */}
-      <div className="rounded-3xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-ambient">
+      <div className="rounded-3xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-8 shadow-ambient">
         <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-2xl font-black tracking-tight text-monolith-onSurface">{d.walletLink.stepsLabel} 02. {language === 'ko' ? '지갑 연동하기' : 'Link Wallet'}</h2>
+          <h2 className="text-2xl font-black tracking-tight text-monolith-on-surface">{d.walletLink.stepsLabel} 02. {language === 'ko' ? '지갑 연동하기' : 'Link Wallet'}</h2>
         </div>
 
         <WalletConnectPanel

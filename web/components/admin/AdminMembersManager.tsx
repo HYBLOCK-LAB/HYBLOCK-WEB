@@ -44,9 +44,9 @@ export default function AdminMembersManager({ initialMembers }: { initialMembers
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-monolith-outlineVariant/20">
-      <table className="min-w-full divide-y divide-monolith-outlineVariant/20 bg-monolith-surfaceLowest text-sm">
-        <thead className="bg-monolith-surfaceLow text-left text-monolith-onSurfaceMuted">
+    <div className="overflow-hidden rounded-2xl border border-monolith-outline-variant/20">
+      <table className="min-w-full divide-y divide-monolith-outline-variant/20 bg-monolith-surface-lowest text-sm">
+        <thead className="bg-monolith-surface-low text-left text-monolith-on-surface-muted">
           <tr>
             <th className="px-5 py-4 font-semibold">이름</th>
             <th className="px-5 py-4 font-semibold">기수</th>
@@ -55,12 +55,12 @@ export default function AdminMembersManager({ initialMembers }: { initialMembers
             <th className="px-5 py-4 font-semibold">상태</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-monolith-outlineVariant/15">
+        <tbody className="divide-y divide-monolith-outline-variant/15">
           {members.map((member) => (
             <tr key={member.id}>
-              <td className="px-5 py-4 font-semibold text-monolith-onSurface">{member.name}</td>
-              <td className="px-5 py-4 text-monolith-onSurfaceMuted">{member.cohort}기</td>
-              <td className="px-5 py-4 text-monolith-onSurfaceMuted">
+              <td className="px-5 py-4 font-semibold text-monolith-on-surface">{member.name}</td>
+              <td className="px-5 py-4 text-monolith-on-surface-muted">{member.cohort}기</td>
+              <td className="px-5 py-4 text-monolith-on-surface-muted">
                 {member.affiliation === 'development' ? 'Development' : member.affiliation === 'business' ? 'Business' : '-'}
               </td>
               <td className="px-5 py-4">
@@ -71,8 +71,8 @@ export default function AdminMembersManager({ initialMembers }: { initialMembers
                   className={[
                     'inline-flex min-w-[96px] items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] transition',
                     member.hasAssignment
-                      ? 'bg-monolith-primaryFixed text-monolith-primary'
-                      : 'bg-monolith-surfaceLow text-monolith-onSurfaceMuted',
+                      ? 'bg-monolith-primary-fixed text-monolith-primary'
+                      : 'bg-monolith-surface-low text-monolith-on-surface-muted',
                   ].join(' ')}
                 >
                   {updatingId === member.id ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
@@ -84,8 +84,8 @@ export default function AdminMembersManager({ initialMembers }: { initialMembers
                   className={[
                     'rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em]',
                     member.isActive
-                      ? 'bg-monolith-primaryFixed text-monolith-primary'
-                      : 'bg-monolith-surfaceLow text-monolith-onSurfaceMuted',
+                      ? 'bg-monolith-primary-fixed text-monolith-primary'
+                      : 'bg-monolith-surface-low text-monolith-on-surface-muted',
                   ].join(' ')}
                 >
                   {member.isActive ? 'active' : 'inactive'}
@@ -95,7 +95,7 @@ export default function AdminMembersManager({ initialMembers }: { initialMembers
           ))}
           {members.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-5 py-8 text-center text-monolith-onSurfaceMuted">
+              <td colSpan={5} className="px-5 py-8 text-center text-monolith-on-surface-muted">
                 불러온 멤버 데이터가 없습니다.
               </td>
             </tr>

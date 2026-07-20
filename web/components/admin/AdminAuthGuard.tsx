@@ -26,9 +26,9 @@ export default function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   if (!isConnected) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monolith-primaryContainer">Admin Access</p>
+        <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary-container">Admin Access</p>
         <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] text-monolith-primary">로그인이 필요합니다.</h1>
-        <p className="mt-4 text-sm leading-7 text-monolith-onSurfaceMuted">관리자 페이지는 로그인 후 접근할 수 있습니다. 로그인 페이지로 이동합니다.</p>
+        <p className="mt-4 text-sm leading-7 text-monolith-on-surface-muted">관리자 페이지는 로그인 후 접근할 수 있습니다. 로그인 페이지로 이동합니다.</p>
       </div>
     );
   }

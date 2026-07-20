@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:design": "playwright test tests/design-system.spec.ts"
   },
   "repository": {
     "type": "git",
@@ -48,6 +49,7 @@
     "bn.js": "^5.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",

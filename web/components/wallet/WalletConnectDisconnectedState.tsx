@@ -18,7 +18,7 @@ export default function WalletConnectDisconnectedState({
 
   return (
     <div className={['space-y-5', layoutClass].join(' ')}>
-      <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4 text-sm text-monolith-onSurfaceMuted">
+      <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-4 text-sm text-monolith-on-surface-muted">
         연결할 지갑을 선택하세요.
       </div>
 

@@ -138,11 +138,11 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
     <>
       <section>
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">등록된 활동</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">등록된 활동</p>
           <button
             type="button"
             onClick={openCreateModal}
-            className="interactive-soft inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow text-monolith-primaryContainer shadow-[0_14px_34px_rgba(0,51,97,0.08)] transition hover:border-monolith-primaryContainer/40 hover:text-monolith-primary"
+            className="interactive-soft inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-low text-monolith-primary-container shadow-[0_14px_34px_rgba(0,51,97,0.08)] transition hover:border-monolith-primary-container/40 hover:text-monolith-primary"
             aria-label="새 활동 추가"
             title="새 활동 추가"
           >
@@ -151,28 +151,28 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
         </div>
         <div className="mt-4 space-y-4">
           {activities.map((activity) => (
-            <article key={activity.id} className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
+            <article key={activity.id} className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                     {getActivityTypeLabel(activity.sessionType)}
                   </p>
                   {activity.sessionType === 'advanced' ? (
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-monolith-onSurfaceMuted">
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-monolith-on-surface-muted">
                       {getActivityTargetAffiliationLabel(activity.targetAffiliation)}
                     </p>
                   ) : null}
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-onSurface">{activity.name}</h3>
-                  <p className="mt-2 text-sm leading-7 text-monolith-onSurfaceMuted">
+                  <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-on-surface">{activity.name}</h3>
+                  <p className="mt-2 text-sm leading-7 text-monolith-on-surface-muted">
                     {activity.description?.trim() || '설명이 없습니다.'}
                   </p>
                 </div>
-                <div className="shrink-0 rounded-xl bg-monolith-surfaceLowest px-3 py-2 text-right">
+                <div className="shrink-0 rounded-xl bg-monolith-surface-lowest px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => openEditModal(activity)}
-                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface text-monolith-onSurfaceMuted transition hover:border-monolith-primaryContainer/30 hover:bg-monolith-surfaceLow hover:text-monolith-primary"
+                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface text-monolith-on-surface-muted transition hover:border-monolith-primary-container/30 hover:bg-monolith-surface-low hover:text-monolith-primary"
                       aria-label={`${activity.name} 수정`}
                       title="수정"
                     >
@@ -182,7 +182,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                       type="button"
                       onClick={() => void handleDelete(activity.id)}
                       disabled={deletingId === activity.id}
-                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface text-monolith-onSurfaceMuted transition hover:border-monolith-error/30 hover:bg-monolith-errorContainer hover:text-monolith-error disabled:opacity-60"
+                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface text-monolith-on-surface-muted transition hover:border-monolith-error/30 hover:bg-monolith-error-container hover:text-monolith-error disabled:opacity-60"
                       aria-label={`${activity.name} 삭제`}
                       title="삭제"
                     >
@@ -193,7 +193,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                       )}
                     </button>
                   </div>
-                  <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-monolith-onSurfaceMuted">
+                  <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-monolith-on-surface-muted">
                     <CalendarDays className="h-3.5 w-3.5" />
                     <span>{new Date(activity.date).toLocaleString('ko-KR')}</span>
                   </div>
@@ -202,7 +202,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
             </article>
           ))}
           {activities.length === 0 ? (
-            <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5 text-sm text-monolith-onSurfaceMuted">
+            <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-5 text-sm text-monolith-on-surface-muted">
               등록된 활동이 없습니다.
             </div>
           ) : null}
@@ -223,10 +223,10 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-white/80" aria-hidden="true" />
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                   {editingActivityId ? '활동 수정' : '새 활동 추가'}
                 </p>
-                <h2 id="create-activity-modal-title" className="mt-2 text-2xl font-black tracking-tight text-monolith-onSurface">
+                <h2 id="create-activity-modal-title" className="mt-2 text-2xl font-black tracking-tight text-monolith-on-surface">
                   {editingActivityId ? '활동 정보를 수정하세요' : '활동 정보를 입력하세요'}
                 </h2>
               </div>
@@ -236,7 +236,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                   setIsModalOpen(false);
                   resetForm();
                 }}
-                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest text-monolith-onSurfaceMuted transition hover:border-monolith-outlineVariant/40 hover:text-monolith-onSurface"
+                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-lowest text-monolith-on-surface-muted transition hover:border-monolith-outline-variant/40 hover:text-monolith-on-surface"
                 aria-label="닫기"
               >
                 <X className="h-4.5 w-4.5" />
@@ -245,11 +245,11 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">세션 타입</span>
+                <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">세션 타입</span>
                 <select
                   value={sessionType}
                   onChange={(event) => setSessionType(event.target.value as ActivitySessionType)}
-                  className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                  className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                 >
                   {ACTIVITY_TYPE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -261,7 +261,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
 
               {sessionType === 'advanced' ? (
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">대상 파트</span>
+                  <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">대상 파트</span>
                   <select
                     value={targetAffiliation ?? ''}
                     onChange={(event) =>
@@ -271,7 +271,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                           : null,
                       )
                     }
-                    className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                     required
                   >
                     <option value="" disabled>
@@ -284,39 +284,39 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
               ) : null}
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">이름</span>
+                <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">이름</span>
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                  className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                   placeholder="활동 이름"
                   required
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">설명</span>
+                <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">설명</span>
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  className="min-h-28 w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                  className="min-h-28 w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                   placeholder="활동 설명"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">날짜</span>
+                <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">날짜</span>
                 <input
                   type="datetime-local"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                  className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                   required
                 />
               </label>
 
               {error ? (
-                <div className="flex items-start gap-2 rounded-2xl bg-monolith-errorContainer px-4 py-4 text-sm text-monolith-error">
+                <div className="flex items-start gap-2 rounded-2xl bg-monolith-error-container px-4 py-4 text-sm text-monolith-error">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -329,7 +329,7 @@ export default function AdminActivitiesManager({ initialActivities }: { initialA
                     setIsModalOpen(false);
                     resetForm();
                   }}
-                  className="interactive-soft rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-5 py-3 text-sm font-semibold text-monolith-onSurface transition hover:border-monolith-outlineVariant/50"
+                  className="interactive-soft rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-5 py-3 text-sm font-semibold text-monolith-on-surface transition hover:border-monolith-outline-variant/50"
                 >
                   닫기
                 </button>

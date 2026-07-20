@@ -52,19 +52,19 @@ export default function NoticesContent({
   return (
     <main className="mx-auto max-w-7xl px-6 pb-20 pt-12 sm:pb-24 sm:pt-16 lg:px-8">
       <header className="pb-14 pt-6">
-        <span className="mb-4 inline-block rounded-full bg-monolith-secondaryContainer px-3 py-1 font-display text-xs font-bold tracking-[0.18em] text-monolith-primaryContainer">
+        <span className="mb-4 inline-block rounded-full bg-monolith-secondary-container px-3 py-1 font-display text-xs font-bold tracking-[0.18em] text-monolith-primary-container">
           RESOURCES
         </span>
         <h1 className="text-5xl font-bold tracking-[-0.06em] text-monolith-primary md:text-6xl">
           {language === 'ko' ? '공지사항' : 'Notices'}
         </h1>
-        <p className="mt-4 max-w-xl break-keep text-lg text-monolith-onSurfaceMuted">
+        <p className="mt-4 max-w-xl break-keep text-lg text-monolith-on-surface-muted">
           {d.description}
         </p>
       </header>
 
       {/* Category & Search */}
-      <section className="mb-8 flex flex-col gap-4 rounded-xl bg-monolith-surfaceLow p-3 md:flex-row md:items-center md:justify-between">
+      <section className="mb-8 flex flex-col gap-4 rounded-xl bg-monolith-surface-low p-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
             <Link
@@ -74,7 +74,7 @@ export default function NoticesContent({
                 'interactive-soft rounded-lg px-4 py-2 text-sm transition',
                 currentCategory === category
                   ? 'bg-monolith-primary font-bold text-white shadow-[0_8px_18px_rgba(14,74,132,0.18)]'
-                  : 'border border-monolith-outlineVariant/35 bg-monolith-surfaceContainer text-monolith-onSurfaceMuted hover:border-monolith-primary/20 hover:bg-monolith-surfaceHigh hover:text-monolith-primary',
+                  : 'border border-monolith-outline-variant/35 bg-monolith-surface-container text-monolith-on-surface-muted hover:border-monolith-primary/20 hover:bg-monolith-surface-high hover:text-monolith-primary',
               ].join(' ')}
             >
               {category}
@@ -88,17 +88,17 @@ export default function NoticesContent({
             name="q"
             defaultValue={query}
             placeholder={language === 'ko' ? '검색어를 입력하세요' : 'Search...'}
-            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLowest px-4 py-2.5 text-sm outline-none ring-0 transition placeholder:text-monolith-onSurfaceMuted focus:border-monolith-primaryContainer focus:shadow-[0_10px_30px_rgba(0,51,97,0.08)] md:w-80"
+            className="w-full rounded-lg border border-monolith-outline-variant/40 bg-monolith-surface-lowest px-4 py-2.5 text-sm outline-none ring-0 transition placeholder:text-monolith-on-surface-muted focus:border-monolith-primary-container focus:shadow-[0_10px_30px_rgba(0,51,97,0.08)] md:w-80"
           />
         </form>
       </section>
 
       {/* Table */}
-      <section className="overflow-hidden rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-monolith-primaryContainer text-monolith-onPrimary">
+              <tr className="bg-monolith-primary-container text-monolith-on-primary">
                 <th className="w-20 px-6 py-5 font-display text-xs font-bold uppercase tracking-[0.18em]">No.</th>
                 <th className="w-32 px-6 py-5 text-center font-display text-xs font-bold uppercase tracking-[0.18em]">Category</th>
                 <th className="px-6 py-5 font-display text-xs font-bold uppercase tracking-[0.18em]">Title</th>
@@ -106,28 +106,28 @@ export default function NoticesContent({
                 <th className="w-40 px-6 py-5 text-right font-display text-xs font-bold uppercase tracking-[0.18em]">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-monolith-outlineVariant/20">
+            <tbody className="divide-y divide-monolith-outline-variant/20">
               {initialNotices.length > 0 ? (
                 initialNotices.map((notice) => (
-                  <tr key={notice.id} className="transition hover:bg-monolith-surfaceLow">
+                  <tr key={notice.id} className="transition hover:bg-monolith-surface-low">
                     <td className="px-6 py-5 text-base font-bold text-monolith-primary">{notice.id}</td>
                     <td className="px-6 py-5 text-center">
-                      <span className="rounded-md bg-monolith-surfaceHigh px-2 py-1 text-xs font-bold text-monolith-onSurfaceMuted">
+                      <span className="rounded-md bg-monolith-surface-high px-2 py-1 text-xs font-bold text-monolith-on-surface-muted">
                         {notice.category}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-lg font-semibold text-monolith-onSurface">
+                    <td className="px-6 py-5 text-lg font-semibold text-monolith-on-surface">
                       <Link href={`/notices/${notice.id}`} className="transition hover:text-monolith-primary">
                         {notice.title}
                       </Link>
                     </td>
-                    <td className="px-6 py-5 text-base font-medium text-monolith-onSurfaceMuted">{notice.author}</td>
-                    <td className="px-6 py-5 text-right font-display text-base text-monolith-onSurfaceMuted">{formatNoticeDate(notice.date)}</td>
+                    <td className="px-6 py-5 text-base font-medium text-monolith-on-surface-muted">{notice.author}</td>
+                    <td className="px-6 py-5 text-right font-display text-base text-monolith-on-surface-muted">{formatNoticeDate(notice.date)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-monolith-onSurfaceMuted">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-monolith-on-surface-muted">
                     {language === 'ko' ? '공지사항이 없습니다.' : 'No notices found.'}
                   </td>
                 </tr>
@@ -144,14 +144,14 @@ export default function NoticesContent({
           { icon: ChevronLeft, page: currentPage - 1, disabled: currentPage <= 1 },
         ].map(({ icon: Icon, page, disabled }, index) =>
           disabled ? (
-            <span key={index} className="rounded-lg border border-monolith-outlineVariant/20 p-2 text-monolith-outlineVariant/70">
+            <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
               <Icon className="h-4 w-4" />
             </span>
           ) : (
             <Link
               key={index}
               href={buildNoticeHref({ page, category: currentCategory, query })}
-              className="interactive-soft rounded-lg border border-monolith-outlineVariant/30 p-2 text-monolith-onSurfaceMuted transition hover:bg-monolith-surfaceHigh"
+              className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
             >
               <Icon className="h-4 w-4" />
             </Link>
@@ -164,7 +164,7 @@ export default function NoticesContent({
               href={buildNoticeHref({ page, category: currentCategory, query })}
               className={[
                 'interactive-soft flex h-10 w-10 items-center justify-center rounded-lg font-display',
-                page === currentPage ? 'bg-monolith-primary text-white' : 'text-monolith-onSurfaceMuted hover:bg-monolith-surfaceHigh',
+                page === currentPage ? 'bg-monolith-primary text-white' : 'text-monolith-on-surface-muted hover:bg-monolith-surface-high',
               ].join(' ')}
             >
               {page}
@@ -176,14 +176,14 @@ export default function NoticesContent({
           { icon: ChevronsRight, page: totalPages, disabled: currentPage >= totalPages },
         ].map(({ icon: Icon, page, disabled }, index) =>
           disabled ? (
-            <span key={index} className="rounded-lg border border-monolith-outlineVariant/20 p-2 text-monolith-outlineVariant/70">
+            <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
               <Icon className="h-4 w-4" />
             </span>
           ) : (
             <Link
               key={index}
               href={buildNoticeHref({ page, category: currentCategory, query })}
-              className="interactive-soft rounded-lg border border-monolith-outlineVariant/30 p-2 text-monolith-onSurfaceMuted transition hover:bg-monolith-surfaceHigh"
+              className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
             >
               <Icon className="h-4 w-4" />
             </Link>

@@ -156,10 +156,10 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
 
   return (
     <div className="mx-auto max-w-xl space-y-4 text-center">
-      <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow px-5 py-4 text-left">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">연결된 지갑</p>
+      <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low px-5 py-4 text-left">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-on-surface-muted">연결된 지갑</p>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="font-mono text-sm text-monolith-onSurface">
+          <p className="font-mono text-sm text-monolith-on-surface">
             {resolvedWalletAddress ?? '지갑이 연결되지 않았습니다.'}
           </p>
           {!resolvedWalletAddress && source === 'wallet' ? (
@@ -174,9 +174,9 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
           ) : null}
         </div>
         {!resolvedWalletAddress && source === 'google' ? (
-          <div className="mt-4 rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-4 py-3 text-sm leading-6 text-monolith-onSurfaceMuted">
+          <div className="mt-4 rounded-xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest px-4 py-3 text-sm leading-6 text-monolith-on-surface-muted">
             Google 회원가입은 지갑 연동이 먼저 필요합니다.{' '}
-            <Link href={`/wallet-link?intent=link&next=${encodeURIComponent(`/signup?source=google&redirect=${encodeURIComponent(redirectTo)}`)}`} className="font-semibold text-monolith-primaryContainer">
+            <Link href={`/wallet-link?intent=link&next=${encodeURIComponent(`/signup?source=google&redirect=${encodeURIComponent(redirectTo)}`)}`} className="font-semibold text-monolith-primary-container">
               지갑 연동 페이지로 이동
             </Link>
           </div>
@@ -185,32 +185,32 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
 
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">이름</span>
+          <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">이름</span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+            className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
             required
           />
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">전공</span>
+          <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">전공</span>
           <input
             value={major}
             onChange={(event) => setMajor(event.target.value)}
-            className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+            className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
             required
           />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">소속</span>
+            <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">소속</span>
             <select
               value={affiliation}
               onChange={(event) => setAffiliation(event.target.value as 'development' | 'business')}
-              className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+              className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
             >
               <option value="development">개발팀</option>
               <option value="business">비즈니스팀</option>
@@ -218,11 +218,11 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">기수</span>
+            <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">기수</span>
             <select
               value={cohort}
               onChange={(event) => setCohort(event.target.value)}
-              className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+              className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
             >
               {COHORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -234,12 +234,12 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
         </div>
 
         {error ? <p className="text-center text-sm text-monolith-error">{error}</p> : null}
-        {message ? <p className="text-center text-sm text-monolith-primaryContainer">{message}</p> : null}
+        {message ? <p className="text-center text-sm text-monolith-primary-container">{message}</p> : null}
 
         <button
           type="submit"
           disabled={!resolvedWalletAddress || loading || checkingMember}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-monolith-primaryContainer/20 bg-monolith-primaryFixed px-5 py-4 text-sm font-semibold text-monolith-primary transition-colors hover:bg-monolith-secondaryContainer disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-monolith-primary-container/20 bg-monolith-primary-fixed px-5 py-4 text-sm font-semibold text-monolith-primary transition-colors hover:bg-monolith-secondary-container disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading || checkingMember ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
           회원가입

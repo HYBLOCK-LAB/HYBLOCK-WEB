@@ -269,8 +269,8 @@ export default function CertificateManager() {
             className={[
               'interactive-soft rounded-full border px-4 py-2 text-sm font-semibold transition-all',
               selectedType === type
-                ? 'border-monolith-primaryContainer bg-monolith-primaryFixed text-monolith-primary shadow-[0_10px_20px_rgba(0,51,97,0.12)]'
-                : 'border-monolith-outlineVariant/30 bg-monolith-surfaceLow text-monolith-onSurface hover:border-monolith-primaryContainer/30 hover:bg-monolith-surfaceLowest',
+                ? 'border-monolith-primary-container bg-monolith-primary-fixed text-monolith-primary shadow-[0_10px_20px_rgba(0,51,97,0.12)]'
+                : 'border-monolith-outline-variant/30 bg-monolith-surface-low text-monolith-on-surface hover:border-monolith-primary-container/30 hover:bg-monolith-surface-lowest',
             ].join(' ')}
           >
             {CERTIFICATE_TYPE_LABELS[type]}
@@ -303,30 +303,30 @@ export default function CertificateManager() {
         {/* Member list */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-monolith-onSurfaceMuted" />
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">
+            <Users className="h-4 w-4 text-monolith-on-surface-muted" />
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-on-surface-muted">
               발급 대기 멤버
             </p>
             {!listLoading && (
-              <span className="ml-auto rounded-full bg-monolith-primaryFixed px-2.5 py-0.5 text-xs font-bold text-monolith-primary">
+              <span className="ml-auto rounded-full bg-monolith-primary-fixed px-2.5 py-0.5 text-xs font-bold text-monolith-primary">
                 {candidates.length}
               </span>
             )}
           </div>
 
           {listLoading ? (
-            <div className="flex items-center justify-center rounded-2xl bg-monolith-surfaceLow py-12">
-              <LoaderCircle className="h-5 w-5 animate-spin text-monolith-onSurfaceMuted" />
+            <div className="flex items-center justify-center rounded-2xl bg-monolith-surface-low py-12">
+              <LoaderCircle className="h-5 w-5 animate-spin text-monolith-on-surface-muted" />
             </div>
           ) : listError ? (
-            <div className="flex items-start gap-2 rounded-2xl bg-monolith-errorContainer px-4 py-4 text-sm text-monolith-error">
+            <div className="flex items-start gap-2 rounded-2xl bg-monolith-error-container px-4 py-4 text-sm text-monolith-error">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {listError}
             </div>
           ) : candidates.length === 0 ? (
-            <div className="rounded-2xl bg-monolith-surfaceLow px-5 py-10 text-center">
-              <BadgeCheck className="mx-auto h-8 w-8 text-monolith-primaryFixed" />
-              <p className="mt-3 text-sm font-semibold text-monolith-onSurfaceMuted">
+            <div className="rounded-2xl bg-monolith-surface-low px-5 py-10 text-center">
+              <BadgeCheck className="mx-auto h-8 w-8 text-monolith-primary-fixed" />
+              <p className="mt-3 text-sm font-semibold text-monolith-on-surface-muted">
                 발급 대기 중인 멤버가 없습니다.
               </p>
             </div>
@@ -345,24 +345,24 @@ export default function CertificateManager() {
                       'interactive-soft group flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all',
                       isSelected
                         ? 'bg-monolith-primary text-white shadow-[0_12px_28px_rgba(0,51,97,0.2)]'
-                        : 'bg-monolith-surfaceLow text-monolith-onSurface hover:bg-monolith-surfaceLowest hover:shadow-[0_10px_24px_rgba(0,51,97,0.07)]',
+                        : 'bg-monolith-surface-low text-monolith-on-surface hover:bg-monolith-surface-lowest hover:shadow-[0_10px_24px_rgba(0,51,97,0.07)]',
                     ].join(' ')}
                   >
                     <span
                       className={[
                         'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black',
-                        isSelected ? 'bg-white/20 text-white' : 'bg-monolith-primaryFixed text-monolith-primary',
+                        isSelected ? 'bg-white/20 text-white' : 'bg-monolith-primary-fixed text-monolith-primary',
                       ].join(' ')}
                     >
                       {candidate.name.charAt(0)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{candidate.name}</p>
-                      <p className={['mt-0.5 text-xs', isSelected ? 'text-white/70' : 'text-monolith-onSurfaceMuted'].join(' ')}>
+                      <p className={['mt-0.5 text-xs', isSelected ? 'text-white/70' : 'text-monolith-on-surface-muted'].join(' ')}>
                         {candidate.cohort}기 · {AFFILIATION_LABELS[candidate.affiliation] ?? candidate.affiliation}
                       </p>
                     </div>
-                    <ChevronRight className={['h-4 w-4 shrink-0 transition-transform', isSelected ? 'text-white/70 translate-x-0.5' : 'text-monolith-onSurfaceMuted/50'].join(' ')} />
+                    <ChevronRight className={['h-4 w-4 shrink-0 transition-transform', isSelected ? 'text-white/70 translate-x-0.5' : 'text-monolith-on-surface-muted/50'].join(' ')} />
                   </button>
                 );
               })}
@@ -371,20 +371,20 @@ export default function CertificateManager() {
 
           <div className="pt-4">
             <div className="mb-3 flex items-center gap-2">
-              <Award className="h-4 w-4 text-monolith-onSurfaceMuted" />
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted">
+              <Award className="h-4 w-4 text-monolith-on-surface-muted" />
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-on-surface-muted">
                 기발급 증명
               </p>
               {!listLoading && (
-                <span className="ml-auto rounded-full bg-monolith-surfaceHigh px-2.5 py-0.5 text-xs font-bold text-monolith-onSurfaceMuted">
+                <span className="ml-auto rounded-full bg-monolith-surface-high px-2.5 py-0.5 text-xs font-bold text-monolith-on-surface-muted">
                   {issuedAttestations.length}
                 </span>
               )}
             </div>
 
             {listLoading ? null : issuedAttestations.length === 0 ? (
-              <div className="rounded-2xl bg-monolith-surfaceLow px-5 py-6 text-center">
-                <p className="text-sm font-semibold text-monolith-onSurfaceMuted">아직 발급된 증명이 없습니다.</p>
+              <div className="rounded-2xl bg-monolith-surface-low px-5 py-6 text-center">
+                <p className="text-sm font-semibold text-monolith-on-surface-muted">아직 발급된 증명이 없습니다.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -402,24 +402,24 @@ export default function CertificateManager() {
                         'interactive-soft group flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all',
                         isSelected
                           ? 'bg-monolith-primary text-white shadow-[0_12px_28px_rgba(0,51,97,0.2)]'
-                          : 'bg-monolith-surfaceLowest text-monolith-onSurface hover:bg-monolith-surfaceLowest/80 hover:shadow-[0_10px_24px_rgba(0,51,97,0.07)]',
+                          : 'bg-monolith-surface-lowest text-monolith-on-surface hover:bg-monolith-surface-lowest/80 hover:shadow-[0_10px_24px_rgba(0,51,97,0.07)]',
                       ].join(' ')}
                     >
                       <span
                         className={[
                           'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black',
-                          isSelected ? 'bg-white/20 text-white' : 'bg-monolith-primaryFixed text-monolith-primary',
+                          isSelected ? 'bg-white/20 text-white' : 'bg-monolith-primary-fixed text-monolith-primary',
                         ].join(' ')}
                       >
                         {issued.name.charAt(0)}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold">{issued.name}</p>
-                        <p className={['mt-0.5 text-xs', isSelected ? 'text-white/70' : 'text-monolith-onSurfaceMuted'].join(' ')}>
+                        <p className={['mt-0.5 text-xs', isSelected ? 'text-white/70' : 'text-monolith-on-surface-muted'].join(' ')}>
                           {issued.created_at ? new Date(issued.created_at).toLocaleString('ko-KR') : '발급 시각 없음'}
                         </p>
                       </div>
-                      <ChevronRight className={['h-4 w-4 shrink-0 transition-transform', isSelected ? 'text-white/70 translate-x-0.5' : 'text-monolith-onSurfaceMuted/50'].join(' ')} />
+                      <ChevronRight className={['h-4 w-4 shrink-0 transition-transform', isSelected ? 'text-white/70 translate-x-0.5' : 'text-monolith-on-surface-muted/50'].join(' ')} />
                     </button>
                   );
                 })}
@@ -429,7 +429,7 @@ export default function CertificateManager() {
         </div>
 
         {/* Certificate detail panel */}
-        <div className="rounded-[2rem] bg-monolith-surfaceLow p-6 shadow-[0_20px_50px_rgba(0,51,97,0.06)]">
+        <div className="rounded-[2rem] bg-monolith-surface-low p-6 shadow-[0_20px_50px_rgba(0,51,97,0.06)]">
           {!selectedEntry ? (
             <EmptyDetailState />
           ) : (
@@ -456,11 +456,11 @@ export default function CertificateManager() {
 function EmptyDetailState() {
   return (
     <div className="flex h-full min-h-[320px] flex-col items-center justify-center text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-monolith-primaryFixed">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-monolith-primary-fixed">
         <ShieldCheck className="h-6 w-6 text-monolith-primary" />
       </span>
-      <p className="mt-5 text-sm font-bold text-monolith-onSurface">멤버를 선택하세요</p>
-      <p className="mt-2 max-w-[240px] text-xs leading-6 text-monolith-onSurfaceMuted">
+      <p className="mt-5 text-sm font-bold text-monolith-on-surface">멤버를 선택하세요</p>
+      <p className="mt-2 max-w-[240px] text-xs leading-6 text-monolith-on-surface-muted">
         좌측 목록에서 발급 대기 멤버를 선택하면 상세 정보와 증명 발급 버튼이 표시됩니다.
       </p>
     </div>
@@ -488,29 +488,29 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
     <div className="space-y-6">
       {/* Member info header */}
       <div className="flex items-start gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-monolith-primaryFixed text-xl font-black text-monolith-primary">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-monolith-primary-fixed text-xl font-black text-monolith-primary">
           {candidate.name.charAt(0)}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl font-black tracking-[-0.03em] text-monolith-primary">{candidate.name}</h2>
-            <span className="rounded-full bg-monolith-primaryFixed px-3 py-0.5 text-xs font-bold text-monolith-primary">
+            <span className="rounded-full bg-monolith-primary-fixed px-3 py-0.5 text-xs font-bold text-monolith-primary">
               {candidate.cohort}기
             </span>
-            <span className="rounded-full bg-monolith-surfaceHigh px-3 py-0.5 text-xs font-bold text-monolith-onSurfaceMuted">
+            <span className="rounded-full bg-monolith-surface-high px-3 py-0.5 text-xs font-bold text-monolith-on-surface-muted">
               {AFFILIATION_LABELS[candidate.affiliation] ?? candidate.affiliation}
             </span>
           </div>
-          <p className="mt-1 text-sm text-monolith-onSurfaceMuted">{candidate.major}</p>
-          <p className="mt-1 font-mono text-xs text-monolith-onSurfaceMuted/60">
+          <p className="mt-1 text-sm text-monolith-on-surface-muted">{candidate.major}</p>
+          <p className="mt-1 font-mono text-xs text-monolith-on-surface-muted/60">
             {candidate.wallet_address.slice(0, 10)}...{candidate.wallet_address.slice(-8)}
           </p>
         </div>
       </div>
 
       {/* Certificate type label */}
-      <div className="rounded-xl bg-monolith-primaryFixed/60 px-4 py-3">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+      <div className="rounded-xl bg-monolith-primary-fixed/60 px-4 py-3">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
           증명 유형
         </p>
         <p className="mt-1 font-display text-lg font-black tracking-tight text-monolith-primary">
@@ -535,7 +535,7 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
 
       {/* Individual records */}
       {detailLoading ? (
-        <div className="flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
+        <div className="flex items-center gap-2 text-xs text-monolith-on-surface-muted">
           <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
           <span>세부 기록을 불러오는 중...</span>
         </div>
@@ -559,7 +559,7 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
       ) : null}
 
       {attestError ? (
-        <div className="flex items-start gap-2.5 rounded-2xl bg-monolith-errorContainer px-4 py-4 text-sm text-monolith-error">
+        <div className="flex items-start gap-2.5 rounded-2xl bg-monolith-error-container px-4 py-4 text-sm text-monolith-error">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{attestError}</span>
         </div>
@@ -588,7 +588,7 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
       ) : null}
 
       {!isWalletConnected ? (
-        <p className="text-center text-xs text-monolith-onSurfaceMuted">증명 발급은 지갑 연결 후 가능합니다.</p>
+        <p className="text-center text-xs text-monolith-on-surface-muted">증명 발급은 지갑 연결 후 가능합니다.</p>
       ) : null}
     </div>
   );
@@ -615,12 +615,12 @@ function CriteriaDetailsCard({ type, details }: { type: CertificateType; details
   if (entries.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-monolith-onSurfaceMuted">수료 조건 달성 현황</p>
+    <div className="rounded-xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-monolith-on-surface-muted">수료 조건 달성 현황</p>
       <div className="mt-3 flex flex-wrap gap-3">
         {entries.map((entry) => (
-          <div key={entry.label} className="rounded-lg bg-monolith-surfaceLow px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-monolith-onSurfaceMuted">{entry.label}</p>
+          <div key={entry.label} className="rounded-lg bg-monolith-surface-low px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-monolith-on-surface-muted">{entry.label}</p>
             <p className="mt-0.5 text-base font-black text-monolith-primary">{entry.value}</p>
           </div>
         ))}
@@ -657,7 +657,7 @@ function RecordList({ type, detail }: { type: CertificateType; detail: MemberCer
             key={r.activity_id}
             primary={r.session_name ?? r.session_id}
             secondary={
-              <a href={r.evidence_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-monolith-primaryContainer hover:underline">
+              <a href={r.evidence_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-monolith-primary-container hover:underline">
                 증빙 링크
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -687,9 +687,9 @@ function RecordList({ type, detail }: { type: CertificateType; detail: MemberCer
 
   if (type === 'participation_period') {
     return (
-      <div className="rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-4 py-4">
-        <p className="text-sm font-semibold text-monolith-onSurface">참여 기간 증명</p>
-        <p className="mt-1 text-xs leading-6 text-monolith-onSurfaceMuted">
+      <div className="rounded-xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest px-4 py-4">
+        <p className="text-sm font-semibold text-monolith-on-surface">참여 기간 증명</p>
+        <p className="mt-1 text-xs leading-6 text-monolith-on-surface-muted">
           참여 기간은 개별 레코드보다 학기별 집계 기준으로 판정됩니다. 위의 달성 현황 카드와 `semester_criteria_tracking.details` 값을 기준으로 발급하세요.
         </p>
       </div>
@@ -703,12 +703,12 @@ function RecordSection({ title, count, children }: { title: string; count: numbe
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-monolith-onSurfaceMuted">{title}</p>
-        <span className="rounded-full bg-monolith-surfaceHigh px-2 py-0.5 text-[10px] font-bold text-monolith-onSurfaceMuted">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-monolith-on-surface-muted">{title}</p>
+        <span className="rounded-full bg-monolith-surface-high px-2 py-0.5 text-[10px] font-bold text-monolith-on-surface-muted">
           {count}
         </span>
       </div>
-      <div className="space-y-1.5 overflow-hidden rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest">
+      <div className="space-y-1.5 overflow-hidden rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest">
         {children}
       </div>
     </div>
@@ -728,16 +728,16 @@ function RecordRow({
 }) {
   const badgeTone =
     badge?.tone === 'primary'
-      ? 'bg-monolith-primaryFixed text-monolith-primary'
+      ? 'bg-monolith-primary-fixed text-monolith-primary'
       : badge?.tone === 'warning'
         ? 'bg-[#fff1cc] text-[#8a5a00]'
-        : 'bg-monolith-surfaceLow text-monolith-onSurfaceMuted';
+        : 'bg-monolith-surface-low text-monolith-on-surface-muted';
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-monolith-outlineVariant/10 px-4 py-3 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-monolith-outline-variant/10 px-4 py-3 last:border-0">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-monolith-onSurface">{primary}</p>
-        <p className="mt-0.5 text-xs text-monolith-onSurfaceMuted">{secondary}</p>
+        <p className="truncate text-sm font-semibold text-monolith-on-surface">{primary}</p>
+        <p className="mt-0.5 text-xs text-monolith-on-surface-muted">{secondary}</p>
       </div>
       {badge ? (
         <span className={['shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]', badgeTone].join(' ')}>

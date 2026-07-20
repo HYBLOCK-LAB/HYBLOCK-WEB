@@ -203,28 +203,28 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
     <main className="min-h-screen pb-24 pt-12 md:pt-16">
       <section className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12">
-          <span className="mb-4 block font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">
+          <span className="mb-4 block font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">
             Member Space
           </span>
-          <h1 className="max-w-3xl text-5xl font-bold leading-none tracking-[-0.06em] text-monolith-onSurface md:text-6xl">
+          <h1 className="max-w-3xl text-5xl font-bold leading-none tracking-[-0.06em] text-monolith-on-surface md:text-6xl">
             마이페이지
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-onSurfaceMuted md:text-lg">
+          <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-on-surface-muted md:text-lg">
             연결된 지갑과 회원 정보를 확인하고, 개인 출석 QR을 바로 사용할 수 있습니다.
           </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-6">
-            <section className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+            <section className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                     Wallet Session
                   </p>
-                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">지갑 연결 상태</h2>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">지갑 연결 상태</h2>
                 </div>
-                <span className="rounded-full bg-monolith-secondaryContainer px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                <span className="rounded-full bg-monolith-secondary-container px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-monolith-primary-container">
                   {isConnected && address ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
@@ -241,7 +241,7 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                       <button
                         type="button"
                         onClick={() => void handleCopyAddress()}
-                        className="interactive-soft inline-flex items-center gap-1 rounded-lg border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-2.5 py-1 text-[11px] font-bold text-monolith-primaryContainer"
+                        className="interactive-soft inline-flex items-center gap-1 rounded-lg border border-monolith-outline-variant/25 bg-monolith-surface-lowest px-2.5 py-1 text-[11px] font-bold text-monolith-primary-container"
                       >
                         {copiedAddress ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                         {copiedAddress ? '복사됨' : '복사'}
@@ -251,26 +251,26 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                   <InfoTile label="네트워크" value={chainName ?? 'Wallet'} icon={<ShieldCheck className="h-4 w-4" />} />
                   </div>
                   {!hasGoogleSession ? (
-                    <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4">
-                      <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                    <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-4">
+                      <p className="text-sm leading-7 text-monolith-on-surface-muted">
                         Google 계정을 연동하면 다음부터는 Google 로그인만으로 출석 QR을 발급할 수 있습니다.
                       </p>
                       <Link
                         href="/login?redirect=/wallet-link"
-                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface-high"
                       >
                         Google 계정 연동
                         <ExternalLink className="h-4 w-4" />
                       </Link>
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4">
-                      <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                    <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-4">
+                      <p className="text-sm leading-7 text-monolith-on-surface-muted">
                         Google 계정 연동이 완료되어 있습니다. 필요하면 지갑 연동 페이지에서 연결 상태를 변경할 수 있습니다.
                       </p>
                       <Link
                         href="/wallet-link"
-                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                        className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface-high"
                       >
                         지갑 연동 관리
                         <ExternalLink className="h-4 w-4" />
@@ -279,14 +279,14 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                   )}
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6">
-                  <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                <div className="mt-6 rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6">
+                  <p className="text-sm leading-7 text-monolith-on-surface-muted">
                     지갑이 연결되어 있지 않습니다. 연결 후 회원 정보를 자동으로 조회합니다.
                   </p>
                   <button
                     type="button"
                     onClick={() => void openWalletConnectModal()}
-                    className="interactive-soft mt-4 inline-flex items-center gap-2 rounded-xl bg-monolith-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-monolith-primaryContainer"
+                    className="interactive-soft mt-4 inline-flex items-center gap-2 rounded-xl bg-monolith-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-monolith-primary-container"
                   >
                     <Wallet className="h-4 w-4" />
                     지갑 연결하기
@@ -295,19 +295,19 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
               )}
             </section>
 
-            <section className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+            <section className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                     Member Profile
                   </p>
-                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">회원 정보</h2>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">회원 정보</h2>
                 </div>
-                <UserRound className="h-5 w-5 text-monolith-primaryContainer" />
+                <UserRound className="h-5 w-5 text-monolith-primary-container" />
               </div>
 
               {loadingMember ? (
-                <div className="mt-6 flex items-center justify-center rounded-2xl bg-monolith-surfaceLow py-12 text-sm text-monolith-onSurfaceMuted">
+                <div className="mt-6 flex items-center justify-center rounded-2xl bg-monolith-surface-low py-12 text-sm text-monolith-on-surface-muted">
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                   회원 정보 불러오는 중
                 </div>
@@ -325,21 +325,21 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                   <InfoTile label="상태" value={member.is_active ? '활성 회원' : '비활성 회원'} icon={<BadgeCheck className="h-4 w-4" />} />
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6">
-                  <p className="text-sm leading-7 text-monolith-onSurfaceMuted">
+                <div className="mt-6 rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6">
+                  <p className="text-sm leading-7 text-monolith-on-surface-muted">
                     {memberError ?? '연결된 지갑 기준 회원 정보를 찾지 못했습니다.'}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Link
                       href="/signup"
-                      className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                      className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface-high"
                     >
                       회원 등록
                       <ExternalLink className="h-4 w-4" />
                     </Link>
                     <Link
                       href="/wallet-link"
-                      className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surfaceHigh"
+                      className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface-high"
                     >
                       지갑 연동 관리
                       <ExternalLink className="h-4 w-4" />
@@ -354,20 +354,20 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
             <PersonalAttendanceQrCard activeEventNames={availableQrEventNames} requireWalletSession />
             
             {/* SBT Minting Section */}
-            <section className="mt-8 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+            <section className="mt-8 rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                  <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                     SBT Certificate
                   </p>
-                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">수료증 발급</h2>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">수료증 발급</h2>
                 </div>
-                <Award className="h-5 w-5 text-monolith-primaryContainer" />
+                <Award className="h-5 w-5 text-monolith-primary-container" />
               </div>
 
               {loadingEligibility ? (
                 <div className="mt-6 flex items-center justify-center py-8">
-                  <LoaderCircle className="h-6 w-6 animate-spin text-monolith-onSurfaceMuted" />
+                  <LoaderCircle className="h-6 w-6 animate-spin text-monolith-on-surface-muted" />
                 </div>
               ) : eligibility ? (
                 <div className="mt-6 space-y-6">
@@ -379,10 +379,10 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
                         <div 
                           key={type} 
                           className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
-                            isMet ? 'border-monolith-primaryContainer bg-monolith-primaryFixed text-monolith-primary' : 'border-monolith-outlineVariant/20 bg-monolith-surfaceLow text-monolith-onSurfaceMuted opacity-50'
+                            isMet ? 'border-monolith-primary-container bg-monolith-primary-fixed text-monolith-primary' : 'border-monolith-outline-variant/20 bg-monolith-surface-low text-monolith-on-surface-muted opacity-50'
                           }`}
                         >
-                          <CircleCheck className={`h-5 w-5 ${isMet ? 'text-monolith-primary' : 'text-monolith-onSurfaceMuted'}`} />
+                          <CircleCheck className={`h-5 w-5 ${isMet ? 'text-monolith-primary' : 'text-monolith-on-surface-muted'}`} />
                           <span className="mt-2 text-[10px] font-bold uppercase tracking-tight">
                             {type === 'attendance' ? '출석' : type === 'external_activity' ? '외부활동' : type === 'assignment' ? '산출물' : '기간'}
                           </span>
@@ -393,7 +393,7 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
 
                   {/* Minting Action */}
                   {eligibility.alreadyMinted ? (
-                    <div className="flex items-center gap-3 rounded-xl bg-monolith-primaryFixed px-4 py-3 text-monolith-primary">
+                    <div className="flex items-center gap-3 rounded-xl bg-monolith-primary-fixed px-4 py-3 text-monolith-primary">
                       <BadgeCheck className="h-5 w-5" />
                       <p className="text-sm font-bold">이미 수료증이 발급되었습니다.</p>
                     </div>
@@ -463,15 +463,15 @@ type InfoTileProps = {
 
 function InfoTile({ label, value, icon, mono = false, action }: InfoTileProps) {
   return (
-    <div className="rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow p-4">
+    <div className="rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-low p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
           {icon}
           <span>{label}</span>
         </div>
         {action}
       </div>
-      <p className={['mt-3 break-all text-sm text-monolith-onSurface', mono ? 'font-mono' : 'font-semibold'].join(' ')}>
+      <p className={['mt-3 break-all text-sm text-monolith-on-surface', mono ? 'font-mono' : 'font-semibold'].join(' ')}>
         {value}
       </p>
     </div>

@@ -55,54 +55,54 @@ export default function EmailAuthForm() {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-xl space-y-4 text-center">
       <label className="block">
-        <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">이름</span>
+        <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">이름</span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+          className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
           required
         />
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">이메일</span>
+        <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">이메일</span>
         <input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+          className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
           required
         />
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">비밀번호</span>
+        <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">비밀번호</span>
         <input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 outline-none transition focus:border-monolith-primaryContainer"
+          className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 outline-none transition focus:border-monolith-primary-container"
           required
         />
       </label>
 
-      <label className="flex items-start gap-3 rounded-xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow px-4 py-4">
+      <label className="flex items-start gap-3 rounded-xl border border-monolith-outline-variant/20 bg-monolith-surface-low px-4 py-4">
         <input
           type="checkbox"
           checked={linkWalletAfterSignup}
           onChange={(event) => setLinkWalletAfterSignup(event.target.checked)}
           className="mt-1 h-4 w-4 accent-monolith-primary"
         />
-        <span className="text-sm text-monolith-onSurfaceMuted">회원가입 후 지갑 연동하기</span>
+        <span className="text-sm text-monolith-on-surface-muted">회원가입 후 지갑 연동하기</span>
       </label>
 
       {error ? <p className="text-sm text-monolith-error">{error}</p> : null}
-      {message ? <p className="text-sm text-monolith-primaryContainer">{message}</p> : null}
+      {message ? <p className="text-sm text-monolith-primary-container">{message}</p> : null}
 
       <button
         type="submit"
         disabled={!supabaseConfigured || loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-monolith-primary px-5 py-4 text-sm font-semibold text-white transition-colors hover:bg-monolith-primaryContainer disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-monolith-primary px-5 py-4 text-sm font-semibold text-white transition-colors hover:bg-monolith-primary-container disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
         회원가입

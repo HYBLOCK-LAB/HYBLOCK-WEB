@@ -30,7 +30,7 @@ export default function AboutPage() {
           <div className="space-y-24">
             <section>
               <h3 className="text-3xl font-bold uppercase tracking-tight text-monolith-primary">Mission</h3>
-              <div className="mt-8 rounded-r-xl border-l-8 border-monolith-primaryContainer bg-monolith-surfaceLow p-12">
+              <div className="mt-8 rounded-r-xl border-l-8 border-monolith-primary-container bg-monolith-surface-low p-12">
                 <p className="max-w-4xl text-xl font-light leading-snug text-monolith-primary sm:text-2xl">
                   {aboutVision}
                 </p>
@@ -43,11 +43,11 @@ export default function AboutPage() {
                 {aboutValues.map((value) => (
                   <div
                     key={value.number}
-                    className="interactive-card rounded-lg border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-8 md:p-10 hover:bg-monolith-primary/5"
+                    className="interactive-card rounded-lg border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-8 md:p-10 hover:bg-monolith-primary/5"
                   >
                     <span className="mb-4 block text-sm font-bold text-monolith-primary">{value.number}</span>
-                    <h4 className="mb-4 text-xl font-bold uppercase tracking-tight text-monolith-onSurface">{value.title}</h4>
-                    <p className="text-sm leading-7 text-monolith-onSurfaceMuted">{value.description}</p>
+                    <h4 className="mb-4 text-xl font-bold uppercase tracking-tight text-monolith-on-surface">{value.title}</h4>
+                    <p className="text-sm leading-7 text-monolith-on-surface-muted">{value.description}</p>
                   </div>
                 ))}
               </div>

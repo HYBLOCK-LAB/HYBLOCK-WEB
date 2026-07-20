@@ -94,8 +94,8 @@ function AuthCallbackContent() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7fbff,transparent_45%),linear-gradient(180deg,#f6f7fb_0%,#eef2f7_100%)] px-6 py-20">
-      <section className="mx-auto max-w-xl rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 text-center shadow-monolith">
-        <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">
+      <section className="mx-auto max-w-xl rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-8 text-center shadow-monolith">
+        <p className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">
           Google OAuth
         </p>
         <h1 className="mt-4 text-3xl font-black tracking-[-0.05em] text-monolith-primary">
@@ -103,26 +103,26 @@ function AuthCallbackContent() {
         </h1>
 
         {error ? (
-          <div className="mt-6 rounded-2xl bg-monolith-errorContainer px-5 py-4 text-left">
+          <div className="mt-6 rounded-2xl bg-monolith-error-container px-5 py-4 text-left">
             <div className="flex items-start gap-2 text-sm text-monolith-error">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
             <div className="mt-4">
-              <Link href="/login" className="text-sm font-semibold text-monolith-primaryContainer hover:text-monolith-primary">
+              <Link href="/login" className="text-sm font-semibold text-monolith-primary-container hover:text-monolith-primary">
                 로그인 페이지로 돌아가기
               </Link>
             </div>
           </div>
         ) : (
-          <div className="mt-8 flex items-center justify-center gap-3 text-sm text-monolith-onSurfaceMuted">
+          <div className="mt-8 flex items-center justify-center gap-3 text-sm text-monolith-on-surface-muted">
             <LoaderCircle className="h-4 w-4 animate-spin" />
             Google 세션을 확인하고 있습니다.
           </div>
         )}
 
         {!isBrowserSupabaseConfigured() ? (
-          <p className="mt-6 text-sm text-monolith-onSurfaceMuted">Supabase 브라우저 인증 설정이 필요합니다.</p>
+          <p className="mt-6 text-sm text-monolith-on-surface-muted">Supabase 브라우저 인증 설정이 필요합니다.</p>
         ) : null}
       </section>
     </main>
@@ -132,7 +132,7 @@ function AuthCallbackContent() {
 function AuthCallbackFallback() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f7fbff,transparent_45%),linear-gradient(180deg,#f6f7fb_0%,#eef2f7_100%)] px-6 py-20">
-      <section className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest py-16 text-sm text-monolith-onSurfaceMuted shadow-monolith">
+      <section className="mx-auto flex max-w-xl items-center justify-center rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest py-16 text-sm text-monolith-on-surface-muted shadow-monolith">
         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
         로그인 정보를 불러오는 중입니다.
       </section>

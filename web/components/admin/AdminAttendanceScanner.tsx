@@ -211,11 +211,11 @@ export default function AdminAttendanceScanner() {
   }, [scannerOpen]);
 
   return (
-    <div className="rounded-2xl bg-monolith-surfaceLow p-6">
+    <div className="rounded-2xl bg-monolith-surface-low p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">QR 스캐너</p>
-          <h2 className="mt-3 text-2xl font-black tracking-tight text-monolith-onSurface">운영자 스캔 인증</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">QR 스캐너</p>
+          <h2 className="mt-3 text-2xl font-black tracking-tight text-monolith-on-surface">운영자 스캔 인증</h2>
         </div>
         <button
           type="button"
@@ -231,7 +231,7 @@ export default function AdminAttendanceScanner() {
         </button>
       </div>
 
-      <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">
+      <p className="mt-3 text-sm leading-7 text-monolith-on-surface-muted">
         활성 세션에 대해서만 개인 QR을 검증합니다. 카메라로 바로 스캔하거나, 촬영한 QR 이미지를 업로드해 테스트할 수 있습니다.
       </p>
 
@@ -239,7 +239,7 @@ export default function AdminAttendanceScanner() {
         <div
           className={[
             'mt-5 rounded-xl px-4 py-3 text-sm font-semibold',
-            result.success ? 'bg-monolith-primaryFixed text-monolith-primary' : 'bg-monolith-errorContainer text-monolith-error',
+            result.success ? 'bg-monolith-primary-fixed text-monolith-primary' : 'bg-monolith-error-container text-monolith-error',
           ].join(' ')}
         >
           <div className="flex items-start gap-2">
@@ -264,27 +264,27 @@ export default function AdminAttendanceScanner() {
 
       {scannerOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00172d]/55 px-4 py-8 backdrop-blur-[4px]">
-          <div className="w-full max-w-3xl rounded-[2rem] border border-monolith-outlineVariant/20 bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
+          <div className="w-full max-w-3xl rounded-[2rem] border border-monolith-outline-variant/20 bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">QR 스캐너</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-onSurface">카메라 스캔</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">QR 스캐너</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-on-surface">카메라 스캔</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setScannerOpen(false)}
-                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow text-monolith-onSurfaceMuted transition hover:border-monolith-outlineVariant/40 hover:text-monolith-onSurface"
+                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-low text-monolith-on-surface-muted transition hover:border-monolith-outline-variant/40 hover:text-monolith-on-surface"
                 aria-label="닫기"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
-            <p className="mt-3 text-sm leading-7 text-monolith-onSurfaceMuted">
+            <p className="mt-3 text-sm leading-7 text-monolith-on-surface-muted">
               개인 QR을 카메라 중앙에 맞추면 자동으로 검증합니다. 카메라가 불안정하면 아래에서 이미지 업로드로도 확인할 수 있습니다.
             </p>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-monolith-outlineVariant/20 bg-[#0a2037]">
+            <div className="mt-5 overflow-hidden rounded-2xl border border-monolith-outline-variant/20 bg-[#0a2037]">
               <video ref={videoRef} muted playsInline className="aspect-[4/3] w-full object-cover" />
               {!cameraEnabled ? (
                 <div className="flex items-center justify-center gap-3 px-6 py-10 text-sm font-semibold text-white/80">
@@ -294,9 +294,9 @@ export default function AdminAttendanceScanner() {
               ) : null}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-4 text-left">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-monolith-primaryContainer">대체 테스트</p>
-              <p className="mt-2 text-sm leading-7 text-monolith-onSurfaceMuted">
+            <div className="mt-4 rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-4 text-left">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-monolith-primary-container">대체 테스트</p>
+              <p className="mt-2 text-sm leading-7 text-monolith-on-surface-muted">
                 휴대폰으로 개인 QR을 띄운 뒤 스크린샷을 업로드해도 같은 검증 플로우로 출석을 테스트할 수 있습니다.
               </p>
               <input
@@ -309,7 +309,7 @@ export default function AdminAttendanceScanner() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest px-4 py-2.5 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surface"
+                className="interactive-soft mt-3 inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface-lowest px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface"
               >
                 <Upload className="h-4 w-4" />
                 QR 이미지 업로드
@@ -317,7 +317,7 @@ export default function AdminAttendanceScanner() {
             </div>
 
             {submitting ? (
-              <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-monolith-surfaceLow px-4 py-3 text-sm font-semibold text-monolith-onSurfaceMuted">
+              <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-monolith-surface-low px-4 py-3 text-sm font-semibold text-monolith-on-surface-muted">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
                 QR 검증 중...
               </div>

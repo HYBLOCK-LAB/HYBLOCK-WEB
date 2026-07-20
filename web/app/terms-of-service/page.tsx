@@ -8,18 +8,18 @@ export default function TermsOfServicePage() {
   return (
     <SiteChrome activePath="/terms-of-service">
       <main className="min-h-screen px-6 py-16 lg:px-8">
-        <section className="mx-auto max-w-4xl rounded-[2rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest p-8 shadow-monolith md:p-10">
-          <span className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">
+        <section className="mx-auto max-w-4xl rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest p-8 shadow-monolith md:p-10">
+          <span className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">
             Terms Of Service
           </span>
-          <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-monolith-onSurface md:text-5xl">
+          <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-monolith-on-surface md:text-5xl">
             이용약관
           </h1>
-          <p className="mt-5 text-sm leading-7 text-monolith-onSurfaceMuted">
+          <p className="mt-5 text-sm leading-7 text-monolith-on-surface-muted">
             시행일: 2026-04-07
           </p>
 
-          <div className="mt-10 space-y-8 text-sm leading-8 text-monolith-onSurface">
+          <div className="mt-10 space-y-8 text-sm leading-8 text-monolith-on-surface">
             <section>
               <h2 className="text-xl font-bold text-monolith-primary">1. 목적</h2>
               <p className="mt-3">

@@ -34,11 +34,11 @@ export default function WalletConnectPanel({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[1.75rem] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
+      <div className="overflow-hidden rounded-[1.75rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
         <WalletConnectHero mode={mode} />
 
         <div className="space-y-5 px-6 py-6">
-          {title && <h3 className="text-sm font-bold text-monolith-onSurfaceMuted px-1">{title}</h3>}
+          {title && <h3 className="text-sm font-bold text-monolith-on-surface-muted px-1">{title}</h3>}
           
           {!isConnected ? (
             <WalletConnectDisconnectedState

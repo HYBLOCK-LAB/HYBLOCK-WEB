@@ -32,8 +32,8 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
       badgeClassName: 'bg-monolith-primary text-white',
       hint: d.activeStatusHint,
       actionLabel: lang === 'ko' ? '출석 체크하기' : 'Check-In Now',
-      actionClassName: 'bg-monolith-primaryContainer text-monolith-onPrimary shadow-lg shadow-monolith-primary/10',
-      iconClassName: 'bg-monolith-secondaryContainer text-monolith-primaryContainer',
+      actionClassName: 'bg-monolith-primary-container text-monolith-on-primary shadow-lg shadow-monolith-primary/10',
+      iconClassName: 'bg-monolith-secondary-container text-monolith-primary-container',
     };
   }
 
@@ -43,7 +43,7 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
       badgeClassName: 'bg-[#ffe2e0] text-[#b3261e]',
       hint: lang === 'ko' ? '종료됨' : 'Closed',
       actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
-      actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
+      actionClassName: 'bg-monolith-surface-high text-monolith-on-surface-muted hover:bg-monolith-surface-container',
       iconClassName: 'bg-[#ffe2e0] text-[#b3261e]',
     };
   }
@@ -51,21 +51,21 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
   if (status === 'cancelled') {
     return {
       badgeLabel: 'Cancelled',
-      badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+      badgeClassName: 'bg-monolith-surface-container text-monolith-on-surface-muted',
       hint: lang === 'ko' ? '취소됨' : 'Cancelled',
       actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
-      actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
-      iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+      actionClassName: 'bg-monolith-surface-high text-monolith-on-surface-muted hover:bg-monolith-surface-container',
+      iconClassName: 'bg-monolith-surface-container text-monolith-on-surface-muted',
     };
   }
 
   return {
     badgeLabel: 'Upcoming',
-    badgeClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+    badgeClassName: 'bg-monolith-surface-container text-monolith-on-surface-muted',
     hint: d.pendingStatusHint,
     actionLabel: lang === 'ko' ? '세션 보기' : 'View Session',
-    actionClassName: 'bg-monolith-surfaceHigh text-monolith-onSurfaceMuted hover:bg-monolith-surfaceContainer',
-    iconClassName: 'bg-monolith-surfaceContainer text-monolith-onSurfaceMuted',
+    actionClassName: 'bg-monolith-surface-high text-monolith-on-surface-muted hover:bg-monolith-surface-container',
+    iconClassName: 'bg-monolith-surface-container text-monolith-on-surface-muted',
   };
 }
 
@@ -104,20 +104,20 @@ export default function AttendanceLanding({
     <main className="pb-28 pt-12 md:pt-16">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12">
-          <span className="mb-4 block font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primaryContainer">
+          <span className="mb-4 block font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">
             Attendance Management
           </span>
-          <h1 className="max-w-3xl text-5xl font-bold leading-none tracking-[-0.06em] text-monolith-onSurface md:text-6xl">
+          <h1 className="max-w-3xl text-5xl font-bold leading-none tracking-[-0.06em] text-monolith-on-surface md:text-6xl">
             {language === 'ko' ? '세션 출석 체크' : 'Session Check-In'}
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-onSurfaceMuted md:text-lg">
+          <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-on-surface-muted md:text-lg">
             {d.description}
           </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
           <section className="space-y-4">
-            <div className="hidden grid-cols-12 gap-4 px-6 py-3 font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-onSurfaceMuted/70 md:grid">
+            <div className="hidden grid-cols-12 gap-4 px-6 py-3 font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-on-surface-muted/70 md:grid">
               <div className="col-span-1">Icon</div>
               <div className="col-span-5">Session Info</div>
               <div className="col-span-3">Category</div>
@@ -142,9 +142,9 @@ export default function AttendanceLanding({
                     }
                   }}
                   className={[
-                    'grid cursor-pointer gap-4 rounded-xl border bg-monolith-surfaceLowest p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-ambient md:grid-cols-12 md:items-center md:p-6',
-                    isActive ? 'border-monolith-primaryFixed/70' : 'border-monolith-outlineVariant/30',
-                    selectedSessionId === session.id ? 'ring-2 ring-monolith-primaryContainer/50' : '',
+                    'grid cursor-pointer gap-4 rounded-xl border bg-monolith-surface-lowest p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-ambient md:grid-cols-12 md:items-center md:p-6',
+                    isActive ? 'border-monolith-primary-fixed/70' : 'border-monolith-outline-variant/30',
+                    selectedSessionId === session.id ? 'ring-2 ring-monolith-primary-container/50' : '',
                   ].join(' ')}
                 >
                   <div className="col-span-1 flex justify-start">
@@ -155,7 +155,7 @@ export default function AttendanceLanding({
 
                   <div className="col-span-5">
                     <div className="mb-2 flex flex-wrap items-center gap-3">
-                      <h3 className="text-lg font-bold text-monolith-primaryContainer">{session.name}</h3>
+                      <h3 className="text-lg font-bold text-monolith-primary-container">{session.name}</h3>
                       <span
                         className={[
                           'rounded-full px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em]',
@@ -168,11 +168,11 @@ export default function AttendanceLanding({
                   </div>
 
                   <div className="col-span-3">
-                    <div className="flex items-center gap-2 text-sm text-monolith-onSurfaceMuted">
+                    <div className="flex items-center gap-2 text-sm text-monolith-on-surface-muted">
                       <CalendarDays className="h-4 w-4" />
                       <span>{translateCategory(session.category, language)}</span>
                     </div>
-                    <p className="ml-6 mt-1.5 flex items-center gap-2 text-xs text-monolith-onSurfaceMuted">
+                    <p className="ml-6 mt-1.5 flex items-center gap-2 text-xs text-monolith-on-surface-muted">
                       <Clock3 className="h-3.5 w-3.5" />
                       {presentation.hint}
                     </p>
@@ -205,12 +205,12 @@ export default function AttendanceLanding({
                   selectedEventName={selectedSession.name}
                   activeEventNames={activeEvents.map((activeEvent) => activeEvent.name)}
                 />
-                <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+                <div className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
                   <div className="mb-5">
-                    <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+                    <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                       {d.manualCheckInLabel}
                     </p>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">
+                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">
                       {d.manualCheckInTitle}
                     </h2>
                   </div>
@@ -218,7 +218,7 @@ export default function AttendanceLanding({
                 </div>
               </>
             ) : (
-              <div className="rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
+              <div className="rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6 text-sm leading-7 text-monolith-on-surface-muted">
                 {language === 'ko' 
                   ? '왼쪽에서 세션을 선택하면 해당 세션의 내 출석 QR과 수동 출석이 이 영역에 표시됩니다.' 
                   : 'Select a session on the left to display your attendance QR and manual check-in here.'}

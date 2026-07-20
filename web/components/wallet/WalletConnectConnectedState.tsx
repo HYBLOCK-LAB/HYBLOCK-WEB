@@ -30,16 +30,16 @@ export default function WalletConnectConnectedState({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-monolith-primaryContainer/12 bg-[linear-gradient(180deg,rgba(208,225,254,0.45),rgba(255,255,255,0.95))] p-5">
+      <div className="rounded-2xl border border-monolith-primary-container/12 bg-[linear-gradient(180deg,rgba(208,225,254,0.45),rgba(255,255,255,0.95))] p-5">
         <div className={['flex flex-wrap items-start justify-between gap-4', mode === 'centered' ? 'text-center' : 'text-left'].join(' ')}>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary/65">{walletLabel}</p>
-            <p className="mt-3 break-all text-base font-semibold text-monolith-onSurface">{address}</p>
+            <p className="mt-3 break-all text-base font-semibold text-monolith-on-surface">{address}</p>
             <div className={['mt-3 flex flex-wrap gap-2', mode === 'centered' ? 'justify-center' : ''].join(' ')}>
-              <span className="rounded-full bg-monolith-surfaceLowest px-3 py-1 text-xs font-semibold text-monolith-primaryContainer">
+              <span className="rounded-full bg-monolith-surface-lowest px-3 py-1 text-xs font-semibold text-monolith-primary-container">
                 {chainName ?? '알 수 없는 네트워크'}
               </span>
-              <span className="rounded-full bg-monolith-secondaryContainer px-3 py-1 text-xs font-semibold text-monolith-primaryContainer">
+              <span className="rounded-full bg-monolith-secondary-container px-3 py-1 text-xs font-semibold text-monolith-primary-container">
                 {shortenAddress(address)}
               </span>
             </div>
@@ -63,7 +63,7 @@ export default function WalletConnectConnectedState({
         <button
           type="button"
           onClick={onConnect}
-          className="interactive-soft flex items-center justify-center gap-2 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-5 py-3 text-sm font-semibold text-monolith-onSurface transition-colors hover:bg-monolith-surface"
+          className="interactive-soft flex items-center justify-center gap-2 rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-5 py-3 text-sm font-semibold text-monolith-on-surface transition-colors hover:bg-monolith-surface"
         >
           <RefreshCcw className="h-4 w-4" />
           지갑 다시 선택
@@ -71,7 +71,7 @@ export default function WalletConnectConnectedState({
         <button
           type="button"
           onClick={onDisconnect}
-          className="interactive-soft flex items-center justify-center gap-2 rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest px-5 py-3 text-sm font-semibold text-monolith-onSurfaceMuted transition-colors hover:bg-monolith-surface"
+          className="interactive-soft flex items-center justify-center gap-2 rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest px-5 py-3 text-sm font-semibold text-monolith-on-surface-muted transition-colors hover:bg-monolith-surface"
         >
           <Unplug className="h-4 w-4" />
           연결 해제

@@ -146,18 +146,18 @@ export default function CheckInForm({
   };
 
   if (loadingEvents) {
-    return <div className="py-6 text-center text-sm text-monolith-onSurfaceMuted">이벤트 정보 확인 중...</div>;
+    return <div className="py-6 text-center text-sm text-monolith-on-surface-muted">이벤트 정보 확인 중...</div>;
   }
 
   return (
     <div>
       {!isEventOpen ? (
-        <div className="mb-5 rounded-xl border border-monolith-error/15 bg-monolith-errorContainer px-4 py-3 text-sm font-semibold text-monolith-error">
+        <div className="mb-5 rounded-xl border border-monolith-error/15 bg-monolith-error-container px-4 py-3 text-sm font-semibold text-monolith-error">
           {inactiveReason}
         </div>
       ) : (
         <div className="mb-5 flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-monolith-secondaryContainer px-3 py-1 font-display text-xs font-bold tracking-[0.12em] text-monolith-onSecondaryContainer">
+          <span className="rounded-full bg-monolith-secondary-container px-3 py-1 font-display text-xs font-bold tracking-[0.12em] text-monolith-on-secondary-container">
             {translateEvent(event)}
           </span>
           {timeLeft && (
@@ -165,8 +165,8 @@ export default function CheckInForm({
               className={[
                 'inline-flex items-center gap-1 rounded-lg px-3 py-1 font-mono text-sm',
                 timeLeft === '00:00'
-                  ? 'bg-monolith-errorContainer text-monolith-error'
-                  : 'bg-monolith-primaryFixed text-monolith-primary',
+                  ? 'bg-monolith-error-container text-monolith-error'
+                  : 'bg-monolith-primary-fixed text-monolith-primary',
               ].join(' ')}
             >
               <Clock3 className="h-3.5 w-3.5" />
@@ -181,8 +181,8 @@ export default function CheckInForm({
           className={[
             'mb-5 flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-semibold',
             message.type === 'success'
-              ? 'bg-monolith-primaryFixed text-monolith-primary'
-              : 'bg-monolith-errorContainer text-monolith-error',
+              ? 'bg-monolith-primary-fixed text-monolith-primary'
+              : 'bg-monolith-error-container text-monolith-error',
           ].join(' ')}
         >
           {message.type === 'success' ? (
@@ -198,7 +198,7 @@ export default function CheckInForm({
         <div>
           <label
             htmlFor="name"
-            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer"
+            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container"
           >
             이름을 입력하세요
           </label>
@@ -210,7 +210,7 @@ export default function CheckInForm({
             required
             disabled={loading || !isEventOpen}
             placeholder="이름을 입력하세요"
-            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
+            className="w-full rounded-lg border border-monolith-outline-variant/40 bg-monolith-surface-low px-4 py-3 text-monolith-on-surface outline-none transition focus:border-monolith-primary-container focus:bg-monolith-surface-lowest"
             list={members.length > 0 ? 'member-name-suggestions' : undefined}
             autoComplete="off"
           />
@@ -225,7 +225,7 @@ export default function CheckInForm({
         <div>
           <label
             htmlFor="code"
-            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer"
+            className="mb-2 block font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container"
           >
             출석 코드를 입력하세요
           </label>
@@ -237,14 +237,14 @@ export default function CheckInForm({
             required
             disabled={loading || !isEventOpen}
             placeholder="출석 코드를 입력하세요"
-            className="w-full rounded-lg border border-monolith-outlineVariant/40 bg-monolith-surfaceLow px-4 py-3 text-monolith-onSurface outline-none transition focus:border-monolith-primaryContainer focus:bg-monolith-surfaceLowest"
+            className="w-full rounded-lg border border-monolith-outline-variant/40 bg-monolith-surface-low px-4 py-3 text-monolith-on-surface outline-none transition focus:border-monolith-primary-container focus:bg-monolith-surface-lowest"
             autoComplete="off"
           />
         </div>
         <button
           type="submit"
           disabled={loading || !isEventOpen || !name.trim() || !code.trim()}
-          className="w-full rounded-lg bg-monolith-primaryContainer px-5 py-3 font-display text-base font-bold text-monolith-onPrimary transition hover:bg-monolith-primary disabled:cursor-not-allowed disabled:bg-monolith-primaryContainer/45"
+          className="w-full rounded-lg bg-monolith-primary-container px-5 py-3 font-display text-base font-bold text-monolith-on-primary transition hover:bg-monolith-primary disabled:cursor-not-allowed disabled:bg-monolith-primary-container/45"
         >
           {loading ? '처리 중...' : '출석하기'}
         </button>

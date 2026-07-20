@@ -17,7 +17,7 @@ export default function HeroButtons() {
     <div className="mt-12 flex flex-wrap gap-5">
       <Link 
         href="/about" 
-        className="interactive-soft rounded-full bg-white px-10 py-4 text-lg font-bold text-[#0e4a84] shadow-xl"
+        className="interactive-soft inline-flex items-center justify-center whitespace-nowrap rounded-full bg-white px-10 py-4 text-center text-lg font-bold text-[#0e4a84] shadow-xl"
       >
         {d.heroCtaIntro}
       </Link>

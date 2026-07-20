@@ -131,11 +131,11 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
     <>
       <section>
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">등록된 공지</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">등록된 공지</p>
           <button
             type="button"
             onClick={openCreateModal}
-            className="interactive-soft inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow text-monolith-primaryContainer shadow-[0_14px_34px_rgba(0,51,97,0.08)] transition hover:border-monolith-primaryContainer/40 hover:text-monolith-primary"
+            className="interactive-soft inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-low text-monolith-primary-container shadow-[0_14px_34px_rgba(0,51,97,0.08)] transition hover:border-monolith-primary-container/40 hover:text-monolith-primary"
             aria-label="새 공지 추가"
             title="새 공지 추가"
           >
@@ -144,22 +144,22 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
         </div>
         <div className="mt-4 space-y-4">
           {notices.map((notice) => (
-            <article key={notice.id} className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5">
+            <article key={notice.id} className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">{notice.category}</p>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-onSurface">{notice.title}</h3>
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-monolith-onSurfaceMuted">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">{notice.category}</p>
+                  <h3 className="mt-2 text-lg font-black tracking-tight text-monolith-on-surface">{notice.title}</h3>
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-monolith-on-surface-muted">
                     <span>작성자 {notice.author}</span>
                     <span>이미지 {notice.images.length}개</span>
                   </div>
                 </div>
-                <div className="shrink-0 rounded-xl bg-monolith-surfaceLowest px-3 py-2 text-right">
+                <div className="shrink-0 rounded-xl bg-monolith-surface-lowest px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => openEditModal(notice)}
-                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface text-monolith-onSurfaceMuted transition hover:border-monolith-primaryContainer/30 hover:bg-monolith-surfaceLow hover:text-monolith-primary"
+                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface text-monolith-on-surface-muted transition hover:border-monolith-primary-container/30 hover:bg-monolith-surface-low hover:text-monolith-primary"
                       aria-label={`${notice.title} 수정`}
                       title="수정"
                     >
@@ -169,14 +169,14 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
                       type="button"
                       onClick={() => void handleDelete(notice.id)}
                       disabled={deletingId === notice.id}
-                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surface text-monolith-onSurfaceMuted transition hover:border-monolith-error/30 hover:bg-monolith-errorContainer hover:text-monolith-error disabled:opacity-60"
+                      className="interactive-soft inline-flex h-9 w-9 items-center justify-center rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface text-monolith-on-surface-muted transition hover:border-monolith-error/30 hover:bg-monolith-error-container hover:text-monolith-error disabled:opacity-60"
                       aria-label={`${notice.title} 삭제`}
                       title="삭제"
                     >
                       {deletingId === notice.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <i className="fa-solid fa-trash text-[12px]" aria-hidden="true" />}
                     </button>
                   </div>
-                  <div className="mt-2 flex items-center justify-end gap-2 text-xs font-semibold text-monolith-onSurfaceMuted">
+                  <div className="mt-2 flex items-center justify-end gap-2 text-xs font-semibold text-monolith-on-surface-muted">
                     <CalendarDays className="h-3.5 w-3.5" />
                     <span>{notice.date}</span>
                   </div>
@@ -185,7 +185,7 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
             </article>
           ))}
           {notices.length === 0 ? (
-            <div className="rounded-2xl border border-monolith-outlineVariant/20 bg-monolith-surfaceLow p-5 text-sm text-monolith-onSurfaceMuted">
+            <div className="rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low p-5 text-sm text-monolith-on-surface-muted">
               등록된 공지가 없습니다.
             </div>
           ) : null}
@@ -193,7 +193,7 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
       </section>
 
       {error ? (
-        <div className="mt-4 flex items-start gap-2 rounded-2xl bg-monolith-errorContainer px-4 py-4 text-sm text-monolith-error">
+        <div className="mt-4 flex items-start gap-2 rounded-2xl bg-monolith-error-container px-4 py-4 text-sm text-monolith-error">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -213,8 +213,8 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
               <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-white/80" aria-hidden="true" />
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">{editingNoticeId ? '공지 수정' : '새 공지 추가'}</p>
-                  <h2 id="create-notice-modal-title" className="mt-2 text-2xl font-black tracking-tight text-monolith-onSurface">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">{editingNoticeId ? '공지 수정' : '새 공지 추가'}</p>
+                  <h2 id="create-notice-modal-title" className="mt-2 text-2xl font-black tracking-tight text-monolith-on-surface">
                     {editingNoticeId ? '공지 내용을 수정하세요' : '새 공지를 작성하세요'}
                   </h2>
                 </div>
@@ -224,7 +224,7 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
                     setIsModalOpen(false);
                     resetForm();
                   }}
-                  className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLowest text-monolith-onSurfaceMuted transition hover:border-monolith-outlineVariant/40 hover:text-monolith-onSurface"
+                  className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-lowest text-monolith-on-surface-muted transition hover:border-monolith-outline-variant/40 hover:text-monolith-on-surface"
                   aria-label="닫기"
                 >
                   <X className="h-4.5 w-4.5" />
@@ -234,21 +234,21 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
               <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">카테고리</span>
+                    <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">카테고리</span>
                     <input
                       value={category}
                       onChange={(event) => setCategory(event.target.value)}
-                      className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                      className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                       placeholder="운영"
                       required
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">작성자</span>
+                    <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">작성자</span>
                     <input
                       value={author}
                       onChange={(event) => setAuthor(event.target.value)}
-                      className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                      className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                       placeholder="작성자"
                       required
                     />
@@ -256,51 +256,51 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
                 </div>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">제목</span>
+                  <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">제목</span>
                   <input
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                     placeholder="공지 제목"
                     required
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">게시일</span>
+                  <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">게시일</span>
                   <input
                     type="date"
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    className="w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                     required
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-monolith-onSurface">본문</span>
+                  <span className="mb-2 block text-sm font-semibold text-monolith-on-surface">본문</span>
                   <textarea
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
-                    className="min-h-40 w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    className="min-h-40 w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                     placeholder="공지 본문"
                     required
                   />
-                  <p className="mt-2 text-xs text-monolith-onSurfaceMuted">마크다운 문법을 지원합니다. 예: 제목(`#`), 목록(`-`), 링크, 표, 코드 블록.</p>
+                  <p className="mt-2 text-xs text-monolith-on-surface-muted">마크다운 문법을 지원합니다. 예: 제목(`#`), 목록(`-`), 링크, 표, 코드 블록.</p>
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-monolith-onSurface">
+                  <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-monolith-on-surface">
                     <ImageIcon className="h-4 w-4" />
                     이미지 URL 목록
                   </span>
                   <textarea
                     value={imagesText}
                     onChange={(event) => setImagesText(event.target.value)}
-                    className="min-h-28 w-full rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-4 py-3 text-sm outline-none transition focus:border-monolith-primaryContainer"
+                    className="min-h-28 w-full rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-4 py-3 text-sm outline-none transition focus:border-monolith-primary-container"
                     placeholder={'https://s3.example.com/image-1.png\nhttps://s3.example.com/image-2.png'}
                   />
-                  <p className="mt-2 text-xs text-monolith-onSurfaceMuted">한 줄에 S3 이미지 링크 하나씩 입력합니다.</p>
+                  <p className="mt-2 text-xs text-monolith-on-surface-muted">한 줄에 S3 이미지 링크 하나씩 입력합니다.</p>
                 </label>
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -310,7 +310,7 @@ export default function AdminNoticesManager({ initialNotices }: { initialNotices
                       setIsModalOpen(false);
                       resetForm();
                     }}
-                    className="interactive-soft rounded-xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLow px-5 py-3 text-sm font-semibold text-monolith-onSurface transition hover:border-monolith-outlineVariant/50"
+                    className="interactive-soft rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-low px-5 py-3 text-sm font-semibold text-monolith-on-surface transition hover:border-monolith-outline-variant/50"
                   >
                     닫기
                   </button>

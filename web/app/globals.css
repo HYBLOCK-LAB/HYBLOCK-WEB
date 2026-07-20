@@ -16,6 +16,7 @@
   --color-monolith-on-secondary-container: #0e4a84;
   --color-monolith-primary-fixed: #dbeafe;
   --color-monolith-error: #e11d48;
+  --color-monolith-error-container: #ffdad6;
   
   --shadow-monolith: 0 20px 80px rgba(0, 51, 97, 0.12);
 }

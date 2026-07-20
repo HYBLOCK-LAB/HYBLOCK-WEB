@@ -22,7 +22,7 @@ export default function ActivitiesGallery({ photos }: { photos: ActivityGalleryP
 
   if (photos.length === 0) {
     return (
-      <div className="rounded-[28px] border border-monolith-outlineVariant/20 bg-monolith-surfaceLowest px-6 py-12 text-center text-sm text-monolith-onSurfaceMuted">
+      <div className="rounded-[28px] border border-monolith-outline-variant/20 bg-monolith-surface-lowest px-6 py-12 text-center text-sm text-monolith-on-surface-muted">
         표시할 사진이 없습니다.
       </div>
     );
@@ -36,7 +36,7 @@ export default function ActivitiesGallery({ photos }: { photos: ActivityGalleryP
       {currentPhotos.map((photo) => (
         <figure
           key={photo.id}
-          className="interactive-card group overflow-hidden rounded-[24px] bg-monolith-surfaceLowest shadow-ambient"
+          className="interactive-card group overflow-hidden rounded-[24px] bg-monolith-surface-lowest shadow-ambient"
         >
           <div className="aspect-[4/3] w-full overflow-hidden">
             <img

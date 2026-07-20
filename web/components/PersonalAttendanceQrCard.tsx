@@ -248,20 +248,20 @@ export default function PersonalAttendanceQrCard({
   }, [alreadyCheckedIn, attendanceStatus, canUseSupabase, isLoggedIn, requireWalletSession, walletSessionConnected]);
 
   return (
-    <div className="rounded-2xl border border-monolith-outlineVariant/30 bg-monolith-surfaceLowest p-6 shadow-sm">
+    <div className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primaryContainer">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
             Personal QR
           </p>
-          <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-onSurface">내 출석 QR</h2>
-          {targetEventName ? <p className="mt-2 text-sm text-monolith-onSurfaceMuted">{targetEventName}</p> : null}
+          <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">내 출석 QR</h2>
+          {targetEventName ? <p className="mt-2 text-sm text-monolith-on-surface-muted">{targetEventName}</p> : null}
         </div>
         <button
           type="button"
           onClick={() => void refreshToken()}
           disabled={fetchingToken || alreadyCheckedIn || !isSelectedEventActive || (!isLoggedIn && !canUseSupabase && !walletSessionConnected)}
-          className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outlineVariant/25 bg-monolith-surfaceLow px-4 py-2 text-sm font-semibold text-monolith-onSurface transition hover:bg-monolith-surface"
+          className="interactive-soft inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface-low px-4 py-2 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface"
         >
           {fetchingToken ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
           새로고침
@@ -269,18 +269,18 @@ export default function PersonalAttendanceQrCard({
       </div>
 
       {!alreadyCheckedIn && helperText ? (
-        <p className="mt-4 text-sm leading-7 text-monolith-onSurfaceMuted">{helperText}</p>
+        <p className="mt-4 text-sm leading-7 text-monolith-on-surface-muted">{helperText}</p>
       ) : null}
 
       {error ? (
-        <div className="mt-5 flex items-start gap-2 rounded-xl bg-monolith-errorContainer px-4 py-3 text-sm font-semibold text-monolith-error">
+        <div className="mt-5 flex items-start gap-2 rounded-xl bg-monolith-error-container px-4 py-3 text-sm font-semibold text-monolith-error">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       ) : null}
 
       {loading ? (
-        <div className="mt-6 flex items-center justify-center rounded-2xl bg-monolith-surfaceLow py-16 text-sm text-monolith-onSurfaceMuted">
+        <div className="mt-6 flex items-center justify-center rounded-2xl bg-monolith-surface-low py-16 text-sm text-monolith-on-surface-muted">
           <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
           개인 QR 준비 중
         </div>
@@ -301,19 +301,19 @@ export default function PersonalAttendanceQrCard({
           <div className="flex justify-center">
             <QRCodeSVG value={payload.qrValue} size={220} includeMargin />
           </div>
-          <p className="mt-5 text-lg font-bold text-monolith-onSurface">{payload.memberName}</p>
-          <p className="mt-1 text-sm text-monolith-onSurfaceMuted">{payload.eventName}</p>
-          <p className="mt-3 font-mono text-sm text-monolith-primaryContainer">{timeLeft ?? '00:00'}</p>
+          <p className="mt-5 text-lg font-bold text-monolith-on-surface">{payload.memberName}</p>
+          <p className="mt-1 text-sm text-monolith-on-surface-muted">{payload.eventName}</p>
+          <p className="mt-3 font-mono text-sm text-monolith-primary-container">{timeLeft ?? '00:00'}</p>
         </div>
       ) : !error ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-monolith-outlineVariant/35 bg-monolith-surfaceLow p-6 text-sm leading-7 text-monolith-onSurfaceMuted">
+        <div className="mt-6 rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6 text-sm leading-7 text-monolith-on-surface-muted">
           {requireWalletSession || walletSessionConnected || isLoggedIn ? (
             '현재 조건에서 발급 가능한 활성 출석 QR이 없습니다. 출석이 시작되었는지와 연결된 회원 상태를 확인하세요.'
           ) : (
             <>
               로그인 상태를 확인한 뒤 QR을 발급합니다.
               <div className="mt-4">
-                <Link href="/login" className="font-semibold text-monolith-primaryContainer transition hover:text-monolith-primary">
+                <Link href="/login" className="font-semibold text-monolith-primary-container transition hover:text-monolith-primary">
                   로그인하러 가기
                 </Link>
               </div>

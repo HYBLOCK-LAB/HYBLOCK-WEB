@@ -35,6 +35,17 @@ export type ActivityGalleryPhoto = {
   height: number;
 };
 
+export type ActivityAlbum = {
+  slug: string;
+  title: LocalizedActivityText;
+  description: LocalizedActivityText;
+  date: string | null;
+  category: ActivityCategory;
+  coverPhotoId: string;
+  coverPhoto: ActivityGalleryPhoto;
+  photos: ActivityGalleryPhoto[];
+};
+
 export const brandMenuItems: NavItem[] = [
   { href: '/about', label: '소개' },
   { href: '/bylaws', label: '회칙' },
@@ -335,6 +346,129 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
     height: 800,
   },
 ];
+
+type ActivityAlbumDefinition = Omit<ActivityAlbum, 'coverPhoto' | 'photos'> & {
+  photoIds: string[];
+};
+
+const activityAlbumDefinitions: ActivityAlbumDefinition[] = [
+  {
+    slug: 'monad-blitz-hackathon-2026',
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    description: {
+      ko: 'HYBLOCK 학회원들이 Monad Blitz 해커톤에 참가해 프로젝트를 완성하고 2등을 수상한 기록입니다.',
+      en: 'HYBLOCK members built a project at the Monad Blitz Hackathon and earned second place.',
+    },
+    date: '2026-04-07',
+    category: 'hackathon',
+    coverPhotoId: 'a17',
+    photoIds: ['a17', 'a18', 'a19', 'a20', 'a21', 'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28'],
+  },
+  {
+    slug: 'campus-hackathon-2026',
+    title: { ko: '교내 해커톤', en: 'Campus Hackathon' },
+    description: {
+      ko: '한양대학교 교내 해커톤에서 팀을 구성하고 아이디어를 프로젝트로 발전시킨 활동 기록입니다.',
+      en: 'A record of HYBLOCK members turning ideas into projects at a Hanyang University campus hackathon.',
+    },
+    date: '2026-03-30',
+    category: 'hackathon',
+    coverPhotoId: 'a8',
+    photoIds: ['a8', 'a9'],
+  },
+  {
+    slug: 'basic-session-team-activity-2026',
+    title: { ko: '기본 세션 팀 활동', en: 'Basic Session Team Activity' },
+    description: {
+      ko: '기본 세션에서 학회원들이 팀별로 학습 내용을 공유하고 과제를 함께 수행한 기록입니다.',
+      en: 'Members shared what they learned and worked together during a HYBLOCK basic session.',
+    },
+    date: '2026-01-28',
+    category: 'basic-session',
+    coverPhotoId: 'a16',
+    photoIds: ['a16'],
+  },
+  {
+    slug: 'base-batch-hackathon-2025',
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    description: {
+      ko: 'Base Batch 해커톤에서 프로젝트를 개발하고 발표와 시연을 진행한 활동 기록입니다.',
+      en: 'HYBLOCK members developed, presented, and demonstrated a project at the Base Batch Hackathon.',
+    },
+    date: '2025-11-11',
+    category: 'hackathon',
+    coverPhotoId: 'a10',
+    photoIds: ['a10', 'a11', 'a12', 'a13', 'a14', 'a15'],
+  },
+  {
+    slug: 'axelar-advanced-session',
+    title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
+    description: {
+      ko: 'Axelar와 Squid의 크로스체인 구조와 활용 사례를 다룬 심화 세션 기록입니다.',
+      en: 'An advanced session exploring the cross-chain architecture and use cases of Axelar and Squid.',
+    },
+    date: null,
+    category: 'advanced-session',
+    coverPhotoId: 'a5',
+    photoIds: ['a5', 'a6', 'a7'],
+  },
+  {
+    slug: 'lbank-labs-event',
+    title: { ko: 'LBank Labs 외부 행사', en: 'LBank Labs Event' },
+    description: {
+      ko: 'LBank Labs 외부 행사에 참여해 업계 관계자들과 교류한 활동 기록입니다.',
+      en: 'A record of HYBLOCK members connecting with industry participants at an LBank Labs event.',
+    },
+    date: null,
+    category: 'external-activity',
+    coverPhotoId: 'a1',
+    photoIds: ['a1'],
+  },
+  {
+    slug: 'hyblock-night-networking',
+    title: { ko: '하블밤 네트워킹', en: 'HYBLOCK Night Networking' },
+    description: {
+      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나눈 하블밤 네트워킹 기록입니다.',
+      en: 'Members gathered at HYBLOCK Night to share experiences, interests, and conversations.',
+    },
+    date: null,
+    category: 'external-activity',
+    coverPhotoId: 'a2',
+    photoIds: ['a2', 'a3'],
+  },
+  {
+    slug: 'hyblock-community-dinner',
+    title: { ko: '하블밥 친목 모임', en: 'HYBLOCK Community Dinner' },
+    description: {
+      ko: '세션 밖에서 학회원들이 편하게 교류한 하블밥 친목 모임 기록입니다.',
+      en: 'A casual HYBLOCK community dinner where members connected outside regular sessions.',
+    },
+    date: null,
+    category: 'external-activity',
+    coverPhotoId: 'a4',
+    photoIds: ['a4'],
+  },
+];
+
+function getActivityPhoto(photoId: string) {
+  const photo = mockActivityGalleryPhotos.find((item) => item.id === photoId);
+
+  if (!photo) {
+    throw new Error(`Activity photo not found: ${photoId}`);
+  }
+
+  return photo;
+}
+
+export const activityAlbums: ActivityAlbum[] = activityAlbumDefinitions.map(({ photoIds, ...album }) => ({
+  ...album,
+  coverPhoto: getActivityPhoto(album.coverPhotoId),
+  photos: photoIds.map(getActivityPhoto),
+}));
+
+export function getActivityAlbumBySlug(slug: string) {
+  return activityAlbums.find((album) => album.slug === slug);
+}
 
 export const homeNotices = [
   { date: '2024.11.02', title: 'Autumn Research Seminar: Layer 2 Finality Analysis', tag: 'Academic' },

@@ -24,9 +24,17 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdminApiAccess(); if (auth.response) return auth.response;
   try {
-    const body = await request.json() as { campaignId?: string; status?: string };
+    const body = await request.json() as { campaignId?: string; status?: string; openAt?: string; closeAt?: string };
     const statuses = ['draft', 'open', 'closed', 'selection_complete', 'archived'];
-    if (!body.campaignId || !body.status || !statuses.includes(body.status)) return NextResponse.json({ error: '변경할 모집과 상태를 확인해 주세요.' }, { status: 400 });
+    if (!body.campaignId) return NextResponse.json({ error: '변경할 모집을 확인해 주세요.' }, { status: 400 });
+    if (body.openAt || body.closeAt) {
+      const openAt = new Date(body.openAt ?? ''); const closeAt = new Date(body.closeAt ?? '');
+      if (Number.isNaN(openAt.valueOf()) || Number.isNaN(closeAt.valueOf()) || closeAt <= openAt) return NextResponse.json({ error: '접수 기간을 확인해 주세요.' }, { status: 400 });
+      const { error } = await getSupabase().from('recruitment_campaign').update({ application_open_at: openAt.toISOString(), application_close_at: closeAt.toISOString() }).eq('id', body.campaignId);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
+    if (!body.status || !statuses.includes(body.status)) return NextResponse.json({ error: '변경할 모집 상태를 확인해 주세요.' }, { status: 400 });
     const { data: campaign, error: readError } = await getSupabase().from('recruitment_campaign').select('status,application_open_at,application_close_at').eq('id', body.campaignId).single();
     if (readError) throw readError;
     if (campaign.status !== 'draft' && body.status === 'draft') return NextResponse.json({ error: '시작한 모집은 초안으로 되돌릴 수 없습니다.' }, { status: 409 });

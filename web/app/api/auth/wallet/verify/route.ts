@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
       address?: string;
       message?: string;
       signature?: string;
+      adminOnly?: boolean;
     };
 
     if (!body.address || !body.message || !body.signature) {
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
       address: body.address,
       message: body.message,
       signature: body.signature,
+      requireAdmin: body.adminOnly === true,
     });
 
     if (!result.member) {

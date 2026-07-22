@@ -11,9 +11,10 @@ import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 
 type WalletLoginSectionProps = {
   redirectTo?: string;
+  adminOnly?: boolean;
 };
 
-export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSectionProps) {
+export default function WalletLoginSection({ redirectTo = '/', adminOnly = false }: WalletLoginSectionProps) {
   const router = useRouter();
   const { language } = useLanguageStore();
   const d = textContent[language].auth;
@@ -67,6 +68,7 @@ export default function WalletLoginSection({ redirectTo = '/' }: WalletLoginSect
           address,
           message: noncePayload.message,
           signature,
+          adminOnly,
         }),
       });
 

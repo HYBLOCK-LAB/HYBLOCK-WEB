@@ -109,7 +109,7 @@ export async function createWalletNonce(address: string) {
   };
 }
 
-export async function verifyWalletLogin(params: { address: string; message: string; signature: string }) {
+export async function verifyWalletLogin(params: { address: string; message: string; signature: string; requireAdmin?: boolean }) {
   const normalizedAddress = params.address.toLowerCase();
   const recoveredAddress = (await recoverMessageAddress({
     message: params.message,
@@ -139,6 +139,10 @@ export async function verifyWalletLogin(params: { address: string; message: stri
   const member = await getMemberByWallet(params.address);
   if (!member || !member.is_active) {
     return { member: null };
+  }
+
+  if (params.requireAdmin && !member.is_admin) {
+    throw new Error('관리자 권한이 있는 계정만 로그인할 수 있습니다.');
   }
 
   const sessionPayload: WalletSessionPayload = {

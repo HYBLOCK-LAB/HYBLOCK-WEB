@@ -1,5 +1,7 @@
 import SiteChrome from '@/components/SiteChrome';
 import PageUnderConstruction from '@/components/PageUnderConstruction';
+import AuthShell from '@/components/auth/AuthShell';
+import WalletLoginSection from '@/components/auth/WalletLoginSection';
 
 export const metadata = {
   title: '페이지 작업중 | HYBLOCK',
@@ -9,7 +11,32 @@ export const metadata = {
   },
 };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = (await searchParams) ?? {};
+  const rawRedirect = typeof params.redirect === 'string' ? params.redirect : '';
+  const isAdminLogin = rawRedirect === '/admin' || rawRedirect.startsWith('/admin/');
+
+  if (isAdminLogin) {
+    return (
+      <SiteChrome activePath="/login">
+        <main className="min-h-screen">
+          <AuthShell
+            mode="login"
+            eyebrow="HYBLOCK · Admin"
+            title="관리자 로그인"
+            description="관리자 권한이 등록된 지갑으로 서명해 주세요."
+          >
+            <WalletLoginSection redirectTo={rawRedirect} adminOnly />
+          </AuthShell>
+        </main>
+      </SiteChrome>
+    );
+  }
+
   return (
     <SiteChrome activePath="/login">
       <PageUnderConstruction

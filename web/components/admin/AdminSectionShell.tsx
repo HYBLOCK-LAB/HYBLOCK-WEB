@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
 const adminLinks = [
+  { href: '/admin/recruitment', label: '지원자 관리' },
+  { href: '/admin/recruitment/settings', label: '모집 설정' },
   { href: '/admin/members', label: '멤버 관리' },
   { href: '/admin/attendance', label: '출석 관리' },
   { href: '/admin/activities', label: '활동 관리' },

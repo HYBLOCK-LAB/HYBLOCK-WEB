@@ -67,7 +67,7 @@ function ActivityAlbumCard({ album, language }: { album: ActivityAlbum; language
     <li>
       <Link
         href={`/activities/${album.slug}`}
-        className="group block h-full overflow-hidden rounded-[28px] border border-monolith-outline-variant/30 bg-monolith-surface-lowest shadow-[0_16px_44px_rgba(0,51,97,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_56px_rgba(0,51,97,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-4"
+        className="group block h-full overflow-hidden rounded-xl border border-monolith-outline-variant bg-monolith-surface-lowest transition duration-200 hover:-translate-y-px hover:border-monolith-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-4"
       >
         <article className="flex h-full flex-col">
           <div className="relative aspect-[4/3] overflow-hidden bg-monolith-surface-container">
@@ -78,7 +78,7 @@ function ActivityAlbumCard({ album, language }: { album: ActivityAlbum; language
               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="object-cover transition duration-500 group-hover:scale-[1.04]"
             />
-            <span className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-bold text-monolith-on-surface shadow-sm">
               <Images aria-hidden="true" className="h-3.5 w-3.5" />
               {album.photos.length}
             </span>
@@ -86,7 +86,7 @@ function ActivityAlbumCard({ album, language }: { album: ActivityAlbum; language
 
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-              <span className="rounded-full bg-monolith-primary-fixed px-3 py-1 text-monolith-primary">
+              <span className="border-l-2 border-monolith-primary pl-2 text-monolith-primary">
                 {copy.filters[album.category]}
               </span>
               {album.date ? (
@@ -144,14 +144,14 @@ export default function ActivityArchive({ albums, filters = [] }: ActivityArchiv
       </h2>
 
       {filters.length > 0 ? (
-        <div className="mb-12 border-y border-monolith-outline-variant/40 py-5">
+        <div className="mb-12 border-y border-monolith-outline-variant py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <label className="sm:hidden">
               <span className="sr-only">{copy.filterLabel}</span>
               <select
                 value={selectedFilter}
                 onChange={(event) => setSelectedFilter(event.target.value as ActivityFilter)}
-                className="w-full rounded-xl border border-monolith-outline-variant bg-monolith-surface-lowest px-4 py-3 text-sm font-bold text-monolith-on-surface focus:border-monolith-primary focus:outline-none focus:ring-2 focus:ring-monolith-primary/20"
+                className="w-full rounded-lg border border-monolith-outline-variant bg-monolith-surface-lowest px-4 py-3 text-sm font-bold text-monolith-on-surface focus:border-monolith-primary focus:outline-none focus:ring-2 focus:ring-monolith-primary/20"
               >
                 {filters.map((filter) => (
                   <option key={filter} value={filter}>
@@ -161,7 +161,7 @@ export default function ActivityArchive({ albums, filters = [] }: ActivityArchiv
               </select>
             </label>
 
-            <div aria-label={copy.filterLabel} className="hidden flex-wrap gap-2 sm:flex" role="group">
+            <div aria-label={copy.filterLabel} className="hidden flex-wrap gap-x-1 gap-y-2 sm:flex" role="group">
               {filters.map((filter) => {
                 const isSelected = selectedFilter === filter;
 
@@ -172,9 +172,9 @@ export default function ActivityArchive({ albums, filters = [] }: ActivityArchiv
                     aria-pressed={isSelected}
                     onClick={() => setSelectedFilter(filter)}
                     className={[
-                      'rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-2',
+                      'min-h-11 rounded-lg border px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-2',
                       isSelected
-                        ? 'border-monolith-primary bg-monolith-primary text-white shadow-sm'
+                        ? 'border-monolith-primary bg-monolith-primary text-white'
                         : 'border-monolith-outline-variant/70 bg-monolith-surface-lowest text-monolith-on-surface-muted hover:border-monolith-primary/40 hover:text-monolith-primary',
                     ].join(' ')}
                   >
@@ -203,11 +203,11 @@ export default function ActivityArchive({ albums, filters = [] }: ActivityArchiv
         <div className="space-y-20">
           {groupedAlbums.map(({ year, months }) => (
             <section key={year} aria-labelledby={`year-${year}`}>
-              <div className="mb-8 flex items-end gap-4 border-b border-monolith-outline-variant/40 pb-5">
+              <div className="mb-8 flex items-baseline gap-3 border-b border-monolith-outline-variant pb-4">
                 <span className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary-container">
                   {copy.yearLabel}
                 </span>
-                <h3 id={`year-${year}`} className="text-5xl font-black tracking-[-0.06em] text-monolith-on-surface sm:text-6xl">
+                <h3 id={`year-${year}`} className="text-3xl font-black tracking-[-0.04em] text-monolith-on-surface sm:text-4xl">
                   {year}
                 </h3>
               </div>
@@ -235,7 +235,7 @@ export default function ActivityArchive({ albums, filters = [] }: ActivityArchiv
           ))}
 
           {undatedAlbums.length > 0 ? (
-            <section aria-labelledby="undated-activities-heading" className="rounded-[32px] bg-monolith-surface-low p-6 sm:p-8">
+            <section aria-labelledby="undated-activities-heading" className="rounded-2xl border border-monolith-outline-variant bg-monolith-surface-low p-6 sm:p-8">
               <span className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monolith-primary-container">
                 {copy.undatedEyebrow}
               </span>

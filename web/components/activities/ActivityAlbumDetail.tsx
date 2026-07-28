@@ -36,7 +36,7 @@ export default function ActivityAlbumDetail({ album }: ActivityAlbumDetailProps)
           <div className="mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
             <Link
               href="/activities"
-              className="inline-flex items-center gap-2 rounded-full text-sm font-bold text-monolith-primary transition hover:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-4"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-monolith-primary transition hover:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-monolith-primary focus-visible:ring-offset-4"
             >
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
               {copy.backToArchive}
@@ -45,7 +45,7 @@ export default function ActivityAlbumDetail({ album }: ActivityAlbumDetailProps)
             <div className="mt-10 grid items-end gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
               <div>
                 <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
-                  <span className="rounded-full bg-monolith-primary-fixed px-3 py-1.5 text-monolith-primary">
+                  <span className="border-l-2 border-monolith-primary pl-2 text-monolith-primary">
                     {copy.filters[album.category]}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-monolith-on-surface-muted">
@@ -66,7 +66,7 @@ export default function ActivityAlbumDetail({ album }: ActivityAlbumDetailProps)
                 </p>
               </div>
 
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[32px] bg-monolith-surface-container shadow-[0_24px_64px_rgba(0,51,97,0.16)]">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-monolith-outline-variant bg-monolith-surface-container">
                 <Image
                   src={album.coverPhoto.src}
                   alt={album.coverPhoto.alt[language]}
@@ -94,7 +94,7 @@ export default function ActivityAlbumDetail({ album }: ActivityAlbumDetailProps)
 
               return (
                 <li key={photo.id} className={isFeatured ? 'sm:col-span-2 sm:row-span-2' : undefined}>
-                  <figure className={`relative overflow-hidden rounded-[24px] bg-monolith-surface-container ${isFeatured ? 'aspect-[4/3] h-full' : 'aspect-[4/3]'}`}>
+                  <figure className={`relative overflow-hidden rounded-xl bg-monolith-surface-container ${isFeatured ? 'aspect-[4/3] h-full' : 'aspect-[4/3]'}`}>
                     <Image
                       src={photo.src}
                       alt={photo.alt[language]}

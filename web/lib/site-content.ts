@@ -284,7 +284,7 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   },
   {
     id: 'a5',
-    src: '/Album/엑셀라1.jpeg',
+    src: '/Album/엑셀라1.jpeg',
     alt: { ko: 'Axelar와 Squid를 소개하는 심화 세션 발표', en: 'Advanced session presentation about Axelar and Squid' },
     title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
     date: null,
@@ -293,7 +293,7 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   },
   {
     id: 'a6',
-    src: '/Album/엑셀라2.jpeg',
+    src: '/Album/엑셀라2.jpeg',
     alt: { ko: 'Axelar 심화 세션 발표 현장', en: 'Presentation at the Axelar advanced session' },
     title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
     date: null,
@@ -302,7 +302,7 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   },
   {
     id: 'a7',
-    src: '/Album/엑셀라3.jpeg',
+    src: '/Album/엑셀라3.jpeg',
     alt: { ko: 'Axelar 심화 세션 단체 사진', en: 'Group photo from the Axelar advanced session' },
     title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
     date: null,

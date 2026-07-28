@@ -13,11 +13,11 @@ export default function ActivitiesPage() {
   return (
     <SiteChrome activePath="/activities">
       <main className="mx-auto max-w-7xl px-6 py-16 sm:py-20 lg:px-8 lg:py-24">
-        <div className="mb-12">
+        <div className="mb-12 max-w-3xl">
           <span className="mb-4 block font-display text-xs font-bold uppercase tracking-[0.22em] text-monolith-primary-container">
             Archive
           </span>
-          <h1 className="text-4xl font-black uppercase tracking-[-0.06em] text-monolith-on-surface sm:text-5xl">
+          <h1 className="text-4xl font-black uppercase tracking-[-0.04em] text-monolith-on-surface sm:text-5xl">
             {d.title}
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-monolith-on-surface-muted">

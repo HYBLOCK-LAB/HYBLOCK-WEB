@@ -4,15 +4,18 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useLanguageStore } from '@/lib/auth/language-store';
 import { textContent } from '@/lib/text-content';
+import type { NoticeItem } from '@/lib/supabase-notices';
 
 type NoticesContentProps = {
-  initialNotices: any[];
+  initialNotices: NoticeItem[];
   totalCount: number;
   categories: string[];
   currentCategory: string;
   query: string;
   currentPage: number;
   totalPages: number;
+  loadError: boolean;
+  isLocalPreview: boolean;
 };
 
 function buildNoticeHref(params: { page?: number; category?: string; query?: string }) {
@@ -41,6 +44,8 @@ export default function NoticesContent({
   query,
   currentPage,
   totalPages,
+  loadError,
+  isLocalPreview,
 }: NoticesContentProps) {
   const { language } = useLanguageStore();
   const d = textContent[language].notices;
@@ -62,6 +67,22 @@ export default function NoticesContent({
           {d.description}
         </p>
       </header>
+
+      {isLocalPreview ? (
+        <aside className="mb-6 rounded-xl border border-monolith-primary/15 bg-monolith-primary-fixed/55 px-4 py-3 text-sm font-medium text-monolith-primary">
+          {language === 'ko'
+            ? 'Supabase 연결 전 로컬 예시 공지를 표시하고 있습니다.'
+            : 'Showing local sample notices until Supabase is connected.'}
+        </aside>
+      ) : null}
+
+      {loadError ? (
+        <aside className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          {language === 'ko'
+            ? '공지 데이터를 불러오지 못했습니다. Supabase 연결 설정을 확인해 주세요.'
+            : 'Notices could not be loaded. Check the Supabase connection settings.'}
+        </aside>
+      ) : null}
 
       {/* Category & Search */}
       <section className="mb-8 flex flex-col gap-4 rounded-xl bg-monolith-surface-low p-3 md:flex-row md:items-center md:justify-between">
@@ -128,7 +149,13 @@ export default function NoticesContent({
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-sm text-monolith-on-surface-muted">
-                    {language === 'ko' ? '공지사항이 없습니다.' : 'No notices found.'}
+                    {loadError
+                      ? language === 'ko'
+                        ? '공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+                        : 'Notices could not be loaded. Please try again later.'
+                      : language === 'ko'
+                        ? '검색 조건에 맞는 공지사항이 없습니다.'
+                        : 'No notices match your search.'}
                   </td>
                 </tr>
               )}
@@ -138,58 +165,60 @@ export default function NoticesContent({
       </section>
 
       {/* Pagination */}
-      <div className="mt-12 flex items-center justify-center gap-2">
-        {[
-          { icon: ChevronsLeft, page: 1, disabled: currentPage <= 1 },
-          { icon: ChevronLeft, page: currentPage - 1, disabled: currentPage <= 1 },
-        ].map(({ icon: Icon, page, disabled }, index) =>
-          disabled ? (
-            <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
-              <Icon className="h-4 w-4" />
-            </span>
-          ) : (
-            <Link
-              key={index}
-              href={buildNoticeHref({ page, category: currentCategory, query })}
-              className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
-            >
-              <Icon className="h-4 w-4" />
-            </Link>
-          ),
-        )}
-        <div className="mx-4 flex gap-1">
-          {pageNumbers.map((page) => (
-            <Link
-              key={page}
-              href={buildNoticeHref({ page, category: currentCategory, query })}
-              className={[
-                'interactive-soft flex h-10 w-10 items-center justify-center rounded-lg font-display',
-                page === currentPage ? 'bg-monolith-primary text-white' : 'text-monolith-on-surface-muted hover:bg-monolith-surface-high',
-              ].join(' ')}
-            >
-              {page}
-            </Link>
-          ))}
+      {totalCount > 0 ? (
+        <div className="mt-12 flex items-center justify-center gap-2">
+          {[
+            { icon: ChevronsLeft, page: 1, disabled: currentPage <= 1 },
+            { icon: ChevronLeft, page: currentPage - 1, disabled: currentPage <= 1 },
+          ].map(({ icon: Icon, page, disabled }, index) =>
+            disabled ? (
+              <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
+                <Icon className="h-4 w-4" />
+              </span>
+            ) : (
+              <Link
+                key={index}
+                href={buildNoticeHref({ page, category: currentCategory, query })}
+                className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
+              >
+                <Icon className="h-4 w-4" />
+              </Link>
+            ),
+          )}
+          <div className="mx-4 flex gap-1">
+            {pageNumbers.map((page) => (
+              <Link
+                key={page}
+                href={buildNoticeHref({ page, category: currentCategory, query })}
+                className={[
+                  'interactive-soft flex h-10 w-10 items-center justify-center rounded-lg font-display',
+                  page === currentPage ? 'bg-monolith-primary text-white' : 'text-monolith-on-surface-muted hover:bg-monolith-surface-high',
+                ].join(' ')}
+              >
+                {page}
+              </Link>
+            ))}
+          </div>
+          {[
+            { icon: ChevronRight, page: currentPage + 1, disabled: currentPage >= totalPages },
+            { icon: ChevronsRight, page: totalPages, disabled: currentPage >= totalPages },
+          ].map(({ icon: Icon, page, disabled }, index) =>
+            disabled ? (
+              <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
+                <Icon className="h-4 w-4" />
+              </span>
+            ) : (
+              <Link
+                key={index}
+                href={buildNoticeHref({ page, category: currentCategory, query })}
+                className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
+              >
+                <Icon className="h-4 w-4" />
+              </Link>
+            ),
+          )}
         </div>
-        {[
-          { icon: ChevronRight, page: currentPage + 1, disabled: currentPage >= totalPages },
-          { icon: ChevronsRight, page: totalPages, disabled: currentPage >= totalPages },
-        ].map(({ icon: Icon, page, disabled }, index) =>
-          disabled ? (
-            <span key={index} className="rounded-lg border border-monolith-outline-variant/20 p-2 text-monolith-outline-variant/70">
-              <Icon className="h-4 w-4" />
-            </span>
-          ) : (
-            <Link
-              key={index}
-              href={buildNoticeHref({ page, category: currentCategory, query })}
-              className="interactive-soft rounded-lg border border-monolith-outline-variant/30 p-2 text-monolith-on-surface-muted transition hover:bg-monolith-surface-high"
-            >
-              <Icon className="h-4 w-4" />
-            </Link>
-          ),
-        )}
-      </div>
+      ) : null}
     </main>
   );
 }

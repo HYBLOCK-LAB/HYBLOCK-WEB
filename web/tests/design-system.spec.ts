@@ -124,6 +124,34 @@ test('activity archive shows albums without responsive overflow', async ({ page 
   });
 });
 
+test('notices show local preview data and open a detail page', async ({ page }, testInfo) => {
+  const response = await page.goto('/notices', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+
+  await expect(page.getByRole('heading', { level: 1, name: '공지사항' })).toBeVisible();
+  await expect(page.getByText('Supabase 연결 전 로컬 예시 공지를 표시하고 있습니다.')).toBeVisible();
+  await expect(page.getByRole('link', { name: '블록체인 인프라 보안 강화 세미나 자료 배포' })).toBeVisible();
+  await expect(page.getByText('공지사항이 없습니다.')).toHaveCount(0);
+
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+
+  await page.getByRole('link', { name: '블록체인 인프라 보안 강화 세미나 자료 배포' }).click();
+  await expect(page).toHaveURL(/\/notices\/124$/);
+  await expect(page.getByRole('heading', { level: 1, name: '블록체인 인프라 보안 강화 세미나 자료 배포' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: '세미나 자료 안내' })).toBeVisible();
+
+  const screenshotPath = testInfo.outputPath('notices.png');
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  await testInfo.attach(`notices-${testInfo.project.name}`, {
+    path: screenshotPath,
+    contentType: 'image/png',
+  });
+});
+
 test('shared chrome keeps navigation and external links readable', async ({ page }, testInfo) => {
   const response = await page.goto('/apply', { waitUntil: 'domcontentloaded' });
   expect(response?.ok()).toBeTruthy();

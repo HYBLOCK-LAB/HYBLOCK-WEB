@@ -151,10 +151,13 @@ forge script script/Deploy.s.sol --rpc-url "$RPC_URL" --broadcast --private-key 
 
 ### 공지·활동
 
-1. 관리자 공지 CRUD 후 `/notices`에서 결과를 확인한다.
-2. 홈 공지 요약은 자동 반영되지 않는다는 점을 확인한다.
-3. 활동 생성 시 타입, 기수, 날짜와 심화 세션 대상 파트를 확인한다.
-4. `/activities` 앨범은 DB 활동과 자동 연동되지 않는다.
+1. 로컬 개발 중 Supabase 환경 변수가 없으면 `/notices`가 로컬 예시 공지와 안내 문구를 표시한다.
+2. 실제 DB를 점검할 때는 `.env.local`에 Supabase 환경 변수를 설정하고 `HYBLOCK_USE_LOCAL_NOTICE_FIXTURES=0`으로 둔다.
+3. DB 연결 실패는 빈 목록이 아니라 오류 안내로 표시되는지 확인한다.
+4. 관리자 공지 CRUD 후 `/notices`에서 결과를 확인한다.
+5. 홈 공지 요약은 자동 반영되지 않는다는 점을 확인한다.
+6. 활동 생성 시 타입, 기수, 날짜와 심화 세션 대상 파트를 확인한다.
+7. `/activities` 앨범은 DB 활동과 자동 연동되지 않는다.
 
 ### 출석
 

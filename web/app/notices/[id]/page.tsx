@@ -29,9 +29,14 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
     notFound();
   }
 
-  const notice = await getNoticeById(noticeId).catch(() => null);
+  let loadError = false;
+  const notice = await getNoticeById(noticeId).catch((error) => {
+    loadError = true;
+    console.error('Notice detail query error:', error);
+    return null;
+  });
 
-  if (!notice) {
+  if (!notice && !loadError) {
     notFound();
   }
 
@@ -46,36 +51,45 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
           공지 목록
         </Link>
 
-        <article className="mt-8 overflow-hidden rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
-          <header className="border-b border-monolith-outline-variant/15 bg-monolith-surface-low px-6 py-8 sm:px-8">
-            <span className="inline-flex rounded-full bg-monolith-primary-fixed px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-monolith-primary">
-              {notice.category}
-            </span>
-            <h1 className="mt-4 text-3xl font-black tracking-[-0.05em] text-monolith-on-surface sm:text-4xl">{notice.title}</h1>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-monolith-on-surface-muted">
-              <span>{notice.author}</span>
-              <span>•</span>
-              <span>{formatNoticeDate(notice.date)}</span>
+        {loadError ? (
+          <section className="mt-8 rounded-[2rem] border border-red-200 bg-red-50 px-6 py-12 text-center sm:px-8">
+            <h1 className="text-2xl font-black tracking-tight text-red-900">공지를 불러오지 못했습니다.</h1>
+            <p className="mt-3 break-keep text-sm leading-6 text-red-800">
+              잠시 후 다시 시도해 주세요. 로컬 개발 환경이라면 Supabase 환경 변수 설정을 확인해 주세요.
+            </p>
+          </section>
+        ) : notice ? (
+          <article className="mt-8 overflow-hidden rounded-[2rem] border border-monolith-outline-variant/20 bg-monolith-surface-lowest shadow-[0_20px_50px_rgba(0,51,97,0.08)]">
+            <header className="border-b border-monolith-outline-variant/15 bg-monolith-surface-low px-6 py-8 sm:px-8">
+              <span className="inline-flex rounded-full bg-monolith-primary-fixed px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-monolith-primary">
+                {notice.category}
+              </span>
+              <h1 className="mt-4 text-3xl font-black tracking-[-0.05em] text-monolith-on-surface sm:text-4xl">{notice.title}</h1>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-monolith-on-surface-muted">
+                <span>{notice.author}</span>
+                <span>•</span>
+                <span>{formatNoticeDate(notice.date)}</span>
+              </div>
+            </header>
+
+            <div className="px-6 py-8 sm:px-8">
+              <MarkdownContent content={notice.content} />
+
+              {notice.images.length > 0 ? (
+                <section className="mt-10">
+                  <h2 className="text-lg font-black tracking-tight text-monolith-on-surface">첨부 이미지</h2>
+                  <div className="mt-4 grid gap-4">
+                    {notice.images.map((image, index) => (
+                      <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low">
+                        <img src={image} alt={`${notice.title} 이미지 ${index + 1}`} className="h-auto w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
-          </header>
-
-          <div className="px-6 py-8 sm:px-8">
-            <MarkdownContent content={notice.content} />
-
-            {notice.images.length > 0 ? (
-              <section className="mt-10">
-                <h2 className="text-lg font-black tracking-tight text-monolith-on-surface">첨부 이미지</h2>
-                <div className="mt-4 grid gap-4">
-                  {notice.images.map((image, index) => (
-                    <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low">
-                      <img src={image} alt={`${notice.title} 이미지 ${index + 1}`} className="h-auto w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </div>
-        </article>
+          </article>
+        ) : null}
       </main>
     </SiteChrome>
   );

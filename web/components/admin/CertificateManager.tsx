@@ -17,12 +17,22 @@ import {
 } from '@/lib/eas';
 import type { CertificateCandidate, IssuedAttestationSummary, MemberCertificateDetail } from '@/lib/supabase-certificate';
 
-type AttestState = 'idle' | 'signing' | 'pending' | 'success' | 'error';
+type AttestState = 'idle' | 'signing' | 'pending' | 'success' | 'error' | 'save_failed';
 
 type PendingAttest = {
   candidate: CertificateCandidate;
   type: CertificateType;
   txHash: Hex | null;
+};
+
+// 온체인 발급은 성공했으나 DB 저장이 실패한 "고아" 증명. 온체인 재발급 없이
+// 저장만 재시도하기 위해 저장에 필요한 값을 모두 보존한다.
+type OrphanedAttestation = {
+  candidate: CertificateCandidate;
+  type: CertificateType;
+  uid: Hex;
+  personalDataHash: Hex;
+  revealedData: Record<string, unknown>;
 };
 
 type SelectedEntry =
@@ -58,6 +68,8 @@ export default function CertificateManager() {
   const [attestError, setAttestError] = useState<string | null>(null);
   const [pendingAttest, setPendingAttest] = useState<PendingAttest | null>(null);
   const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
+  const [orphanedAttestation, setOrphanedAttestation] = useState<OrphanedAttestation | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const pendingAttestRef = useRef<PendingAttest | null>(null);
   pendingAttestRef.current = pendingAttest;
@@ -75,6 +87,7 @@ export default function CertificateManager() {
     setAttestState('idle');
     setAttestError(null);
     setSuccessInfo(null);
+    setOrphanedAttestation(null);
   }, [selectedType]);
 
   // Handle receipt after tx confirmed
@@ -82,70 +95,97 @@ export default function CertificateManager() {
     if (!txReceipt || !pendingAttestRef.current?.txHash) return;
 
     void (async () => {
+      const current = pendingAttestRef.current!;
+
+      let uid: Hex | undefined;
       try {
-        const logs = parseEventLogs({
-          abi: EAS_ABI,
-          logs: txReceipt.logs,
-          eventName: 'Attested',
-        });
+        const logs = parseEventLogs({ abi: EAS_ABI, logs: txReceipt.logs, eventName: 'Attested' });
+        uid = logs[0]?.args?.uid as Hex | undefined;
+      } catch {
+        uid = undefined;
+      }
 
-        const uid = logs[0]?.args?.uid as Hex | undefined;
-        if (!uid) {
-          throw new Error('트랜잭션에서 Attestation UID를 찾지 못했습니다.');
-        }
-
-        const current = pendingAttestRef.current!;
-        const personalDataHash = computePersonalDataHash(
-          current.candidate.wallet_address as `0x${string}`,
-          current.candidate.cohort,
-        );
-
-        const res = await fetch('/api/certificates/save-attestation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet_address: current.candidate.wallet_address,
-            attestation_type: current.type,
-            eas_uid: uid,
-            personal_data_hash: personalDataHash,
-            revealed_data: buildRevealedData(current.candidate, current.type),
-            is_graduated: false,
-          }),
-        });
-
-        if (!res.ok) {
-          const json = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(json.error ?? '증명 저장에 실패했습니다.');
-        }
-
-        setAttestState('success');
-        setSuccessInfo({
-          uid,
-          createdAt: new Date().toISOString(),
-        });
-        setPendingAttest(null);
-        setCandidates((prev) => prev.filter((c) => c.wallet_address !== current.candidate.wallet_address));
-        const issuedItem: IssuedAttestationSummary = {
-          wallet_address: current.candidate.wallet_address,
-          name: current.candidate.name,
-          major: current.candidate.major,
-          affiliation: current.candidate.affiliation,
-          cohort: current.candidate.cohort,
-          eas_uid: uid,
-          created_at: new Date().toISOString(),
-          attestation_type: current.type,
-          criteria_details: buildRevealedData(current.candidate, current.type),
-        };
-        setIssuedAttestations((prev) => [issuedItem, ...prev]);
-        setSelectedEntry({ kind: 'issued', item: issuedItem });
-      } catch (err) {
-        setAttestError(err instanceof Error ? err.message : '증명 처리 중 오류가 발생했습니다.');
+      if (!uid) {
+        setAttestError('트랜잭션에서 Attestation UID를 찾지 못했습니다. 트랜잭션 로그를 확인해주세요.');
         setAttestState('error');
         setPendingAttest(null);
+        return;
       }
+
+      const personalDataHash = computePersonalDataHash(
+        current.candidate.wallet_address as `0x${string}`,
+        current.candidate.cohort,
+      );
+
+      await persistAttestation({
+        candidate: current.candidate,
+        type: current.type,
+        uid,
+        personalDataHash,
+        revealedData: buildRevealedData(current.candidate, current.type),
+      });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txReceipt]);
+
+  // 온체인 발급으로 확보한 UID를 DB에 저장한다. 최초 저장과 재시도가 이 함수를 공유하며,
+  // 실패하면 UID를 orphanedAttestation에 보존해 온체인 재발급 없이 재시도할 수 있게 한다.
+  async function persistAttestation(data: OrphanedAttestation) {
+    try {
+      const res = await fetch('/api/certificates/save-attestation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: data.candidate.wallet_address,
+          attestation_type: data.type,
+          eas_uid: data.uid,
+          personal_data_hash: data.personalDataHash,
+          revealed_data: data.revealedData,
+          is_graduated: false,
+        }),
+      });
+
+      // 409 = 이미 DB에 저장됨. 이전 저장이 성공했으나 응답만 유실된 경우 등으로
+      // 사실상 해결된 상태이므로 성공으로 처리한다.
+      if (!res.ok && res.status !== 409) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(json.error ?? '증명 저장에 실패했습니다.');
+      }
+
+      const createdAt = new Date().toISOString();
+      setAttestState('success');
+      setSuccessInfo({ uid: data.uid, createdAt });
+      setOrphanedAttestation(null);
+      setPendingAttest(null);
+      setCandidates((prev) => prev.filter((c) => c.wallet_address !== data.candidate.wallet_address));
+      const issuedItem: IssuedAttestationSummary = {
+        wallet_address: data.candidate.wallet_address,
+        name: data.candidate.name,
+        major: data.candidate.major,
+        affiliation: data.candidate.affiliation,
+        cohort: data.candidate.cohort,
+        eas_uid: data.uid,
+        created_at: createdAt,
+        attestation_type: data.type,
+        criteria_details: data.revealedData,
+      };
+      setIssuedAttestations((prev) => [issuedItem, ...prev]);
+      setSelectedEntry({ kind: 'issued', item: issuedItem });
+    } catch (err) {
+      // 온체인 발급은 됐으므로 UID를 보존하고 재시도 가능한 상태로 둔다.
+      setAttestError(err instanceof Error ? err.message : '증명 저장 중 오류가 발생했습니다.');
+      setOrphanedAttestation(data);
+      setPendingAttest(null);
+      setAttestState('save_failed');
+    }
+  }
+
+  function handleRetrySave() {
+    if (!orphanedAttestation || isRetrying) return;
+    setIsRetrying(true);
+    setAttestError(null);
+    void persistAttestation(orphanedAttestation).finally(() => setIsRetrying(false));
+  }
 
   async function fetchLists(type: CertificateType) {
     setListLoading(true);
@@ -179,6 +219,7 @@ export default function CertificateManager() {
     setMemberDetail(null);
     setAttestState(entry.kind === 'issued' ? 'success' : 'idle');
     setAttestError(null);
+    setOrphanedAttestation(null);
     setSuccessInfo(
       entry.kind === 'issued'
         ? {
@@ -219,6 +260,7 @@ export default function CertificateManager() {
     }
 
     setAttestError(null);
+    setOrphanedAttestation(null);
     setAttestState('signing');
 
     try {
@@ -442,6 +484,9 @@ export default function CertificateManager() {
               attestError={attestError}
               successInfo={successInfo}
               onAttest={handleAttest}
+              onRetrySave={handleRetrySave}
+              isRetrying={isRetrying}
+              orphanedUid={orphanedAttestation?.uid ?? null}
               isWalletConnected={Boolean(address)}
             />
           )}
@@ -476,10 +521,13 @@ type DetailPanelProps = {
   attestError: string | null;
   successInfo: SuccessInfo | null;
   onAttest: () => void;
+  onRetrySave: () => void;
+  isRetrying: boolean;
+  orphanedUid: string | null;
   isWalletConnected: boolean;
 };
 
-function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, attestError, successInfo, onAttest, isWalletConnected }: DetailPanelProps) {
+function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, attestError, successInfo, onAttest, onRetrySave, isRetrying, orphanedUid, isWalletConnected }: DetailPanelProps) {
   const isBusy = attestState === 'signing' || attestState === 'pending';
   const candidate = entry.item;
   const isIssuedEntry = entry.kind === 'issued';
@@ -522,6 +570,15 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
         <div className="rounded-xl border border-[#1a6831]/15 bg-[#e6f4ea] px-4 py-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1a6831]">기발급 증명 정보</p>
           <p className="mt-2 break-all font-mono text-xs text-[#1a6831]">{successInfo.uid}</p>
+          <a
+            href={easscanAttestationUrl(successInfo.uid)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1a6831] hover:underline"
+          >
+            easscan에서 보기
+            <ExternalLink className="h-3 w-3" />
+          </a>
           <p className="mt-2 text-xs text-[#1a6831]/75">
             발급 시각: {new Date(successInfo.createdAt).toLocaleString('ko-KR')}
           </p>
@@ -558,7 +615,48 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
         </div>
       ) : null}
 
-      {attestError ? (
+      {/* 온체인 발급 성공 + DB 저장 실패: UID 보존 + 재발급 없이 저장만 재시도 */}
+      {attestState === 'save_failed' && orphanedUid ? (
+        <div className="rounded-2xl border border-[#8a5a00]/25 bg-[#fff8e1] px-5 py-4">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#8a5a00]" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-[#8a5a00]">온체인 발급은 완료됐지만 DB 저장에 실패했습니다</p>
+              <p className="mt-1 text-xs leading-6 text-[#8a5a00]/80">
+                아래 UID의 증명이 체인에는 이미 존재합니다. <b>다시 발급하지 말고</b> 저장만 재시도하세요.
+              </p>
+              {attestError ? <p className="mt-1 text-xs text-[#8a5a00]/70">사유: {attestError}</p> : null}
+              <p className="mt-2 break-all font-mono text-xs text-[#8a5a00]">{orphanedUid}</p>
+              <a
+                href={easscanAttestationUrl(orphanedUid)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#8a5a00] hover:underline"
+              >
+                easscan에서 확인
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onRetrySave}
+            disabled={isRetrying}
+            className="interactive-soft mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#8a5a00] px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isRetrying ? (
+              <>
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                저장 재시도 중...
+              </>
+            ) : (
+              'DB 저장 다시 시도'
+            )}
+          </button>
+        </div>
+      ) : null}
+
+      {attestError && attestState !== 'save_failed' ? (
         <div className="flex items-start gap-2.5 rounded-2xl bg-monolith-error-container px-4 py-4 text-sm text-monolith-error">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{attestError}</span>
@@ -566,7 +664,7 @@ function DetailPanel({ entry, detail, detailLoading, selectedType, attestState, 
       ) : null}
 
       {/* Attest button */}
-      {attestState !== 'success' && !isIssuedEntry ? (
+      {attestState !== 'success' && attestState !== 'save_failed' && !isIssuedEntry ? (
         <button
           type="button"
           onClick={onAttest}
@@ -749,6 +847,11 @@ function RecordRow({
 }
 
 // ---- Helpers ----
+
+function easscanAttestationUrl(uid: string): string {
+  // 이 프로젝트 기본 체인은 Sepolia. (심화: 연결된 chainId에 따라 도메인 분기)
+  return `https://sepolia.easscan.org/attestation/view/${uid}`;
+}
 
 function buildRevealedData(candidate: CertificateCandidate, type: CertificateType): Record<string, unknown> {
   return {

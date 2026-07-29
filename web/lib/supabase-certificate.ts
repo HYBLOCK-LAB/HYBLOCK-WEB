@@ -176,30 +176,11 @@ async function getFallbackCandidates(type: CertificateType, attestedSet: Set<num
       }));
   }
 
-  const { data: members, error } = await supabase
-    .from('member')
-    .select('id, wallet_address, name, major, affiliation, cohort, has_assignment, is_active')
-    .eq('is_active', true)
-    .not('wallet_address', 'is', null)
-    .order('cohort', { ascending: true })
-    .order('name', { ascending: true })
-    .returns<MemberRow[]>();
-
-  if (error) throw error;
-
-  return (members ?? [])
-    .filter((member): member is MemberRow & { wallet_address: string } => Boolean(member.wallet_address) && !attestedSet.has(member.id))
-    .map((member) => ({
-      wallet_address: member.wallet_address,
-      name: member.name,
-      major: member.major,
-      affiliation: member.affiliation,
-      cohort: member.cohort,
-      criteria_details: {
-        current_status: 'manual_review_required',
-        source: 'active_member_fallback',
-      },
-    }));
+  // participation_period: 학기 단위 판단이라 원시 레코드로 자동 판정할 수 없다.
+  // 유일한 권위 출처인 semester_criteria_tracking(is_met=true)에 기록된 멤버만
+  // getCertificateCandidates에서 후보가 된다. 여기서 모든 활성 멤버를 반환하면
+  // 자격 미달자에게 오발급할 위험이 있으므로 fallback을 두지 않는다.
+  return [];
 }
 
 export async function getCertificateCandidates(type: CertificateType): Promise<CertificateCandidate[]> {
@@ -402,7 +383,7 @@ export async function getSbtEligibility(walletAddress: string) {
   const { data: member, error: memberError } = await supabase
     .from('member')
     .select('id, has_assignment')
-    .ilike('wallet_address', walletAddress)
+    .eq('wallet_address', walletAddress.toLowerCase())
     .maybeSingle<{ id: number; has_assignment: boolean | null }>();
 
   if (memberError) throw memberError;

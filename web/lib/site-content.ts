@@ -321,8 +321,8 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   {
     id: 'a2',
     src: '/Album/하블밤2.jpg',
-    alt: { ko: '하블밤 네트워킹 행사 단체 사진', en: 'Group photo at HYBLOCK Night' },
-    title: { ko: '하블밤 네트워킹', en: 'HYBLOCK Night Networking' },
+    alt: { ko: '하이블록의 밤 네트워킹 행사 단체 사진', en: 'Group photo at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
     date: null,
     category: 'external-activity',
     height: 800,
@@ -330,8 +330,8 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   {
     id: 'a3',
     src: '/Album/하블밤3.jpg',
-    alt: { ko: '하블밤 행사에 참여한 학회원들', en: 'Members at HYBLOCK Night' },
-    title: { ko: '하블밤 네트워킹', en: 'HYBLOCK Night Networking' },
+    alt: { ko: '하이블록의 밤 행사에 참여한 학회원들', en: 'Members at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
     date: null,
     category: 'external-activity',
     height: 800,
@@ -426,9 +426,9 @@ const activityAlbumDefinitions: ActivityAlbumDefinition[] = [
   },
   {
     slug: 'hyblock-night-networking',
-    title: { ko: '하블밤 네트워킹', en: 'HYBLOCK Night Networking' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
     description: {
-      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나눈 하블밤 네트워킹 기록입니다.',
+      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나눈 하이블록의 밤 기록입니다.',
       en: 'Members gathered at HYBLOCK Night to share experiences, interests, and conversations.',
     },
     date: null,

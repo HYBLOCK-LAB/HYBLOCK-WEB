@@ -339,8 +339,8 @@ export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
   {
     id: 'a4',
     src: '/Album/하블밥1.jpg',
-    alt: { ko: '하블밥 친목 모임 단체 사진', en: 'Group photo at a HYBLOCK community dinner' },
-    title: { ko: '하블밥 친목 모임', en: 'HYBLOCK Community Dinner' },
+    alt: { ko: '하이블록의 밤 친목 모임 단체 사진', en: 'Group photo at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
     date: null,
     category: 'external-activity',
     height: 800,
@@ -428,25 +428,13 @@ const activityAlbumDefinitions: ActivityAlbumDefinition[] = [
     slug: 'hyblock-night-networking',
     title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
     description: {
-      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나눈 하이블록의 밤 기록입니다.',
-      en: 'Members gathered at HYBLOCK Night to share experiences, interests, and conversations.',
+      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나누고 친목을 다진 하이블록의 밤 기록입니다.',
+      en: 'Members gathered at HYBLOCK Night to share experiences, interests, and build community.',
     },
     date: null,
     category: 'external-activity',
     coverPhotoId: 'a2',
-    photoIds: ['a2', 'a3'],
-  },
-  {
-    slug: 'hyblock-community-dinner',
-    title: { ko: '하블밥 친목 모임', en: 'HYBLOCK Community Dinner' },
-    description: {
-      ko: '세션 밖에서 학회원들이 편하게 교류한 하블밥 친목 모임 기록입니다.',
-      en: 'A casual HYBLOCK community dinner where members connected outside regular sessions.',
-    },
-    date: null,
-    category: 'external-activity',
-    coverPhotoId: 'a4',
-    photoIds: ['a4'],
+    photoIds: ['a2', 'a3', 'a4'],
   },
 ];
 

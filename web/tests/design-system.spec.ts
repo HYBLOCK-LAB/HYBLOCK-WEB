@@ -94,9 +94,11 @@ test('activity archive shows albums without responsive overflow', async ({ page 
   expect(response?.ok()).toBeTruthy();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Activities' })).toBeVisible();
-  await expect(page.getByText('8개의 앨범', { exact: true })).toBeVisible();
-  await expect(page.locator('a[href^="/activities/"]')).toHaveCount(8);
+  await expect(page.getByText('7개의 앨범', { exact: true })).toBeVisible();
+  await expect(page.locator('a[href^="/activities/"]')).toHaveCount(7);
   await expect(page.getByRole('heading', { name: 'Monad Blitz 해커톤', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: '하이블록의 밤', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: '하블밥 친목 모임', exact: true })).toHaveCount(0);
 
   const layout = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -122,6 +124,15 @@ test('activity archive shows albums without responsive overflow', async ({ page 
     path: screenshotPath,
     contentType: 'image/png',
   });
+});
+
+test('HYBLOCK Night album includes the community dinner photo', async ({ page }) => {
+  const response = await page.goto('/activities/hyblock-night-networking', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+
+  await expect(page.getByRole('heading', { level: 1, name: '하이블록의 밤' })).toBeVisible();
+  await expect(page.getByText('3장의 사진', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: '하이블록의 밤 친목 모임 단체 사진' })).toBeVisible();
 });
 
 test('notices show local preview data and open a detail page', async ({ page }, testInfo) => {

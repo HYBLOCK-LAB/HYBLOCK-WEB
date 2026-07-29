@@ -3,7 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronDown, LogOut, UserRound, Wallet, Languages } from 'lucide-react';
+import {
+  AtSign,
+  BookOpenText,
+  BriefcaseBusiness,
+  Camera,
+  ChevronDown,
+  Languages,
+  LogOut,
+  Menu,
+  UserRound,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
@@ -22,6 +34,7 @@ function isActive(activePath: string, href: string) {
 
 export default function SiteChrome({ activePath, children }: SiteChromeProps) {
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openWalletAccountModal, openWalletConnectModal } = useWalletConnectModal();
   const { disconnect } = useDisconnect();
   const address = useWalletSessionStore((state) => state.address);
@@ -110,7 +123,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="hidden items-center gap-5 md:flex">
             {/* Language Toggle */}
             <button 
               onClick={toggleLanguage}
@@ -138,7 +151,96 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               </Link>
             )}
           </div>
+
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={language === 'ko' ? '영어로 보기' : '한국어로 보기'}
+              className="inline-flex h-11 items-center gap-1 rounded-lg px-2 text-xs font-bold text-slate-500 hover:bg-slate-100"
+            >
+              <Languages className="h-4 w-4" aria-hidden="true" />
+              {language === 'ko' ? 'KOR' : 'ENG'}
+            </button>
+            <button
+              type="button"
+              aria-controls="mobile-navigation"
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-[#0e4a84] hover:text-[#0e4a84]"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
+
+        {mobileMenuOpen ? (
+          <nav id="mobile-navigation" aria-label="모바일 메뉴" className="border-t border-slate-100 bg-white px-6 py-5 md:hidden">
+            <div className="mx-auto grid max-w-7xl gap-1">
+              {[...brandMenuItems, ...headerNavItems].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={[
+                    'rounded-lg px-3 py-3 text-base font-bold',
+                    isActive(activePath, item.href)
+                      ? 'bg-slate-100 text-[#0e4a84]'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-[#0e4a84]',
+                  ].join(' ')}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {isConnected && address ? (
+                <>
+                  <Link
+                    href="/attendance"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-3 text-base font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0e4a84]"
+                  >
+                    출석 체크
+                  </Link>
+                  <Link
+                    href="/mypage"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-3 text-base font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0e4a84]"
+                  >
+                    마이페이지
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      disconnect();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="rounded-lg px-3 py-3 text-left text-base font-bold text-slate-500 hover:bg-slate-50 hover:text-red-600"
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/apply"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-3 text-base font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0e4a84]"
+                  >
+                    지원하기
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="mt-2 inline-flex h-11 items-center justify-center rounded-lg bg-[#0e4a84] px-5 text-sm font-bold text-white"
+                  >
+                    로그인
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
+        ) : null}
       </header>
 
       {children}
@@ -163,18 +265,18 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               </div>
             </div>
             
-            <div className="flex items-center gap-6 text-slate-400">
-              <a href="https://medium.com/hy-block" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition-colors" title="Medium">
-                <i className="fa-brands fa-medium text-2xl" />
+            <div className="flex items-center gap-2 text-slate-500">
+              <a href="https://medium.com/hy-block" target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 hover:border-slate-400 hover:text-slate-900 transition-colors" aria-label="HYBLOCK Medium">
+                <BookOpenText className="h-5 w-5" aria-hidden="true" />
               </a>
-              <a href="https://www.instagram.com/hyblock_kr/" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition-colors" title="Instagram">
-                <i className="fa-brands fa-instagram text-2xl" />
+              <a href="https://www.instagram.com/hyblock_kr/" target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 hover:border-slate-400 hover:text-slate-900 transition-colors" aria-label="HYBLOCK Instagram">
+                <Camera className="h-5 w-5" aria-hidden="true" />
               </a>
-              <a href="https://www.linkedin.com/company/hyblock/" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition-colors" title="LinkedIn">
-                <i className="fa-brands fa-linkedin text-2xl" />
+              <a href="https://www.linkedin.com/company/hyblock/" target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 hover:border-slate-400 hover:text-slate-900 transition-colors" aria-label="HYBLOCK LinkedIn">
+                <BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />
               </a>
-              <a href="https://x.com/hyblock_kr" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition-colors" title="X (Twitter)">
-                <i className="fa-brands fa-x-twitter text-2xl" />
+              <a href="https://x.com/hyblock_kr" target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 hover:border-slate-400 hover:text-slate-900 transition-colors" aria-label="HYBLOCK X">
+                <AtSign className="h-5 w-5" aria-hidden="true" />
               </a>
             </div>
           </div>

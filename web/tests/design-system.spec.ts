@@ -88,3 +88,96 @@ test('HYBLOCK 소개 CTA keeps its label centered on one line', async ({ page },
     contentType: 'image/png',
   });
 });
+
+test('activity archive shows albums without responsive overflow', async ({ page }, testInfo) => {
+  const response = await page.goto('/activities', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Activities' })).toBeVisible();
+  await expect(page.getByText('7개의 앨범', { exact: true })).toBeVisible();
+  await expect(page.locator('a[href^="/activities/"]')).toHaveCount(7);
+  await expect(page.getByRole('heading', { name: 'Monad Blitz 해커톤', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: '하이블록의 밤', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: '하블밥 친목 모임', exact: true })).toHaveCount(0);
+
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.getByRole('combobox', { name: '활동 분류' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '메뉴 열기' })).toBeVisible();
+  } else {
+    await expect(page.getByRole('group', { name: '활동 분류' })).toBeVisible();
+  }
+
+  const axelarCover = page.getByRole('img', { name: 'Axelar와 Squid를 소개하는 심화 세션 발표' });
+  await axelarCover.scrollIntoViewIfNeeded();
+  await expect.poll(() => axelarCover.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+
+  const screenshotPath = testInfo.outputPath('activities.png');
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  await testInfo.attach(`activities-${testInfo.project.name}`, {
+    path: screenshotPath,
+    contentType: 'image/png',
+  });
+});
+
+test('HYBLOCK Night album includes the community dinner photo', async ({ page }) => {
+  const response = await page.goto('/activities/hyblock-night-networking', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+
+  await expect(page.getByRole('heading', { level: 1, name: '하이블록의 밤' })).toBeVisible();
+  await expect(page.getByText('3장의 사진', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: '하이블록의 밤 친목 모임 단체 사진' })).toBeVisible();
+});
+
+test('notices show local preview data and open a detail page', async ({ page }, testInfo) => {
+  const response = await page.goto('/notices', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+
+  await expect(page.getByRole('heading', { level: 1, name: '공지사항' })).toBeVisible();
+  await expect(page.getByText('Supabase 연결 전 로컬 예시 공지를 표시하고 있습니다.')).toBeVisible();
+  await expect(page.getByRole('link', { name: '블록체인 인프라 보안 강화 세미나 자료 배포' })).toBeVisible();
+  await expect(page.getByText('공지사항이 없습니다.')).toHaveCount(0);
+
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+
+  await page.getByRole('link', { name: '블록체인 인프라 보안 강화 세미나 자료 배포' }).click();
+  await expect(page).toHaveURL(/\/notices\/124$/);
+  await expect(page.getByRole('heading', { level: 1, name: '블록체인 인프라 보안 강화 세미나 자료 배포' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: '세미나 자료 안내' })).toBeVisible();
+
+  const screenshotPath = testInfo.outputPath('notices.png');
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  await testInfo.attach(`notices-${testInfo.project.name}`, {
+    path: screenshotPath,
+    contentType: 'image/png',
+  });
+});
+
+test('shared chrome keeps navigation and external links readable', async ({ page }, testInfo) => {
+  const response = await page.goto('/apply', { waitUntil: 'domcontentloaded' });
+  expect(response?.ok()).toBeTruthy();
+  await expect(page.getByRole('heading', { name: '페이지 작업중입니다.' })).toBeVisible();
+
+  await expect(page.getByRole('link', { name: 'HYBLOCK Medium' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'HYBLOCK Instagram' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'HYBLOCK LinkedIn' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'HYBLOCK X' })).toBeVisible();
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    const menuButton = page.getByRole('button', { name: '메뉴 열기' });
+    await menuButton.click();
+    await expect(page.getByRole('navigation', { name: '모바일 메뉴' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '공지사항' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '활동' })).toBeVisible();
+  }
+});

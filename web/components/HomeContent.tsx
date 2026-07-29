@@ -7,14 +7,14 @@ import SiteChrome from '@/components/SiteChrome';
 import ActivitiesGallery from '@/components/activities/ActivitiesGallery';
 import ProfessorSection from '@/components/ProfessorSection';
 import HeroButtons from '@/components/HeroButtons';
-import { aboutValues, homeNotices, mockActivityGalleryPhotos } from '@/lib/site-content';
+import { aboutValues, activityAlbums, homeNotices } from '@/lib/site-content';
 import { textContent } from '@/lib/text-content';
 import { useLanguageStore } from '@/lib/auth/language-store';
 
 export default function HomeContent() {
   const { language } = useLanguageStore();
   const d = textContent[language].home;
-  const pastActivities = mockActivityGalleryPhotos.slice(0, 12);
+  const pastActivities = activityAlbums.slice(0, 6).map((album) => album.coverPhoto);
 
   return (
     <main>

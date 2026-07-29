@@ -1,8 +1,10 @@
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import SiteChrome from '@/components/SiteChrome';
 import NoticesContent from '@/components/NoticesContent';
-import { getNoticeCategories, getPaginatedNotices } from '@/lib/supabase-notices';
+import {
+  getNoticeCategories,
+  getPaginatedNotices,
+  isUsingLocalNoticeFixtures,
+} from '@/lib/supabase-notices';
 
 type NoticesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,15 +24,21 @@ export default async function NoticesPage({ searchParams }: NoticesPageProps) {
   const query = getSingleParam(params.q)?.trim() ?? '';
   const rawPage = Number(getSingleParam(params.page) ?? '1');
   const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+  let loadError = false;
 
   const [categories, initialResult] = await Promise.all([
-    getNoticeCategories(),
+    getNoticeCategories().catch((error) => {
+      loadError = true;
+      console.error('Notices category query error:', error);
+      return ['전체'];
+    }),
     getPaginatedNotices({
       page: currentPage,
       pageSize: PAGE_SIZE,
       category: currentCategory,
       query,
     }).catch((error) => {
+      loadError = true;
       console.error('Notices page query error:', error);
       return { notices: [], totalCount: 0 };
     }),
@@ -48,6 +56,7 @@ export default async function NoticesPage({ searchParams }: NoticesPageProps) {
           category: currentCategory,
           query,
         }).catch((error) => {
+          loadError = true;
           console.error('Notices page requery error:', error);
           return { notices: [], totalCount: initialResult.totalCount };
         });
@@ -62,6 +71,8 @@ export default async function NoticesPage({ searchParams }: NoticesPageProps) {
         query={query}
         currentPage={safeCurrentPage}
         totalPages={totalPages}
+        loadError={loadError}
+        isLocalPreview={isUsingLocalNoticeFixtures()}
       />
     </SiteChrome>
   );

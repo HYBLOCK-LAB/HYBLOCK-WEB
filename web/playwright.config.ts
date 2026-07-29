@@ -17,6 +17,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run start -- -H 127.0.0.1 -p 5173',
     url: 'http://127.0.0.1:5173',
+    env: {
+      HYBLOCK_USE_LOCAL_NOTICE_FIXTURES: '1',
+    },
     reuseExistingServer: true,
     timeout: 120_000,
   },

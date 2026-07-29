@@ -16,11 +16,34 @@ export type WalletLinkPageContent = {
   }>;
 };
 
+export type ActivityCategory = 'basic-session' | 'advanced-session' | 'hackathon' | 'external-activity';
+
+export type ActivityFilter = 'all' | ActivityCategory;
+
+export type LocalizedActivityText = {
+  ko: string;
+  en: string;
+};
+
 export type ActivityGalleryPhoto = {
   id: string;
   src: string;
-  alt: string;
+  alt: LocalizedActivityText;
+  title: LocalizedActivityText;
+  date: string | null;
+  category: ActivityCategory;
   height: number;
+};
+
+export type ActivityAlbum = {
+  slug: string;
+  title: LocalizedActivityText;
+  description: LocalizedActivityText;
+  date: string | null;
+  category: ActivityCategory;
+  coverPhotoId: string;
+  coverPhoto: ActivityGalleryPhoto;
+  photos: ActivityGalleryPhoto[];
 };
 
 export const brandMenuItems: NavItem[] = [
@@ -50,7 +73,13 @@ export const notices = [
   { id: '120', category: '운영', title: '개인정보 처리방침 개정 관련 사전 안내', author: '관리팀', date: '2024.07.20' },
 ];
 
-export const activityFilters = ['전체', '기본 세션', '심화 세션', '해커톤', '기타 외부 활동'] as const;
+export const activityFilters: ActivityFilter[] = [
+  'all',
+  'basic-session',
+  'advanced-session',
+  'hackathon',
+  'external-activity',
+];
 
 export const activities = [
   {
@@ -64,35 +93,370 @@ export const activities = [
 ];
 
 export const mockActivityGalleryPhotos: ActivityGalleryPhoto[] = [
-  { id: 'a1', src: '/Album/lbank.jpeg', alt: 'LBank 세션', height: 800 },
-  { id: 'a2', src: '/Album/하블밤2.jpg', alt: '하블밤 행사', height: 800 },
-  { id: 'a3', src: '/Album/하블밤3.jpg', alt: '하블밤 단체사진', height: 800 },
-  { id: 'a4', src: '/Album/하블밥1.jpg', alt: '하블밥 모임', height: 800 },
-  { id: 'a5', src: '/Album/엑셀라1.jpeg', alt: '엑셀라 세션 1', height: 800 },
-  { id: 'a6', src: '/Album/엑셀라2.jpeg', alt: '엑셀라 세션 2', height: 800 },
-  { id: 'a7', src: '/Album/엑셀라3.jpeg', alt: '엑셀라 세션 3', height: 800 },
-  { id: 'a8', src: '/Album/KakaoTalk_20260330_123322826.jpg', alt: '활동 사진 1', height: 800 },
-  { id: 'a9', src: '/Album/KakaoTalk_20260330_123413866.jpg', alt: '활동 사진 2', height: 800 },
-  { id: 'a10', src: '/Album/image.png', alt: '활동 사진 3', height: 800 },
-  { id: 'a11', src: '/Album/image (1).png', alt: '활동 사진 4', height: 800 },
-  { id: 'a12', src: '/Album/image (2).png', alt: '활동 사진 5', height: 800 },
-  { id: 'a13', src: '/Album/image (3).png', alt: '활동 사진 6', height: 800 },
-  { id: 'a14', src: '/Album/image (4).png', alt: '활동 사진 7', height: 800 },
-  { id: 'a15', src: '/Album/image (5).png', alt: '활동 사진 8', height: 800 },
-  { id: 'a16', src: '/Album/KakaoTalk_20260128_154618954_08.jpg', alt: '활동 사진 9', height: 800 },
-  { id: 'a17', src: '/Album/KakaoTalk_20260407_194115929_01.jpg', alt: '활동 사진 10', height: 800 },
-  { id: 'a18', src: '/Album/KakaoTalk_20260407_194115929_05.jpg', alt: '활동 사진 11', height: 800 },
-  { id: 'a19', src: '/Album/KakaoTalk_20260407_194115929_06.jpg', alt: '활동 사진 12', height: 800 },
-  { id: 'a20', src: '/Album/KakaoTalk_20260407_194115929_07.jpg', alt: '활동 사진 13', height: 800 },
-  { id: 'a21', src: '/Album/KakaoTalk_20260407_194115929_08.jpg', alt: '활동 사진 14', height: 800 },
-  { id: 'a22', src: '/Album/KakaoTalk_20260407_194115929_09.jpg', alt: '활동 사진 15', height: 800 },
-  { id: 'a23', src: '/Album/KakaoTalk_20260407_194115929_11.jpg', alt: '활동 사진 16', height: 800 },
-  { id: 'a24', src: '/Album/KakaoTalk_20260407_194115929_12.jpg', alt: '활동 사진 17', height: 800 },
-  { id: 'a25', src: '/Album/KakaoTalk_20260407_194115929_14.jpg', alt: '활동 사진 18', height: 800 },
-  { id: 'a26', src: '/Album/KakaoTalk_20260407_194115929_15.jpg', alt: '활동 사진 19', height: 800 },
-  { id: 'a27', src: '/Album/KakaoTalk_20260407_194115929_18.jpg', alt: '활동 사진 20', height: 800 },
-  { id: 'a28', src: '/Album/KakaoTalk_20260407_194115929_20.jpg', alt: '활동 사진 21', height: 800 },
+  {
+    id: 'a17',
+    src: '/Album/KakaoTalk_20260407_194115929_01.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 2등 수상팀', en: 'Second-place team at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a18',
+    src: '/Album/KakaoTalk_20260407_194115929_05.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 현장', en: 'Monad Blitz hackathon venue' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a19',
+    src: '/Album/KakaoTalk_20260407_194115929_06.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 참가 활동', en: 'HYBLOCK members at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a20',
+    src: '/Album/KakaoTalk_20260407_194115929_07.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 발표 현장', en: 'Presentation at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a21',
+    src: '/Album/KakaoTalk_20260407_194115929_08.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 팀 활동', en: 'Team activity at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a22',
+    src: '/Album/KakaoTalk_20260407_194115929_09.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 참가자들', en: 'Participants at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a23',
+    src: '/Album/KakaoTalk_20260407_194115929_11.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 네트워킹', en: 'Networking at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a24',
+    src: '/Album/KakaoTalk_20260407_194115929_12.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 시상 현장', en: 'Awards at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a25',
+    src: '/Album/KakaoTalk_20260407_194115929_14.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 단체 사진', en: 'Group photo at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a26',
+    src: '/Album/KakaoTalk_20260407_194115929_15.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 수상 기념 사진', en: 'Award celebration at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a27',
+    src: '/Album/KakaoTalk_20260407_194115929_18.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 프로젝트 작업', en: 'Project work at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a28',
+    src: '/Album/KakaoTalk_20260407_194115929_20.jpg',
+    alt: { ko: 'Monad Blitz 해커톤 마무리', en: 'Closing moment at the Monad Blitz hackathon' },
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    date: '2026-04-07',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a8',
+    src: '/Album/KakaoTalk_20260330_123322826.jpg',
+    alt: { ko: '교내 해커톤 작업 현장', en: 'Team workspace during a campus hackathon' },
+    title: { ko: '교내 해커톤', en: 'Campus Hackathon' },
+    date: '2026-03-30',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a9',
+    src: '/Album/KakaoTalk_20260330_123413866.jpg',
+    alt: { ko: '교내 해커톤이 열린 한양대학교 건물', en: 'Hanyang University venue for a campus hackathon' },
+    title: { ko: '교내 해커톤', en: 'Campus Hackathon' },
+    date: '2026-03-30',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a16',
+    src: '/Album/KakaoTalk_20260128_154618954_08.jpg',
+    alt: { ko: '학회원들의 기본 세션 팀 활동', en: 'Members collaborating during a basic session' },
+    title: { ko: '기본 세션 팀 활동', en: 'Basic Session Team Activity' },
+    date: '2026-01-28',
+    category: 'basic-session',
+    height: 800,
+  },
+  {
+    id: 'a10',
+    src: '/Album/image.png',
+    alt: { ko: 'Base Batch 해커톤 프로젝트 발표', en: 'Project presentation at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a11',
+    src: '/Album/image (1).png',
+    alt: { ko: 'Base Batch 해커톤 발표 현장', en: 'Presentation stage at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a12',
+    src: '/Album/image (2).png',
+    alt: { ko: 'Base Batch 해커톤 팀 활동', en: 'Team activity at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a13',
+    src: '/Album/image (3).png',
+    alt: { ko: 'Base Batch 해커톤 프로젝트 시연', en: 'Project demo at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a14',
+    src: '/Album/image (4).png',
+    alt: { ko: 'Base Batch 해커톤 참가자들', en: 'Participants at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a15',
+    src: '/Album/image (5).png',
+    alt: { ko: 'Base Batch 해커톤 단체 사진', en: 'Group photo at the Base Batch hackathon' },
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    date: '2025-11-11',
+    category: 'hackathon',
+    height: 800,
+  },
+  {
+    id: 'a5',
+    src: '/Album/엑셀라1.jpeg',
+    alt: { ko: 'Axelar와 Squid를 소개하는 심화 세션 발표', en: 'Advanced session presentation about Axelar and Squid' },
+    title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
+    date: null,
+    category: 'advanced-session',
+    height: 800,
+  },
+  {
+    id: 'a6',
+    src: '/Album/엑셀라2.jpeg',
+    alt: { ko: 'Axelar 심화 세션 발표 현장', en: 'Presentation at the Axelar advanced session' },
+    title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
+    date: null,
+    category: 'advanced-session',
+    height: 800,
+  },
+  {
+    id: 'a7',
+    src: '/Album/엑셀라3.jpeg',
+    alt: { ko: 'Axelar 심화 세션 단체 사진', en: 'Group photo from the Axelar advanced session' },
+    title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
+    date: null,
+    category: 'advanced-session',
+    height: 800,
+  },
+  {
+    id: 'a1',
+    src: '/Album/lbank.jpeg',
+    alt: { ko: 'LBank Labs 행사에 참여한 HYBLOCK 학회원들', en: 'HYBLOCK members at an LBank Labs event' },
+    title: { ko: 'LBank Labs 외부 행사', en: 'LBank Labs Event' },
+    date: null,
+    category: 'external-activity',
+    height: 800,
+  },
+  {
+    id: 'a2',
+    src: '/Album/하블밤2.jpg',
+    alt: { ko: '하이블록의 밤 네트워킹 행사 단체 사진', en: 'Group photo at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
+    date: null,
+    category: 'external-activity',
+    height: 800,
+  },
+  {
+    id: 'a3',
+    src: '/Album/하블밤3.jpg',
+    alt: { ko: '하이블록의 밤 행사에 참여한 학회원들', en: 'Members at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
+    date: null,
+    category: 'external-activity',
+    height: 800,
+  },
+  {
+    id: 'a4',
+    src: '/Album/하블밥1.jpg',
+    alt: { ko: '하이블록의 밤 친목 모임 단체 사진', en: 'Group photo at HYBLOCK Night' },
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
+    date: null,
+    category: 'external-activity',
+    height: 800,
+  },
 ];
+
+type ActivityAlbumDefinition = Omit<ActivityAlbum, 'coverPhoto' | 'photos'> & {
+  photoIds: string[];
+};
+
+const activityAlbumDefinitions: ActivityAlbumDefinition[] = [
+  {
+    slug: 'monad-blitz-hackathon-2026',
+    title: { ko: 'Monad Blitz 해커톤', en: 'Monad Blitz Hackathon' },
+    description: {
+      ko: 'HYBLOCK 학회원들이 Monad Blitz 해커톤에 참가해 프로젝트를 완성하고 2등을 수상한 기록입니다.',
+      en: 'HYBLOCK members built a project at the Monad Blitz Hackathon and earned second place.',
+    },
+    date: '2026-04-07',
+    category: 'hackathon',
+    coverPhotoId: 'a17',
+    photoIds: ['a17', 'a18', 'a19', 'a20', 'a21', 'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28'],
+  },
+  {
+    slug: 'campus-hackathon-2026',
+    title: { ko: '교내 해커톤', en: 'Campus Hackathon' },
+    description: {
+      ko: '한양대학교 교내 해커톤에서 팀을 구성하고 아이디어를 프로젝트로 발전시킨 활동 기록입니다.',
+      en: 'A record of HYBLOCK members turning ideas into projects at a Hanyang University campus hackathon.',
+    },
+    date: '2026-03-30',
+    category: 'hackathon',
+    coverPhotoId: 'a8',
+    photoIds: ['a8', 'a9'],
+  },
+  {
+    slug: 'basic-session-team-activity-2026',
+    title: { ko: '기본 세션 팀 활동', en: 'Basic Session Team Activity' },
+    description: {
+      ko: '기본 세션에서 학회원들이 팀별로 학습 내용을 공유하고 과제를 함께 수행한 기록입니다.',
+      en: 'Members shared what they learned and worked together during a HYBLOCK basic session.',
+    },
+    date: '2026-01-28',
+    category: 'basic-session',
+    coverPhotoId: 'a16',
+    photoIds: ['a16'],
+  },
+  {
+    slug: 'base-batch-hackathon-2025',
+    title: { ko: 'Base Batch 해커톤', en: 'Base Batch Hackathon' },
+    description: {
+      ko: 'Base Batch 해커톤에서 프로젝트를 개발하고 발표와 시연을 진행한 활동 기록입니다.',
+      en: 'HYBLOCK members developed, presented, and demonstrated a project at the Base Batch Hackathon.',
+    },
+    date: '2025-11-11',
+    category: 'hackathon',
+    coverPhotoId: 'a10',
+    photoIds: ['a10', 'a11', 'a12', 'a13', 'a14', 'a15'],
+  },
+  {
+    slug: 'axelar-advanced-session',
+    title: { ko: 'Axelar 심화 세션', en: 'Axelar Advanced Session' },
+    description: {
+      ko: 'Axelar와 Squid의 크로스체인 구조와 활용 사례를 다룬 심화 세션 기록입니다.',
+      en: 'An advanced session exploring the cross-chain architecture and use cases of Axelar and Squid.',
+    },
+    date: null,
+    category: 'advanced-session',
+    coverPhotoId: 'a5',
+    photoIds: ['a5', 'a6', 'a7'],
+  },
+  {
+    slug: 'lbank-labs-event',
+    title: { ko: 'LBank Labs 외부 행사', en: 'LBank Labs Event' },
+    description: {
+      ko: 'LBank Labs 외부 행사에 참여해 업계 관계자들과 교류한 활동 기록입니다.',
+      en: 'A record of HYBLOCK members connecting with industry participants at an LBank Labs event.',
+    },
+    date: null,
+    category: 'external-activity',
+    coverPhotoId: 'a1',
+    photoIds: ['a1'],
+  },
+  {
+    slug: 'hyblock-night-networking',
+    title: { ko: '하이블록의 밤', en: 'HYBLOCK Night Networking' },
+    description: {
+      ko: '학회원들이 한자리에 모여 활동 경험과 관심사를 나누고 친목을 다진 하이블록의 밤 기록입니다.',
+      en: 'Members gathered at HYBLOCK Night to share experiences, interests, and build community.',
+    },
+    date: null,
+    category: 'external-activity',
+    coverPhotoId: 'a2',
+    photoIds: ['a2', 'a3', 'a4'],
+  },
+];
+
+function getActivityPhoto(photoId: string) {
+  const photo = mockActivityGalleryPhotos.find((item) => item.id === photoId);
+
+  if (!photo) {
+    throw new Error(`Activity photo not found: ${photoId}`);
+  }
+
+  return photo;
+}
+
+export const activityAlbums: ActivityAlbum[] = activityAlbumDefinitions.map(({ photoIds, ...album }) => ({
+  ...album,
+  coverPhoto: getActivityPhoto(album.coverPhotoId),
+  photos: photoIds.map(getActivityPhoto),
+}));
+
+export function getActivityAlbumBySlug(slug: string) {
+  return activityAlbums.find((album) => album.slug === slug);
+}
 
 export const homeNotices = [
   { date: '2024.11.02', title: 'Autumn Research Seminar: Layer 2 Finality Analysis', tag: 'Academic' },

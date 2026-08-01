@@ -50,7 +50,7 @@ export default function ApplicationForm({ recruitment }: { recruitment: OpenRecr
     <section className="mx-auto max-w-2xl px-6 py-24 text-center">
       <CheckCircle2 className="mx-auto h-14 w-14 text-monolith-primary" aria-hidden="true" />
       <h1 className="mt-6 text-4xl font-black">지원서가 제출되었습니다.</h1>
-      <p className="mt-4 leading-7 text-monolith-on-surface-muted">제출한 지원서는 수정하거나 다시 제출할 수 없습니다. 결과는 기재한 이메일 또는 전화번호로 안내합니다.</p>
+      <p className="mt-4 whitespace-pre-wrap leading-7 text-monolith-on-surface-muted">{recruitment.submissionMessage}</p>
     </section>
   );
 

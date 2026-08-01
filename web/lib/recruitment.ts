@@ -27,6 +27,7 @@ export type OpenRecruitment = {
   title: string;
   cohort: number;
   closesAt: string;
+  submissionMessage: string;
   tracks: Array<{ id: string; code: 'development' | 'business'; label: string }>;
   questions: RecruitmentQuestion[];
   privacyConsent: { version: string; text: string };
@@ -60,7 +61,7 @@ export async function getOpenRecruitment(): Promise<OpenRecruitment | null> {
   const now = new Date().toISOString();
   const { data: campaign, error } = await supabase
     .from('recruitment_campaign')
-    .select('id,title,cohort,application_close_at')
+    .select('id,title,cohort,application_close_at,submission_message')
     .eq('status', 'open')
     .lte('application_open_at', now)
     .gte('application_close_at', now)
@@ -84,6 +85,7 @@ export async function getOpenRecruitment(): Promise<OpenRecruitment | null> {
     title: campaign.title,
     cohort: campaign.cohort,
     closesAt: campaign.application_close_at,
+    submissionMessage: campaign.submission_message,
     tracks: (tracks ?? []).map((track) => ({ id: track.id, code: track.code, label: track.label })),
     questions: (questions ?? []).map((question) => ({
       id: question.id,

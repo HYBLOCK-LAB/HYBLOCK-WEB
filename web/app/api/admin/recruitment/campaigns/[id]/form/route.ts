@@ -7,7 +7,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params; const supabase = getSupabase();
   try {
     const [{ data: campaign, error: campaignError }, { data: questions, error: questionError }, { data: interviews, error: interviewError }, { data: evaluators, error: evaluatorError }] = await Promise.all([
-      supabase.from('recruitment_campaign').select('id,title,cohort,status,application_open_at,application_close_at,recruitment_track(id,code,label,sort_order)').eq('id', id).single(),
+      supabase.from('recruitment_campaign').select('id,title,cohort,status,application_open_at,application_close_at,submission_message,recruitment_track(id,code,label,sort_order)').eq('id', id).single(),
       supabase.from('application_question').select('id,question_type,prompt,description,is_required,sort_order,max_score,scoring_mode,min_length,max_length,application_question_option(id,label,value,auto_score,sort_order)').eq('campaign_id', id).order('sort_order'),
       supabase.from('interview_question').select('id,prompt,evaluation_guide,max_score,sort_order,is_active').eq('campaign_id', id).order('sort_order'),
       supabase.from('recruitment_evaluator').select('member_id').eq('campaign_id', id),

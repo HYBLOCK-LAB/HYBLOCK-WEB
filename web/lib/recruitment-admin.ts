@@ -4,6 +4,7 @@ export type ApplicantListItem = {
   id: string; name: string; birthYear: number; university: string; major: string;
   email: string; phone: string; track: string; trackCode: string; status: string;
   submittedAt: string; documentScore: number | null; interviewScore: number | null;
+  pendingDocumentEvaluators: string[]; pendingInterviewEvaluators: string[];
 };
 
 export async function getCampaigns() {
@@ -19,18 +20,25 @@ export async function getActiveAdminMembers() {
 }
 
 export async function getApplicants(campaignId: string): Promise<ApplicantListItem[]> {
-  const { data, error } = await getSupabase().from('application').select(`
-    id,name,birth_year,university,major,email,phone,status,submitted_at,
-    recruitment_track(label,code),
-    application_answer(auto_score),
-    application_question_evaluation(score),
-    application_interview_evaluation(score)
-  `).eq('campaign_id', campaignId);
+  const [{ data, error }, { data: evaluators, error: evaluatorError }] = await Promise.all([
+    getSupabase().from('application').select(`
+      id,name,birth_year,university,major,email,phone,status,submitted_at,
+      recruitment_track(label,code),
+      application_answer(auto_score),
+      application_question_evaluation(score),
+      application_interview_evaluation(score),
+      application_evaluation_completion(evaluator_member_id,document_completed_at,interview_completed_at)
+    `).eq('campaign_id', campaignId),
+    getSupabase().from('recruitment_evaluator').select('member_id,member(name)').eq('campaign_id', campaignId),
+  ]);
   if (error) throw error;
+  if (evaluatorError) throw evaluatorError;
+  const evaluatorList = (evaluators ?? []).map((evaluator: any) => ({ id: evaluator.member_id, name: evaluator.member?.name ?? '관리자' }));
   return (data ?? []).map((row: any) => {
     const auto = row.application_answer.reduce((sum: number, item: any) => sum + (item.auto_score == null ? 0 : Number(item.auto_score)), 0);
     const manual = row.application_question_evaluation.reduce((sum: number, item: any) => sum + Number(item.score), 0);
     const interview = row.application_interview_evaluation.reduce((sum: number, item: any) => sum + Number(item.score), 0);
+    const completionByEvaluator = new Map(row.application_evaluation_completion.map((item: any) => [item.evaluator_member_id, item]));
     return {
       id: row.id, name: row.name, birthYear: row.birth_year, university: row.university,
       major: row.major, email: row.email, phone: row.phone, status: row.status,
@@ -38,6 +46,8 @@ export async function getApplicants(campaignId: string): Promise<ApplicantListIt
       trackCode: row.recruitment_track?.code ?? '',
       documentScore: row.application_answer.length || row.application_question_evaluation.length ? auto + manual : null,
       interviewScore: row.application_interview_evaluation.length ? interview : null,
+      pendingDocumentEvaluators: evaluatorList.filter((evaluator) => !(completionByEvaluator.get(evaluator.id) as any)?.document_completed_at).map((evaluator) => evaluator.name),
+      pendingInterviewEvaluators: evaluatorList.filter((evaluator) => !(completionByEvaluator.get(evaluator.id) as any)?.interview_completed_at).map((evaluator) => evaluator.name),
     };
   });
 }

@@ -26,6 +26,9 @@ export default async function RecruitmentAdminPage({ searchParams }: { searchPar
   const sortHref = (key: string) => { const next = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (typeof v === 'string') next.set(k,v); }); next.set('sort', key); next.set('direction', sort === key ? nextDirection : 'desc'); return `?${next}`; };
 
   return <AdminSectionShell currentPath="/admin/recruitment" title="지원자 관리" description="지원자를 검색·필터링하고 행을 선택해 지원서와 평가 내용을 확인합니다.">
+    <div className="mb-4 flex justify-end">
+      {campaignId && <a href={`/api/admin/recruitment/export?campaign=${encodeURIComponent(campaignId)}`} className="inline-flex min-h-11 items-center rounded-lg bg-monolith-primary px-4 text-sm font-bold text-white">Excel용 CSV 내보내기</a>}
+    </div>
     <form className="grid gap-3 rounded-xl bg-monolith-surface-low p-4 md:grid-cols-2 xl:grid-cols-5">
       <select name="campaign" defaultValue={campaignId} className="min-h-11 rounded-lg border border-monolith-outline-variant bg-white px-3 text-sm"><option value="">모집 기수</option>{campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.cohort}기 · {campaign.title}</option>)}</select>
       <input name="q" defaultValue={query} placeholder="이름 검색" className="min-h-11 rounded-lg border border-monolith-outline-variant bg-white px-3 text-sm" />

@@ -59,7 +59,7 @@ export const applicationStatusLabels: Record<string, string> = {
 
 export async function getApplicantDetail(applicationId: string) {
   const { data, error } = await getSupabase().from('application').select(`
-    id,campaign_id,name,birth_year,university,major,email,phone,status,submitted_at,document_score_finalized_at,interview_score_finalized_at,
+    id,campaign_id,name,birth_year,university,major,student_id,academic_status,email,phone,status,submitted_at,document_score_finalized_at,interview_score_finalized_at,
     recruitment_track(label,code),
     application_answer(id,answer_text,auto_score,question_snapshot,
       application_question(id,prompt,question_type,max_score,scoring_mode,sort_order),

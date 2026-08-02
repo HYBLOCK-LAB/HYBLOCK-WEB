@@ -1,8 +1,12 @@
 import { getSupabase } from '@/lib/supabase';
 
-export const PRIVACY_CONSENT_VERSION = '2026-07-22';
+export const PRIVACY_CONSENT_VERSION = '2026-08-02';
 export const PRIVACY_CONSENT_TEXT =
-  'HYBLOCK 지원 접수와 선발을 위해 이름, 출생연도, 소속 대학, 전공, 이메일, 전화번호 및 지원서 응답을 수집·이용하는 것에 동의합니다.';
+  'HYBLOCK 지원 접수와 선발을 위해 이름, 출생연도, 소속 대학, 전공, 학번, 학적 상태, 이메일, 전화번호 및 지원서 응답을 수집·이용하는 것에 동의합니다.';
+
+export const academicStatusLabels: Record<string, string> = {
+  enrolled: '재학', leave: '휴학', expected_graduation: '졸업예정', completed: '수료', graduated: '졸업',
+};
 
 export type RecruitmentOption = {
   id: string;
@@ -40,6 +44,8 @@ export type ApplicationInput = {
   birthYear: number;
   university: string;
   major: string;
+  studentId: string;
+  academicStatus: string;
   email: string;
   phone: string;
   trackId: string;
@@ -112,6 +118,9 @@ export async function submitApplication(input: ApplicationInput) {
   const name = assertText(input.name, '이름', 100);
   const university = assertText(input.university, '대학교', 160);
   const major = assertText(input.major, '전공', 160);
+  const studentId = assertText(input.studentId, '학번', 10);
+  if (!/^\d{10}$/.test(studentId)) throw new Error('학번은 숫자 10자리로 입력해 주세요.');
+  if (!Object.hasOwn(academicStatusLabels, input.academicStatus)) throw new Error('학적 상태를 확인해 주세요.');
   const email = assertText(input.email, '이메일', 320).toLowerCase();
   const phone = assertText(input.phone, '전화번호', 40);
   const phoneNormalized = phone.replace(/\D/g, '');
@@ -122,12 +131,14 @@ export async function submitApplication(input: ApplicationInput) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.idempotencyKey)) throw new Error('잘못된 제출 요청입니다.');
 
   const answers = Array.isArray(input.answers) ? input.answers : [];
-  const { data, error } = await getSupabase().rpc('submit_recruitment_application', {
+  const { data, error } = await getSupabase().rpc('submit_recruitment_application_v2', {
     p_campaign_id: input.campaignId,
     p_name: name,
     p_birth_year: input.birthYear,
     p_university: university,
     p_major: major,
+    p_student_id: studentId,
+    p_academic_status: input.academicStatus,
     p_email: email,
     p_phone: phone,
     p_phone_normalized: phoneNormalized,

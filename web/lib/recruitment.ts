@@ -5,7 +5,7 @@ export const PRIVACY_CONSENT_TEXT =
   'HYBLOCK 지원 접수와 선발을 위해 이름, 출생연도, 소속 대학, 전공, 학번, 학적 상태, 이메일, 전화번호 및 지원서 응답을 수집·이용하는 것에 동의합니다.';
 
 export const academicStatusLabels: Record<string, string> = {
-  enrolled: '재학', leave: '휴학', expected_graduation: '졸업예정', completed: '수료', graduated: '졸업',
+  enrolled: '재학생', leave: '휴학생', graduated: '졸업생', other_university: '타대생',
 };
 
 export type RecruitmentOption = {

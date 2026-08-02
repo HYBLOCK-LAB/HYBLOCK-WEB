@@ -67,7 +67,7 @@ export default function ApplicationForm({ recruitment }: { recruitment: OpenRecr
           <label className="text-sm font-bold">대학교<input className={inputClass} name="university" maxLength={160} required /></label>
           <label className="text-sm font-bold">전공<input className={inputClass} name="major" maxLength={160} required /></label>
           <label className="text-sm font-bold">학번<input className={inputClass} name="studentId" type="text" inputMode="numeric" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="2023000000" required /></label>
-          <label className="text-sm font-bold">학적 상태<select className={inputClass} name="academicStatus" defaultValue="" required><option value="" disabled>학적 상태를 선택해 주세요</option><option value="enrolled">재학</option><option value="leave">휴학</option><option value="expected_graduation">졸업예정</option><option value="completed">수료</option><option value="graduated">졸업</option></select></label>
+          <label className="text-sm font-bold">학적 상태<select className={inputClass} name="academicStatus" defaultValue="" required><option value="" disabled>학적 상태를 선택해 주세요</option><option value="enrolled">재학생</option><option value="leave">휴학생</option><option value="graduated">졸업생</option><option value="other_university">타대생</option></select></label>
           <label className="text-sm font-bold">이메일<input className={inputClass} name="email" type="email" maxLength={320} required /></label>
           <label className="text-sm font-bold">전화번호<input className={inputClass} name="phone" type="tel" maxLength={40} placeholder="010-0000-0000" required /></label>
           <label className="text-sm font-bold sm:col-span-2">지원 분야

@@ -1,10 +1,12 @@
+ALTER TABLE application DROP CONSTRAINT application_academic_status_value;
+
+UPDATE application
+SET academic_status = NULL
+WHERE academic_status IN ('expected_graduation', 'completed');
+
 ALTER TABLE application
-  ADD COLUMN student_id VARCHAR(10),
-  ADD COLUMN academic_status VARCHAR(20),
-  ADD CONSTRAINT application_student_id_format
-    CHECK (student_id IS NULL OR student_id ~ '^[0-9]{10}$'),
-  ADD CONSTRAINT application_academic_status_value
-    CHECK (academic_status IS NULL OR academic_status IN ('enrolled', 'leave', 'graduated', 'other_university'));
+ADD CONSTRAINT application_academic_status_value
+CHECK (academic_status IS NULL OR academic_status IN ('enrolled', 'leave', 'graduated', 'other_university'));
 
 CREATE OR REPLACE FUNCTION submit_recruitment_application_v2(
   p_campaign_id UUID,
@@ -49,6 +51,3 @@ BEGIN
   RETURN application_id;
 END;
 $$;
-
-REVOKE ALL ON FUNCTION submit_recruitment_application_v2(UUID, TEXT, INTEGER, TEXT, TEXT, TEXT, TEXT, TEXT, UUID, UUID, TEXT, TEXT, JSONB, TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION submit_recruitment_application_v2(UUID, TEXT, INTEGER, TEXT, TEXT, TEXT, TEXT, TEXT, UUID, UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO service_role;

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import AppProviders from '@/providers/AppProviders'
 import './globals.css'
 
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>
+        <Analytics />
       </body>
     </html>
   )

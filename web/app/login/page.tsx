@@ -1,8 +1,6 @@
 import SiteChrome from '@/components/SiteChrome';
 import AuthShell from '@/components/auth/AuthShell';
-import SocialAuthSection from '@/components/auth/SocialAuthSection';
 import WalletLoginSection from '@/components/auth/WalletLoginSection';
-import AuthDivider from '@/components/auth/AuthDivider';
 
 export const metadata = {
   title: '로그인 | HYBLOCK',
@@ -40,11 +38,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <main className="min-h-screen">
         <AuthShell
           mode="login"
-          eyebrow="Continue with Your wallet or Google"
+          eyebrow="Continue with Your wallet"
           title="Login"
         >
-          <SocialAuthSection mode="login" redirectPath={redirectTo} />
-          <AuthDivider />
           <WalletLoginSection redirectTo={redirectTo} />
         </AuthShell>
       </main>

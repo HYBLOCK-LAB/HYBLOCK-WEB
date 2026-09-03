@@ -18,6 +18,12 @@ type LookupResponse = {
 };
 
 const COHORT_OPTIONS = [
+  { value: '15', label: '15기 (29학년도 1학기)' },
+  { value: '14', label: '14기 (28학년도 2학기)' },
+  { value: '13', label: '13기 (28학년도 1학기)' },
+  { value: '12', label: '12기 (27학년도 2학기)' },
+  { value: '11', label: '11기 (27학년도 1학기)' },
+  { value: '10', label: '10기 (26학년도 2학기)' },
   { value: '9', label: '9기 (26학년도 1학기)' },
   { value: '8', label: '8기 (25학년도 2학기)' },
   { value: '7', label: '7기 (25학년도 1학기)' },

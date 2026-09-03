@@ -7,6 +7,7 @@ import { LoaderCircle, Wallet } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
+import { getDefaultCohort, listCohortOptions } from '@/lib/cohort';
 
 type WalletMemberSignupFormProps = {
   redirectTo?: string;
@@ -17,23 +18,7 @@ type LookupResponse = {
   exists: boolean;
 };
 
-const COHORT_OPTIONS = [
-  { value: '15', label: '15기 (29학년도 1학기)' },
-  { value: '14', label: '14기 (28학년도 2학기)' },
-  { value: '13', label: '13기 (28학년도 1학기)' },
-  { value: '12', label: '12기 (27학년도 2학기)' },
-  { value: '11', label: '11기 (27학년도 1학기)' },
-  { value: '10', label: '10기 (26학년도 2학기)' },
-  { value: '9', label: '9기 (26학년도 1학기)' },
-  { value: '8', label: '8기 (25학년도 2학기)' },
-  { value: '7', label: '7기 (25학년도 1학기)' },
-  { value: '6', label: '6기 (24학년도 2학기)' },
-  { value: '5', label: '5기 (24학년도 1학기)' },
-  { value: '4', label: '4기 (23학년도 2학기)' },
-  { value: '3', label: '3기 (23학년도 1학기)' },
-  { value: '2', label: '2기 (22학년도 2학기)' },
-  { value: '1', label: '1기 (22학년도 1학기)' },
-] as const;
+const COHORT_OPTIONS = listCohortOptions();
 
 export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wallet' }: WalletMemberSignupFormProps) {
   const router = useRouter();
@@ -44,7 +29,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
   const [name, setName] = useState('');
   const [major, setMajor] = useState('');
   const [affiliation, setAffiliation] = useState<'development' | 'business'>('development');
-  const [cohort, setCohort] = useState('9');
+  const [cohort, setCohort] = useState(() => String(getDefaultCohort()));
   const [linkedWalletAddress, setLinkedWalletAddress] = useState<string | null>(null);
   const [checkingMember, setCheckingMember] = useState(false);
   const [loading, setLoading] = useState(false);

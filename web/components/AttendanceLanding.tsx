@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CalendarDays, CheckCircle2, Clock3 } from 'lucide-react';
 import { decodeEvent } from '@/lib/utils';
+import AttendanceQrScanner from '@/components/attendance/AttendanceQrScanner';
 import type { ActiveAttendanceEvent, AttendanceSessionSummary } from '@/lib/supabase-attendance';
 import { textContent } from '@/lib/text-content';
 import { useLanguageStore } from '@/lib/auth/language-store';
@@ -108,6 +109,14 @@ export default function AttendanceLanding({
           <p className="mt-5 max-w-2xl text-base leading-7 text-monolith-on-surface-muted md:text-lg">
             {d.description}
           </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <AttendanceQrScanner />
+            <span className="text-xs text-monolith-on-surface-muted">
+              {language === 'ko'
+                ? '현장에 표시된 출석 QR을 스캔하면 바로 출석 처리됩니다.'
+                : 'Scan the on-site attendance QR to check in instantly.'}
+            </span>
+          </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">

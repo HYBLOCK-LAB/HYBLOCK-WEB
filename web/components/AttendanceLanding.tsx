@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CalendarDays, CheckCircle2, Clock3 } from 'lucide-react';
-import { decodeEvent, encodeEvent } from '@/lib/utils';
-import CheckInForm from '@/components/CheckInForm';
-import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
+import { decodeEvent } from '@/lib/utils';
 import type { ActiveAttendanceEvent, AttendanceSessionSummary } from '@/lib/supabase-attendance';
 import { textContent } from '@/lib/text-content';
 import { useLanguageStore } from '@/lib/auth/language-store';
@@ -14,7 +11,6 @@ import { useLanguageStore } from '@/lib/auth/language-store';
 type AttendanceLandingProps = {
   sessions: AttendanceSessionSummary[];
   activeEvents: ActiveAttendanceEvent[];
-  members: string[];
 };
 
 function translateCategory(category: string | undefined, lang: 'ko' | 'en') {
@@ -72,7 +68,6 @@ function getSessionPresentation(status: AttendanceSessionSummary['status'], isAc
 export default function AttendanceLanding({
   sessions = [],
   activeEvents = [],
-  members,
 }: AttendanceLandingProps) {
   const { language } = useLanguageStore();
   const d = textContent[language].attendance;
@@ -126,7 +121,6 @@ export default function AttendanceLanding({
 
             {sessions.map((session) => {
               const isActive = activeEvents.some((activeEvent) => activeEvent.sessionId === session.id);
-              const encoded = encodeURIComponent(encodeEvent(session.name));
               const presentation = getSessionPresentation(session.status, isActive, language);
 
               return (
@@ -180,17 +174,15 @@ export default function AttendanceLanding({
 
                   <div className="col-span-3 flex md:justify-end">
                     {isActive ? (
-                      <Link
-                        href={`/attendance?event=${encoded}`}
-                        onClick={(event) => event.stopPropagation()}
+                      <span
                         className={[
-                          'flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition',
+                          'flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold',
                           presentation.actionClassName,
                         ].join(' ')}
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        {presentation.actionLabel}
-                      </Link>
+                        {language === 'ko' ? '진행 중' : 'In Progress'}
+                      </span>
                     ) : null}
                   </div>
                 </div>
@@ -199,31 +191,23 @@ export default function AttendanceLanding({
           </section>
 
           <aside className="space-y-6">
-            {selectedSession ? (
-              <>
-                <PersonalAttendanceQrCard
-                  selectedEventName={selectedSession.name}
-                  activeEventNames={activeEvents.map((activeEvent) => activeEvent.name)}
-                />
-                <div className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
-                  <div className="mb-5">
-                    <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
-                      {d.manualCheckInLabel}
-                    </p>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">
-                      {d.manualCheckInTitle}
-                    </h2>
-                  </div>
-                  <CheckInForm members={members} eventName={selectedSession.name} />
-                </div>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6 text-sm leading-7 text-monolith-on-surface-muted">
-                {language === 'ko' 
-                  ? '왼쪽에서 세션을 선택하면 해당 세션의 내 출석 QR과 수동 출석이 이 영역에 표시됩니다.' 
-                  : 'Select a session on the left to display your attendance QR and manual check-in here.'}
-              </div>
-            )}
+            <div className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
+              <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
+                {language === 'ko' ? '출석 방법' : 'How to check in'}
+              </p>
+              <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">
+                {selectedSession && activeEvents.some((activeEvent) => activeEvent.name === selectedSession.name)
+                  ? selectedSession.name
+                  : language === 'ko'
+                    ? '세션 현장에서 스캔'
+                    : 'Scan on-site'}
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-monolith-on-surface-muted">
+                {language === 'ko'
+                  ? '진행 중인 세션 현장에서 운영진이 띄운 출석 QR을 휴대폰 카메라로 스캔하면 로그인된 계정으로 바로 출석 처리됩니다. 지갑을 연결하지 않았다면 먼저 로그인 또는 지갑 연동을 완료하세요.'
+                  : 'At an in-progress session, scan the attendance QR shown by the staff with your phone camera. You will be checked in with your logged-in account. Link a wallet first if you have not.'}
+              </p>
+            </div>
           </aside>
         </div>
       </div>

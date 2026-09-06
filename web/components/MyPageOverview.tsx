@@ -14,11 +14,9 @@ import {
   Wallet,
   Award,
 } from 'lucide-react';
-import PersonalAttendanceQrCard from '@/components/PersonalAttendanceQrCard';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
-import { isEventVisibleToAffiliation, type ActiveAttendanceEvent } from '@/lib/supabase-attendance';
 
 type MemberProfile = {
   id: number;
@@ -50,7 +48,7 @@ const AFFILIATION_LABELS: Record<string, string> = {
   business: 'Business',
 };
 
-export default function MyPageOverview({ initialActiveEvents = [] }: { initialActiveEvents?: ActiveAttendanceEvent[] }) {
+export default function MyPageOverview() {
   const { openWalletConnectModal } = useWalletConnectModal();
   const address = useWalletSessionStore((state) => state.address);
   const chainName = useWalletSessionStore((state) => state.chainName);
@@ -66,7 +64,6 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
   const [mintError, setMintError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [hasGoogleSession, setHasGoogleSession] = useState(false);
-  const [activeEvents] = useState<ActiveAttendanceEvent[]>(initialActiveEvents);
 
   useEffect(() => {
     if (!isBrowserSupabaseConfigured()) {
@@ -193,11 +190,6 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
       console.error('Copy wallet address error:', error);
     }
   };
-
-  const availableQrEvents = member
-    ? activeEvents.filter((event) => isEventVisibleToAffiliation(event, member.affiliation))
-    : [];
-  const availableQrEventNames = availableQrEvents.map((event) => event.name);
 
   return (
     <main className="min-h-screen pb-24 pt-12 md:pt-16">
@@ -351,8 +343,23 @@ export default function MyPageOverview({ initialActiveEvents = [] }: { initialAc
           </div>
 
           <div>
-            <PersonalAttendanceQrCard activeEventNames={availableQrEventNames} requireWalletSession />
-            
+            <section className="rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
+              <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
+                Session Check-In
+              </p>
+              <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">세션 출석</h2>
+              <p className="mt-4 text-sm leading-7 text-monolith-on-surface-muted">
+                세션 출석은 현장에서 운영진이 띄운 출석 QR을 휴대폰 카메라로 스캔해 진행합니다.
+              </p>
+              <Link
+                href="/attendance"
+                className="interactive-soft mt-4 inline-flex items-center gap-2 rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface px-4 py-2.5 text-sm font-semibold text-monolith-on-surface transition hover:bg-monolith-surface-high"
+              >
+                출석 현황 보기
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </section>
+
             {/* SBT Minting Section */}
             <section className="mt-8 rounded-2xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">

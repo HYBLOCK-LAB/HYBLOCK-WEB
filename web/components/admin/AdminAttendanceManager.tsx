@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { AlertCircle, CheckCircle2, Link2, QrCode, SquareArrowOutUpRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, QrCode, SquareArrowOutUpRight, X } from 'lucide-react';
 import { encodeEvent } from '@/lib/utils';
-import AdminAttendanceScanner from '@/components/admin/AdminAttendanceScanner';
+import AdminSessionAttendanceQr from '@/components/admin/AdminSessionAttendanceQr';
 
 type AttendanceRow = Record<string, string>;
 type ParticipantStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
@@ -260,8 +259,6 @@ export default function AdminAttendanceManager() {
 
   return (
     <div className="space-y-6">
-      <AdminAttendanceScanner />
-
       <div className="rounded-2xl bg-monolith-surface-low p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -300,25 +297,18 @@ export default function AdminAttendanceManager() {
                     <QrCode className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="mt-4 rounded-xl bg-monolith-surface px-3 py-3">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-monolith-on-surface-muted">출석 코드</p>
-                  <p className="mt-2 font-mono text-base font-bold text-monolith-primary-container">
-                    {activeEvent.checkInCode ?? '아직 생성되지 않음'}
-                  </p>
-                  <p className="mt-2 text-xs leading-6 text-monolith-on-surface-muted">
-                    {activeEvent.checkInCode
-                      ? '수동 출석 확인용 코드입니다.'
-                      : '이전에 활성화된 세션이라 코드가 비어 있을 수 있습니다. 아래 버튼으로 다시 발급할 수 있습니다.'}
-                  </p>
-                </div>
+                <p className="mt-3 text-xs leading-6 text-monolith-on-surface-muted">
+                  참가자는 QR 아이콘의 출석 QR을 휴대폰으로 스캔해 직접 출석합니다. 지갑을 연결하지 않은 회원은
+                  참여 현황에서 수동으로 보정하세요.
+                </p>
                 <div className="mt-4 flex gap-3">
                   <button
                     type="button"
-                    onClick={() => void handleSetActive(activeEvent.name)}
-                    disabled={processingEvent === activeEvent.name}
-                    className="interactive-soft flex flex-1 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.18)] transition-all hover:brightness-105 disabled:opacity-60"
+                    onClick={() => setQrModalEvent(activeEvent.name)}
+                    className="interactive-soft flex flex-1 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.18)] transition-all hover:brightness-105"
                   >
-                    {processingEvent === activeEvent.name ? '재발급 중...' : activeEvent.checkInCode ? '코드 재발급' : '코드 발급'}
+                    <QrCode className="h-4 w-4" />
+                    출석 QR 표시
                   </button>
                   <button
                     type="button"
@@ -540,11 +530,14 @@ export default function AdminAttendanceManager() {
 
       {qrModalEvent ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00172d]/40 px-4 py-8 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-[2rem] border border-monolith-outline-variant/20 bg-white p-6 text-center shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
+          <div className="w-full max-w-lg rounded-[2rem] border border-monolith-outline-variant/20 bg-white p-6 text-center shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
             <div className="flex items-start justify-between gap-4 text-left">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">QR 코드</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">세션 출석 QR</p>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-on-surface">{qrModalEvent}</h2>
+                <p className="mt-1 text-xs text-monolith-on-surface-muted">
+                  참가자가 휴대폰으로 이 QR을 스캔해 직접 출석합니다.
+                </p>
               </div>
               <button
                 type="button"
@@ -556,13 +549,10 @@ export default function AdminAttendanceManager() {
               </button>
             </div>
 
-            <div className="mt-6 rounded-2xl bg-white p-5 shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
-              <QRCodeSVG value={`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(qrModalEvent))}`} size={220} includeMargin />
-            </div>
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-monolith-on-surface-muted">
-              <Link2 className="h-3.5 w-3.5" />
-              <span>{`${baseUrl}/attendance?event=${encodeURIComponent(encodeEvent(qrModalEvent))}`}</span>
-            </div>
+            <AdminSessionAttendanceQr
+              eventName={qrModalEvent}
+              isActive={Boolean(data?.activeEvents?.some((activeEvent) => activeEvent.name === qrModalEvent))}
+            />
           </div>
         </div>
       ) : null}

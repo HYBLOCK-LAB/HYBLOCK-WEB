@@ -8,9 +8,14 @@ import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supa
 type AttendanceAccessGateProps = {
   hasWalletSession: boolean;
   children: React.ReactNode;
+  returnPath?: string;
 };
 
-export default function AttendanceAccessGate({ hasWalletSession, children }: AttendanceAccessGateProps) {
+export default function AttendanceAccessGate({
+  hasWalletSession,
+  children,
+  returnPath = '/attendance',
+}: AttendanceAccessGateProps) {
   const router = useRouter();
   const [allowed, setAllowed] = useState(hasWalletSession);
   const [checking, setChecking] = useState(!hasWalletSession);
@@ -22,14 +27,17 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
       return;
     }
 
+    const loginTarget = `/login?redirect=${encodeURIComponent(returnPath)}`;
+    const walletLinkTarget = `/wallet-link?intent=link&next=${encodeURIComponent(returnPath)}`;
+
     if (!isBrowserSupabaseConfigured()) {
-      router.replace('/login?redirect=/attendance');
+      router.replace(loginTarget);
       return;
     }
 
     const supabase = getBrowserSupabase();
     if (!supabase) {
-      router.replace('/login?redirect=/attendance');
+      router.replace(loginTarget);
       return;
     }
 
@@ -69,13 +77,13 @@ export default function AttendanceAccessGate({ hasWalletSession, children }: Att
         }
       }
 
-      router.replace(session?.access_token ? '/wallet-link?intent=link&next=%2Fattendance' : '/login?redirect=/attendance');
+      router.replace(session?.access_token ? walletLinkTarget : loginTarget);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [hasWalletSession, router]);
+  }, [hasWalletSession, router, returnPath]);
 
   if (!allowed) {
     return (

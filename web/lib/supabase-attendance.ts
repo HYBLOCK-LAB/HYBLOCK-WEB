@@ -818,44 +818,6 @@ export async function addEvent(
   }
 }
 
-export async function checkIn(name: string, event: string) {
-  try {
-    const supabase = getSupabase();
-    const session = await getSessionByEventName(event);
-    if (!session) {
-      throw new Error(`Invalid event: ${event}`);
-    }
-    if (session.status !== 'in_progress') {
-      return { success: false, reason: 'inactive' as const };
-    }
-    if (isSessionExpired(session)) {
-      await deactivateEvent(event);
-      return { success: false, reason: 'inactive' as const };
-    }
-
-    const { data: members, error: memberError } = await supabase
-      .from('member')
-      .select('id, name')
-      .eq('name', name)
-      .eq('is_active', true)
-      .returns<MemberRow[]>();
-
-    if (memberError) throw memberError;
-    if (!members || members.length === 0) {
-      return { success: false, reason: 'member_not_found' as const };
-    }
-    if (members.length > 1) {
-      throw new Error(`Multiple active members found with name: ${name}`);
-    }
-
-    const member = members[0];
-    return checkInByMemberId(member.id, event, member.name);
-  } catch (error: any) {
-    console.error('checkIn error:', error.message);
-    throw error;
-  }
-}
-
 export async function checkInByMemberId(memberId: number, event: string, memberName?: string) {
   try {
     const supabase = getSupabase();
@@ -934,27 +896,6 @@ export async function getMemberAttendanceStatusForEvent(memberId: number, eventN
 
   if (error) throw error;
   return data?.status ?? null;
-}
-
-export async function verifyActiveEventCode(eventName: string, code: string) {
-  const session = await getSessionByEventName(eventName);
-  if (!session) {
-    return { valid: false, reason: 'event_not_found' as const };
-  }
-
-  if (session.status !== 'in_progress') {
-    return { valid: false, reason: 'inactive' as const };
-  }
-  if (isSessionExpired(session)) {
-    await deactivateEvent(eventName);
-    return { valid: false, reason: 'inactive' as const };
-  }
-
-  if (!session.check_in_code || session.check_in_code !== code.trim().toUpperCase()) {
-    return { valid: false, reason: 'code_mismatch' as const };
-  }
-
-  return { valid: true };
 }
 
 export async function getAttendanceData() {

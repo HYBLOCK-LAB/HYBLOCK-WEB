@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Expand, Link2, Users, X } from 'lucide-react';
+import { Clock3, Expand, Link2, Users, X } from 'lucide-react';
 import { encodeEvent } from '@/lib/utils';
 
 type AdminSessionAttendanceQrProps = {
@@ -11,15 +11,17 @@ type AdminSessionAttendanceQrProps = {
   isActive: boolean;
 };
 
+type ParticipantStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
+
 type ParticipantsResponse = {
-  participants?: Array<{ memberId: number; name: string; status: 'present' | 'late' | 'absent' | 'nonParticipation' }>;
+  participants?: Array<{ memberId: number; name: string; status: ParticipantStatus }>;
 };
 
 const COUNT_POLL_INTERVAL_MS = 5000;
 
 export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminSessionAttendanceQrProps) {
   const [origin, setOrigin] = useState('');
-  const [checkedInCount, setCheckedInCount] = useState<number | null>(null);
+  const [participants, setParticipants] = useState<ParticipantsResponse['participants'] | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
@@ -32,7 +34,15 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
     return `${origin}/attendance/check-in?e=${encodeURIComponent(encodeEvent(eventName))}`;
   }, [origin, eventName]);
 
-  const pollCount = useCallback(async () => {
+  const checkedIn = useMemo(
+    () =>
+      (participants ?? [])
+        .filter((participant) => participant.status === 'present' || participant.status === 'late')
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko')),
+    [participants],
+  );
+
+  const pollParticipants = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/events?includeParticipants=true&eventName=${encodeURIComponent(eventName)}`,
@@ -40,28 +50,27 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
       );
       if (!response.ok) return;
       const payload = (await response.json()) as ParticipantsResponse;
-      const count = (payload.participants ?? []).filter(
-        (participant) => participant.status === 'present' || participant.status === 'late',
-      ).length;
-      setCheckedInCount(count);
+      setParticipants(payload.participants ?? []);
     } catch {
-      /* keep last known count */
+      /* keep last known list */
     }
   }, [eventName]);
 
   useEffect(() => {
     if (!isActive) return;
-    void pollCount();
-    const timer = window.setInterval(() => void pollCount(), COUNT_POLL_INTERVAL_MS);
+    void pollParticipants();
+    const timer = window.setInterval(() => void pollParticipants(), COUNT_POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [isActive, pollCount]);
+  }, [isActive, pollParticipants]);
 
   useEffect(() => {
     if (!fullscreen) return;
 
     const requestWakeLock = async () => {
       try {
-        const nav = navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> } };
+        const nav = navigator as Navigator & {
+          wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
+        };
         wakeLockRef.current = (await nav.wakeLock?.request('screen')) ?? null;
       } catch {
         /* best effort */
@@ -86,7 +95,7 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
     );
   }
 
-  const countLabel = checkedInCount === null ? '집계 중…' : `출석 완료 ${checkedInCount}명`;
+  const countLabel = participants === null ? '집계 중…' : `출석 완료 ${checkedIn.length}명`;
 
   return (
     <div className="mt-6">
@@ -104,6 +113,36 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
         <span>{checkInUrl}</span>
       </div>
 
+      <div className="mt-4 rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low text-left">
+        <div className="flex items-center justify-between border-b border-monolith-outline-variant/20 px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-monolith-on-surface-muted">
+          <span>출석한 사람</span>
+          <span>{checkedIn.length}명</span>
+        </div>
+        <div className="max-h-56 overflow-y-auto px-4 py-3">
+          {participants === null ? (
+            <p className="text-sm text-monolith-on-surface-muted">불러오는 중…</p>
+          ) : checkedIn.length === 0 ? (
+            <p className="text-sm text-monolith-on-surface-muted">아직 출석한 사람이 없습니다.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {checkedIn.map((participant) => (
+                <li key={participant.memberId} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-monolith-on-surface">{participant.name}</span>
+                  {participant.status === 'late' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fff1cc] px-2 py-0.5 text-[11px] font-bold text-[#8a5a00]">
+                      <Clock3 className="h-3 w-3" />
+                      지각
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-[#e7f6ec] px-2 py-0.5 text-[11px] font-bold text-[#1f7a3d]">출석</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={() => setFullscreen(true)}
@@ -115,7 +154,7 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
 
       {fullscreen
         ? createPortal(
-            <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-8 bg-white px-6 py-10">
+            <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-white px-6 py-10">
               <button
                 type="button"
                 onClick={() => setFullscreen(false)}
@@ -134,17 +173,48 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
                 </h2>
               </div>
 
-              <div className="rounded-3xl bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.18)]">
-                {checkInUrl ? (
-                  <QRCodeSVG value={checkInUrl} size={Math.min(520, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.7))} includeMargin />
-                ) : null}
-              </div>
+              <div className="flex w-full max-w-5xl flex-col items-center gap-8 md:flex-row md:items-start md:justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="rounded-3xl bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.18)]">
+                    {checkInUrl ? (
+                      <QRCodeSVG
+                        value={checkInUrl}
+                        size={Math.min(420, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.55))}
+                        includeMargin
+                      />
+                    ) : null}
+                  </div>
+                  <p className="flex items-center gap-3 text-2xl font-black text-monolith-primary-container">
+                    <Users className="h-7 w-7" />
+                    {countLabel}
+                  </p>
+                  <p className="text-sm text-monolith-on-surface-muted">휴대폰 카메라로 QR을 스캔해 직접 출석하세요.</p>
+                </div>
 
-              <p className="flex items-center gap-3 text-2xl font-black text-monolith-primary-container">
-                <Users className="h-7 w-7" />
-                {countLabel}
-              </p>
-              <p className="text-sm text-monolith-on-surface-muted">휴대폰 카메라로 QR을 스캔해 직접 출석하세요.</p>
+                <div className="w-full max-w-xs rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-lowest">
+                  <div className="border-b border-monolith-outline-variant/20 px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-monolith-on-surface-muted">
+                    출석한 사람 {checkedIn.length}명
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto px-4 py-3">
+                    {checkedIn.length === 0 ? (
+                      <p className="text-sm text-monolith-on-surface-muted">아직 없음</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {checkedIn.map((participant) => (
+                          <li key={participant.memberId} className="flex items-center justify-between gap-3 text-base">
+                            <span className="font-semibold text-monolith-on-surface">{participant.name}</span>
+                            {participant.status === 'late' ? (
+                              <span className="text-xs font-bold text-[#8a5a00]">지각</span>
+                            ) : (
+                              <span className="text-xs font-bold text-[#1f7a3d]">출석</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>,
             document.body,
           )

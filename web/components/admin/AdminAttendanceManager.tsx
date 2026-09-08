@@ -132,7 +132,7 @@ export default function AdminAttendanceManager() {
   };
 
   const handleDeactivate = async (eventName: string) => {
-    if (!window.confirm('세션을 마감하시겠습니까? 남은 인원은 자동으로 결석 처리됩니다.')) {
+    if (!window.confirm('세션을 마감하시겠습니까? QR을 찍지 않은 회원은 미참여로 남으며, 결석은 참여 현황에서 직접 지정할 수 있습니다.')) {
       return;
     }
 

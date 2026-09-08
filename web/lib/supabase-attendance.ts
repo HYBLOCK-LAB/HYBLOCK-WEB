@@ -194,22 +194,6 @@ function requireTitle(session: Pick<SessionRow, 'title' | 'session_id'>): string
   return session.title;
 }
 
-async function getEligibleMembersForSession(session: Pick<SessionRow, 'session_type' | 'target_affiliation'>) {
-  const supabase = getSupabase();
-  let query = supabase
-    .from('member')
-    .select('id, name, affiliation')
-    .eq('is_active', true);
-
-  if (session.session_type === 'advanced' && session.target_affiliation) {
-    query = query.eq('affiliation', session.target_affiliation);
-  }
-
-  const { data, error } = await query.returns<MemberRow[]>();
-  if (error) throw error;
-  return data ?? [];
-}
-
 async function getSessionByEventName(eventName: string) {
   try {
     return await selectSessionByEventName(eventName, true);
@@ -589,6 +573,8 @@ export async function deactivateEvent(eventName?: string) {
 
   const now = new Date().toISOString();
 
+  // 세션을 마감만 하고, QR을 찍지 않은 회원은 별도 레코드를 만들지 않는다.
+  // 레코드가 없는 회원은 '미참여'로 집계되며, 실제 결석은 운영진이 참여 현황에서 수동 지정한다.
   for (const activeSession of activeSessions) {
     await updateSessionWithOptionalCheckInCode(activeSession.session_id, {
       status: 'completed',
@@ -596,34 +582,6 @@ export async function deactivateEvent(eventName?: string) {
       updated_at: now,
       check_in_code: null,
     });
-
-    const members = await getEligibleMembersForSession({
-      session_type: activeSession.session_type,
-      target_affiliation: activeSession.target_affiliation,
-    });
-
-    const { data: existingAttendance, error: existingAttendanceError } = await supabase
-      .from('attendance_record')
-      .select('member_id')
-      .eq('session_id', activeSession.session_id)
-      .returns<Array<{ member_id: number }>>();
-
-    if (existingAttendanceError) throw existingAttendanceError;
-
-    const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
-    const absentRows = (members ?? [])
-      .filter((member) => !existingMemberIds.has(member.id))
-      .map((member) => ({
-        session_id: activeSession.session_id,
-        member_id: member.id,
-        attended_at: null,
-        status: 'absent',
-      }));
-
-    if (absentRows.length > 0) {
-      const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
-      if (insertError) throw insertError;
-    }
   }
 }
 
@@ -654,7 +612,6 @@ export async function updateEventStatus(eventName: string, nextStatus: SessionRo
     return;
   }
 
-  const supabase = getSupabase();
   const session = await getSessionByEventName(eventName);
   if (!session) {
     throw new Error(`Event not found: ${eventName}`);
@@ -677,32 +634,7 @@ export async function updateEventStatus(eventName: string, nextStatus: SessionRo
 
   await updateSessionWithOptionalCheckInCode(session.session_id, updatePayload);
 
-  if (session.status === 'in_progress' && nextStatus === 'completed') {
-    const members = await getEligibleMembersForSession(session);
-
-    const { data: existingAttendance, error: existingAttendanceError } = await supabase
-      .from('attendance_record')
-      .select('member_id')
-      .eq('session_id', session.session_id)
-      .returns<Array<{ member_id: number }>>();
-
-    if (existingAttendanceError) throw existingAttendanceError;
-
-    const existingMemberIds = new Set((existingAttendance ?? []).map((entry) => entry.member_id));
-    const absentRows = (members ?? [])
-      .filter((member) => !existingMemberIds.has(member.id))
-      .map((member) => ({
-        session_id: session.session_id,
-        member_id: member.id,
-        attended_at: null,
-        status: 'absent',
-      }));
-
-    if (absentRows.length > 0) {
-      const { error: insertError } = await supabase.from('attendance_record').insert(absentRows);
-      if (insertError) throw insertError;
-    }
-  }
+  // 세션을 마감해도 QR 미스캔 회원에게 결석 레코드를 만들지 않는다(= '미참여'로 집계).
 }
 
 export async function getEvents() {

@@ -264,7 +264,7 @@ export default function AdminAttendanceManager() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">현재 활성 세션</p>
             <p className="mt-2 text-sm leading-7 text-monolith-on-surface-muted">
-              진행 중인 출석만 표시합니다. 심화 세션은 파트별로 따로 활성화될 수 있고, 공용 세션은 단독으로만 활성화됩니다.
+              진행 중인 출석만 표시합니다. 여러 세션을 동시에 활성화할 수 있습니다.
             </p>
           </div>
         </div>

@@ -481,32 +481,9 @@ export async function setActiveEvent(eventName: string) {
     throw new Error(`Event not found: ${eventName}`);
   }
 
-  const activeEvents = await getActiveEvents();
-  const otherActiveEvents = activeEvents.filter((activeEvent) => activeEvent.sessionId !== session.session_id);
-
-  if (session.session_type === 'basic') {
-    if (otherActiveEvents.length > 0) {
-      throw new Error('기본 세션은 다른 활성 출석이 없을 때만 시작할 수 있습니다.');
-    }
-  } else if (session.session_type === 'advanced') {
-    if (!session.target_affiliation) {
-      throw new Error('심화 세션은 대상 파트를 지정해야 활성화할 수 있습니다.');
-    }
-
-    const hasGlobalActiveEvent = otherActiveEvents.some((activeEvent) => activeEvent.sessionType !== 'advanced');
-    if (hasGlobalActiveEvent) {
-      throw new Error('기본 세션 또는 공용 활동이 활성화되어 있으면 심화 세션을 동시에 시작할 수 없습니다.');
-    }
-
-    const hasSameAffiliationActive = otherActiveEvents.some(
-      (activeEvent) =>
-        activeEvent.sessionType === 'advanced' && activeEvent.targetAffiliation === session.target_affiliation,
-    );
-    if (hasSameAffiliationActive) {
-      throw new Error('같은 파트의 심화 세션은 동시에 하나만 활성화할 수 있습니다.');
-    }
-  } else if (otherActiveEvents.length > 0) {
-    throw new Error('공용 활동은 다른 활성 출석이 없을 때만 시작할 수 있습니다.');
+  // 동시 활성 세션 제한 없음 — 여러 세션을 동시에 활성화할 수 있다.
+  if (session.session_type === 'advanced' && !session.target_affiliation) {
+    throw new Error('심화 세션은 대상 파트를 지정해야 활성화할 수 있습니다.');
   }
 
   const now = new Date().toISOString();

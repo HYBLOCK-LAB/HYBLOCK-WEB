@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { getSupabase } from '@/lib/supabase';
 
 type SessionRow = {
@@ -317,7 +318,16 @@ function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
 
 function generateCheckInCode(length = 6) {
   const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length }, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+  return Array.from({ length }, () => charset[randomInt(charset.length)]).join('');
+}
+
+function generateUniqueCheckInCode(existingCodes: Set<string>) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const code = generateCheckInCode();
+    if (!existingCodes.has(code)) return code;
+  }
+
+  throw new Error('고유한 출석 코드를 생성하지 못했습니다. 다시 시도해주세요.');
 }
 
 function getSessionExpiryTime(baseTime = Date.now()) {
@@ -487,7 +497,14 @@ export async function setActiveEvent(eventName: string) {
   }
 
   const now = new Date().toISOString();
-  const checkInCode = generateCheckInCode();
+  const activeEvents = await getActiveEvents();
+  const existingCodes = new Set(
+    activeEvents
+      .filter((event) => event.sessionId !== session.session_id)
+      .map((event) => event.checkInCode)
+      .filter((code): code is string => Boolean(code)),
+  );
+  const checkInCode = generateUniqueCheckInCode(existingCodes);
   const nextEndTime =
     session.status === 'in_progress' && session.session_end_time && new Date(session.session_end_time).getTime() > Date.now()
       ? session.session_end_time
@@ -581,6 +598,12 @@ export async function getActiveEventByName(eventName: string): Promise<ActiveAtt
     sessionType: session.session_type,
     targetAffiliation: session.target_affiliation,
   };
+}
+
+// Reject ambiguous codes rather than checking someone into the wrong session.
+export async function getActiveEventByCheckInCode(code: string): Promise<ActiveAttendanceEvent | null> {
+  const matches = (await getActiveEvents()).filter((event) => event.checkInCode === code);
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export async function updateEventStatus(eventName: string, nextStatus: SessionRow['status']) {

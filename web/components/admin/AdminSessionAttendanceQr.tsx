@@ -9,6 +9,7 @@ import { encodeEvent } from '@/lib/utils';
 type AdminSessionAttendanceQrProps = {
   eventName: string;
   isActive: boolean;
+  checkInCode?: string | null;
 };
 
 type ParticipantStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
@@ -19,7 +20,32 @@ type ParticipantsResponse = {
 
 const COUNT_POLL_INTERVAL_MS = 5000;
 
-export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminSessionAttendanceQrProps) {
+function CheckInCode({ code, presentation = false }: { code?: string | null; presentation?: boolean }) {
+  return (
+    <div className="mt-4 text-center">
+      <p className="text-sm font-semibold text-monolith-on-surface-muted">출석 코드</p>
+      {code ? (
+        <>
+          <p
+            className={[
+              'mt-2 font-mono font-black tracking-[0.2em] text-monolith-primary-container',
+              presentation ? 'text-5xl md:text-6xl' : 'text-4xl',
+            ].join(' ')}
+          >
+            {code}
+          </p>
+          <p className="mt-2 text-sm text-monolith-on-surface-muted">출석 페이지 → 코드로 출석하기</p>
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-monolith-on-surface-muted">
+          출석 코드를 생성하지 못했습니다. 세션을 다시 활성화하거나 시스템 관리자에게 문의해주세요.
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function AdminSessionAttendanceQr({ eventName, isActive, checkInCode }: AdminSessionAttendanceQrProps) {
   const [origin, setOrigin] = useState('');
   const [participants, setParticipants] = useState<ParticipantsResponse['participants'] | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -90,7 +116,7 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
   if (!isActive) {
     return (
       <div className="mt-6 rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low px-5 py-8 text-sm leading-6 text-monolith-on-surface-muted">
-        세션을 활성화하면 참가자용 출석 QR이 표시됩니다.
+        세션을 활성화하면 참가자용 출석 QR과 코드가 표시됩니다.
       </div>
     );
   }
@@ -102,6 +128,8 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
       <div className="rounded-2xl bg-white p-5 shadow-[0_14px_30px_rgba(0,51,97,0.08)]">
         {checkInUrl ? <QRCodeSVG value={checkInUrl} size={240} includeMargin /> : <div className="h-[240px]" />}
       </div>
+
+      <CheckInCode code={checkInCode} />
 
       <p className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-monolith-primary-container">
         <Users className="h-4 w-4" />
@@ -188,6 +216,7 @@ export default function AdminSessionAttendanceQr({ eventName, isActive }: AdminS
                     <Users className="h-7 w-7" />
                     {countLabel}
                   </p>
+                  <CheckInCode code={checkInCode} presentation />
                   <p className="text-sm text-monolith-on-surface-muted">휴대폰 카메라로 QR을 스캔해 직접 출석하세요.</p>
                 </div>
 

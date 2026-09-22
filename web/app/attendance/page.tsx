@@ -16,7 +16,7 @@ export default async function AttendancePage() {
   return (
     <SiteChrome activePath="/attendance">
       <AttendanceAccessGate hasWalletSession={Boolean(walletMember)}>
-        <AttendanceLanding sessions={sessions} activeEvents={activeEvents} />
+        <AttendanceLanding sessions={sessions} activeEvents={activeEvents.map(({ checkInCode: _code, ...event }) => event)} />
       </AttendanceAccessGate>
     </SiteChrome>
   );

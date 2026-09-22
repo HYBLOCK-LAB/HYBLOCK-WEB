@@ -3,6 +3,7 @@ import { getAuthenticatedUserFromAccessToken } from '@/lib/supabase-auth';
 import {
   checkInByMemberId,
   getActiveEventByName,
+  getActiveEventByCheckInCode,
   isEventVisibleToAffiliation,
 } from '@/lib/supabase-attendance';
 import { getMemberByWallet } from '@/lib/supabase-member';
@@ -20,7 +21,7 @@ function getBearerToken(request: Request) {
 export async function POST(request: Request) {
   try {
     const accessToken = getBearerToken(request);
-    const body = (await request.json().catch(() => ({}))) as { event?: string };
+    const body = (await request.json().catch(() => ({}))) as { event?: unknown; code?: unknown } | null;
 
     let member = await getWalletSessionMember();
 
@@ -40,12 +41,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const eventName = typeof body.event === 'string' ? decodeEvent(body.event) : null;
-    if (!eventName) {
-      return NextResponse.json({ error: '세션 정보가 올바르지 않습니다.' }, { status: 400 });
+    const hasCode = body != null && Object.prototype.hasOwnProperty.call(body, 'code');
+    const code = typeof body?.code === 'string' ? body.code.trim().toUpperCase() : '';
+    const eventName = typeof body?.event === 'string' ? decodeEvent(body.event) : null;
+    if (hasCode ? !/^[A-HJ-NP-Z2-9]{6}$/.test(code) : !eventName) {
+      return NextResponse.json(
+        { error: hasCode ? '영문과 숫자로 된 6자리 출석 코드를 입력해주세요.' : '세션 정보가 올바르지 않습니다.' },
+        { status: 400 },
+      );
     }
 
-    const activeEvent = await getActiveEventByName(eventName);
+    const activeEvent = hasCode
+      ? await getActiveEventByCheckInCode(code)
+      : await getActiveEventByName(eventName!);
+    if (hasCode && !activeEvent) {
+      return NextResponse.json(
+        { error: '출석 코드가 올바르지 않거나 세션이 종료되었습니다.', code: 'invalid_check_in_code' },
+        { status: 400 },
+      );
+    }
     if (!activeEvent?.name) {
       return NextResponse.json(
         { error: '세션이 종료되었거나 활성 상태가 아닙니다.', code: 'session_inactive' },

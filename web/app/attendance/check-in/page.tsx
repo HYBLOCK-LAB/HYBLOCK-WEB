@@ -21,7 +21,7 @@ export default async function AttendanceCheckInPage({ searchParams }: CheckInPag
   const params = (await searchParams) ?? {};
   const encodedEvent = typeof params.e === 'string' ? params.e : '';
   const walletMember = await getWalletSessionMember().catch(() => null);
-  const returnPath = `/attendance/check-in?e=${encodeURIComponent(encodedEvent)}`;
+  const returnPath = encodedEvent ? `/attendance/check-in?e=${encodeURIComponent(encodedEvent)}` : '/attendance/check-in';
 
   return (
     <SiteChrome activePath="/attendance">

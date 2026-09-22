@@ -22,7 +22,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   if (hasEventParam) {
     return (
       <SiteChrome activePath="/attendance">
-        <AttendanceLanding sessions={sessions} activeEvents={activeEvents} />
+        <AttendanceLanding sessions={sessions} activeEvents={activeEvents.map(({ checkInCode: _code, ...event }) => event)} />
       </SiteChrome>
     );
   }

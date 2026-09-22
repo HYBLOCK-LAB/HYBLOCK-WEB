@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CalendarDays, CheckCircle2, Clock3 } from 'lucide-react';
 import { decodeEvent } from '@/lib/utils';
@@ -111,10 +112,16 @@ export default function AttendanceLanding({
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <AttendanceQrScanner />
+            <Link
+              href="/attendance/check-in"
+              className="interactive-soft rounded-xl border border-monolith-outline-variant/30 bg-monolith-surface-lowest px-5 py-3 text-sm font-bold text-monolith-primary-container"
+            >
+              {language === 'ko' ? '코드로 출석하기' : 'Check in with a code'}
+            </Link>
             <span className="text-xs text-monolith-on-surface-muted">
               {language === 'ko'
-                ? '현장에 표시된 출석 QR을 스캔하면 바로 출석 처리됩니다.'
-                : 'Scan the on-site attendance QR to check in instantly.'}
+                ? '현장의 QR을 스캔하거나 운영진이 안내한 6자리 코드를 입력하세요.'
+                : 'Scan the on-site QR or enter the six-character code provided by staff.'}
             </span>
           </div>
         </div>
@@ -208,13 +215,13 @@ export default function AttendanceLanding({
                 {selectedSession && activeEvents.some((activeEvent) => activeEvent.name === selectedSession.name)
                   ? selectedSession.name
                   : language === 'ko'
-                    ? '세션 현장에서 스캔'
-                    : 'Scan on-site'}
+                    ? 'QR 또는 코드로 출석'
+                    : 'Check in with QR or code'}
               </h2>
               <p className="mt-4 text-sm leading-7 text-monolith-on-surface-muted">
                 {language === 'ko'
-                  ? '진행 중인 세션 현장에서 운영진이 띄운 출석 QR을 휴대폰 카메라로 스캔하면 로그인된 계정으로 바로 출석 처리됩니다. 지갑을 연결하지 않았다면 먼저 로그인 또는 지갑 연동을 완료하세요.'
-                  : 'At an in-progress session, scan the attendance QR shown by the staff with your phone camera. You will be checked in with your logged-in account. Link a wallet first if you have not.'}
+                  ? '진행 중인 세션 현장에서 운영진이 띄운 출석 QR을 휴대폰 카메라로 스캔하면 로그인된 계정으로 바로 출석 처리됩니다. 카메라 사용이 어렵다면 ‘코드로 출석하기’에서 운영진이 안내한 6자리 코드를 입력하세요. 지갑을 연결하지 않았다면 먼저 로그인 또는 지갑 연동을 완료하세요.'
+                  : 'At an in-progress session, scan the attendance QR shown by the staff with your phone camera. You will be checked in with your logged-in account. You can also select “Check in with a code” and enter the six-character code shown by staff. Link a wallet first if you have not.'}
               </p>
             </div>
           </aside>

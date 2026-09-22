@@ -551,6 +551,7 @@ export default function AdminAttendanceManager() {
 
             <AdminSessionAttendanceQr
               eventName={qrModalEvent}
+              checkInCode={data?.activeEvents?.find((event) => event.name === qrModalEvent)?.checkInCode}
               isActive={Boolean(data?.activeEvents?.some((activeEvent) => activeEvent.name === qrModalEvent))}
             />
           </div>

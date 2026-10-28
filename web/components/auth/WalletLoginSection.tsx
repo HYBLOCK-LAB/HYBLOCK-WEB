@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoaderCircle, Wallet } from 'lucide-react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { isReownProjectIdConfigured } from '@/lib/auth/wagmi-config';
+import { getAccount } from '@wagmi/core';
+import { withWalletSessionLock, notifyWalletSessionChanged } from '@/lib/auth/wallet-session-client';
+import { isReownProjectIdConfigured, wagmiConfig } from '@/lib/auth/wagmi-config';
 import { textContent } from '@/lib/text-content';
 import { useLanguageStore } from '@/lib/auth/language-store';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
@@ -20,12 +22,12 @@ export default function WalletLoginSection({ redirectTo = '/', adminOnly = false
   const d = textContent[language].auth;
   
   const { openWalletConnectModal } = useWalletConnectModal();
-  const { address, chain, isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const handledAddressRef = useRef<string | null>(null);
+  const submittingRef = useRef(false);
 
   const handleOpenConnectModal = async () => {
     setError(null);
@@ -38,17 +40,19 @@ export default function WalletLoginSection({ redirectTo = '/', adminOnly = false
   };
 
   const handleWalletLogin = async () => {
+    if (submittingRef.current) return;
     if (!address) {
       setError(language === 'ko' ? '먼저 지갑을 연결하세요.' : 'Please connect your wallet first.');
       return;
     }
 
+    submittingRef.current = true;
     try {
       setError(null);
       setMessage(language === 'ko' ? '서명 요청을 준비하는 중입니다.' : 'Preparing signature request...');
       setIsVerifying(true);
 
-      const nonceResponse = await fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`);
+      const nonceResponse = await withWalletSessionLock(() => fetch(`/api/auth/wallet/nonce?address=${encodeURIComponent(address)}`, { cache: 'no-store' }));
       if (!nonceResponse.ok) {
         const noncePayload = (await nonceResponse.json().catch(() => ({}))) as { error?: string };
         throw new Error(noncePayload.error ?? (language === 'ko' ? '로그인 요청을 시작하지 못했습니다.' : 'Failed to start login request.'));
@@ -61,15 +65,20 @@ export default function WalletLoginSection({ redirectTo = '/', adminOnly = false
       });
 
       setMessage(language === 'ko' ? '서명을 확인하는 중입니다.' : 'Verifying signature...');
-      const verifyResponse = await fetch('/api/auth/wallet/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address,
-          message: noncePayload.message,
-          signature,
-          adminOnly,
-        }),
+      const verifyResponse = await withWalletSessionLock(() => {
+        if (getAccount(wagmiConfig).address?.toLowerCase() !== address.toLowerCase()) {
+          throw new Error(language === 'ko' ? '연결된 지갑이 변경되었습니다. 다시 로그인하세요.' : 'Wallet changed. Please log in again.');
+        }
+        return fetch('/api/auth/wallet/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address,
+            message: noncePayload.message,
+            signature,
+            adminOnly,
+          }),
+        });
       });
 
       const data = (await verifyResponse.json().catch(() => ({}))) as { exists?: boolean; error?: string };
@@ -82,40 +91,18 @@ export default function WalletLoginSection({ redirectTo = '/', adminOnly = false
         throw new Error(data.error ?? (language === 'ko' ? '회원 정보 확인에 실패했습니다.' : 'Failed to verify member info.'));
       }
 
-      window.localStorage.setItem(
-        'hyblock_wallet_login',
-        JSON.stringify({
-          address,
-          chainId: chain?.id ?? null,
-          signedAt: new Date().toISOString(),
-          signaturePreview: `${signature.slice(0, 10)}...${signature.slice(-8)}`,
-        }),
-      );
-
       setMessage(language === 'ko' ? '지갑 로그인 세션이 연결되었습니다.' : 'Wallet login session connected.');
+      notifyWalletSessionChanged();
       router.replace(redirectTo);
+      router.refresh();
     } catch (loginError) {
-      handledAddressRef.current = null;
       setError(formatWalletLoginError(loginError, language));
       setMessage(null);
     } finally {
+      submittingRef.current = false;
       setIsVerifying(false);
     }
   };
-
-  useEffect(() => {
-    if (!isConnected || !address) {
-      handledAddressRef.current = null;
-      return;
-    }
-
-    if (handledAddressRef.current === address) {
-      return;
-    }
-
-    handledAddressRef.current = address;
-    void handleWalletLogin();
-  }, [address, isConnected]);
 
   return (
     <div className="mx-auto max-w-xl space-y-4">

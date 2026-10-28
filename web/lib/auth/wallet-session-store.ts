@@ -2,7 +2,16 @@
 
 import { create } from 'zustand';
 
+export type AuthSession = {
+  address: string;
+  memberId: number;
+  expiresAt: number;
+};
+
 type WalletSessionState = {
+  session: AuthSession | null;
+  sessionChecked: boolean;
+  setAuthSession: (session: AuthSession | null) => void;
   address: string | null;
   chainName: string | null;
   isConnected: boolean;
@@ -15,6 +24,9 @@ type WalletSessionState = {
 };
 
 export const useWalletSessionStore = create<WalletSessionState>((set) => ({
+  session: null,
+  sessionChecked: false,
+  setAuthSession: (session) => set({ session, sessionChecked: true }),
   address: null,
   chainName: null,
   isConnected: false,

@@ -35,10 +35,15 @@ function getMintConfig() {
   };
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const member = await getWalletSessionMember();
   if (!member) {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  const expectedWallet = request.headers.get('x-wallet-address');
+  if (expectedWallet && expectedWallet.toLowerCase() !== member.wallet_address?.toLowerCase()) {
+    return NextResponse.json({ error: '연결된 지갑과 로그인 계정이 다릅니다. 다시 로그인하세요.' }, { status: 401 });
   }
 
   try {

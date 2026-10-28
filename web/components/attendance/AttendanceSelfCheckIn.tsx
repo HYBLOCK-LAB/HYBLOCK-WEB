@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getAccount } from '@wagmi/core';
+import { wagmiConfig } from '@/lib/auth/wagmi-config';
 import { AlertCircle, CheckCircle2, Clock3, LoaderCircle, RefreshCw } from 'lucide-react';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
 
@@ -39,6 +41,8 @@ export default function AttendanceSelfCheckIn({ encodedEvent }: AttendanceSelfCh
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const connectedAddress = getAccount(wagmiConfig).address;
+      if (connectedAddress) headers['X-Wallet-Address'] = connectedAddress;
 
       if (isBrowserSupabaseConfigured()) {
         const supabase = getBrowserSupabase();

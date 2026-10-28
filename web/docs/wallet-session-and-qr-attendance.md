@@ -11,7 +11,7 @@
 | 지갑 로그인 | HMAC `httpOnly` cookie | 서버 member 식별, 관리자/SBT/QR 인가 |
 | Google 로그인 | Supabase Auth access token | linked wallet member의 QR 발급 |
 
-`WalletSessionSync`라는 이름의 provider는 실제 server cookie가 아니라 Wagmi 연결 상태를 Zustand에 복사한다. 서버 인가 코드는 이 store를 신뢰하지 않는다.
+`WalletSessionSync`는 Wagmi 연결 상태와 서버 로그인 상태를 별도로 관리한다. `/api/auth/wallet/session`에서 확인한 세션의 주소·member ID·만료 시각으로 로그인 UI를 표시한다. 계정 변경 또는 연결 해제 시 서버 쿠키를 정리하고, 새 계정은 다시 서명해야 한다. 새로고침 직후 지갑이 연결되지 않은 상태여도 유효한 로그인 세션은 복원한다. 서버 인가 코드는 계속 쿠키를 직접 검증한다.
 
 ## 2. 지갑 로그인
 
@@ -43,7 +43,9 @@ Issued At: ...
 5. 성공하면 주소, member ID, 만료를 HMAC 서명한 `hyblock_wallet_session` cookie를 설정한다.
 6. session TTL은 7일이다.
 
-보조 localStorage `hyblock_wallet_login`은 signature preview와 UI 기록일 뿐 인증 수단이 아니다.
+지갑 연결 후 로그인 버튼을 눌러 서명을 요청한다. 회원이 없어 가입한 경우에도 목적지로 바로 이동하지 않고 로그인 화면에서 서명 로그인을 완료한다. 로그인 성공 후 서버 렌더링 결과를 갱신한다.
+
+기존 localStorage `hyblock_wallet_login`은 인증에 사용하지 않는다. 로그인 시 더 이상 저장하지 않으며 로그아웃 시 이전 기록을 삭제한다.
 
 ### server session 재검증
 
@@ -54,11 +56,13 @@ Issued At: ...
 - 주소로 조회한 member 존재와 활성 상태
 - cookie의 member ID와 DB member ID 일치
 
-관리자 검사는 여기에 `member.is_admin=true`를 추가한다.
+관리자 검사는 여기에 `member.is_admin=true`를 추가한다. 세션 조회는 읽기 전용이며 만료·비활성·유효하지 않은 세션은 `null`을 반환한다. Server Component 렌더링 중에는 쿠키를 수정하지 않는다.
 
 ### 로그아웃
 
-`POST /api/auth/wallet/logout`은 nonce와 session cookie를 삭제한다. 다만 현재 `SiteChrome`의 disconnect 버튼은 Wagmi `disconnect()`만 호출하므로 이 endpoint와 UI를 연결해야 완전한 로그아웃이 된다.
+`SiteChrome` 로그아웃 버튼은 로컬 Supabase 세션을 해제하고 `POST /api/auth/wallet/logout`으로 nonce와 session cookie를 삭제한 후 지갑 연결을 해제한다. 서버 로그아웃 실패 시 오류를 표시하며 재시도할 수 있다. 다른 탭에는 storage 이벤트를 보내 세션을 다시 조회한다. 창 포커스 복귀·페이지 전환 때도 재검증하고, 만료 시각에는 로그인 UI를 해제한다.
+
+클라이언트의 쿠키 변경 요청은 직렬화한다. 출석 및 SBT 발급 요청은 현재 지갑 주소를 함께 보내며, 서버에서 인증된 회원 주소와 다르면 401로 거절한다.
 
 ## 3. Google session과 linked wallet
 

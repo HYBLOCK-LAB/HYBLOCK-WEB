@@ -35,7 +35,8 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const resolvedWalletAddress = source === 'google' ? linkedWalletAddress : linkedWalletAddress ?? address ?? null;
+  const resolvedWalletAddress = source === 'google' ? linkedWalletAddress : address ?? null;
+  const completionPath = source === 'google' ? redirectTo : `/login?redirect=${encodeURIComponent(redirectTo)}`;
 
   useEffect(() => {
     if (!isBrowserSupabaseConfigured() || !supabase) {
@@ -83,7 +84,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
 
         const data = (await response.json()) as LookupResponse;
         if (active && data.exists) {
-          router.replace(redirectTo);
+          router.replace(completionPath);
         }
       } catch (lookupError) {
         if (active) {
@@ -99,7 +100,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
     return () => {
       active = false;
     };
-  }, [redirectTo, resolvedWalletAddress, router]);
+  }, [completionPath, resolvedWalletAddress, router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,7 +133,7 @@ export default function WalletMemberSignupForm({ redirectTo = '/', source = 'wal
       }
 
       setMessage('회원가입이 완료되었습니다.');
-      router.replace(redirectTo);
+      router.replace(completionPath);
     } catch (signupError) {
       setError(signupError instanceof Error ? signupError.message : '회원가입 중 오류가 발생했습니다.');
     } finally {

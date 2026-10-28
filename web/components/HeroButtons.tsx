@@ -1,17 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 import { useLanguageStore } from '@/lib/auth/language-store';
 import { textContent } from '@/lib/text-content';
 
 export default function HeroButtons() {
-  const { address } = useAccount();
-  const isConnected = useWalletSessionStore((state) => state.isConnected);
+  const session = useWalletSessionStore((state) => state.session);
   const { language } = useLanguageStore();
   const d = textContent[language].home;
-  const loggedIn = isConnected && address;
+  const loggedIn = Boolean(session);
 
   return (
     <div className="mt-12 flex flex-wrap gap-5">

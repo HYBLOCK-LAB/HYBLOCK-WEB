@@ -41,6 +41,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const expectedWallet = request.headers.get('x-wallet-address');
+    if (expectedWallet && expectedWallet.toLowerCase() !== member.wallet_address?.toLowerCase()) {
+      return NextResponse.json({ error: '연결된 지갑과 로그인 계정이 다릅니다. 다시 로그인하세요.' }, { status: 401 });
+    }
+
     const hasCode = body != null && Object.prototype.hasOwnProperty.call(body, 'code');
     const code = typeof body?.code === 'string' ? body.code.trim().toUpperCase() : '';
     const eventName = typeof body?.event === 'string' ? decodeEvent(body.event) : null;

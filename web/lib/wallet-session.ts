@@ -59,8 +59,8 @@ function encodeSignedPayload<T>(payload: T) {
 }
 
 function decodeSignedPayload<T>(value: string): T | null {
-  const [encodedPayload, signature] = value.split('.');
-  if (!encodedPayload || !signature) return null;
+  const [encodedPayload, signature, extra] = value.split('.');
+  if (!encodedPayload || !signature || extra !== undefined) return null;
 
   const serializedPayload = fromBase64Url(encodedPayload);
   const expectedSignature = signPayload(serializedPayload);
@@ -71,7 +71,11 @@ function decodeSignedPayload<T>(value: string): T | null {
     return null;
   }
 
-  return JSON.parse(serializedPayload) as T;
+  try {
+    return JSON.parse(serializedPayload) as T;
+  } catch {
+    return null;
+  }
 }
 
 function buildWalletLoginMessage(address: string, nonce: string, issuedAt: string) {
@@ -163,24 +167,27 @@ export async function verifyWalletLogin(params: { address: string; message: stri
   return { member };
 }
 
-export async function getWalletSessionMember(): Promise<MemberProfile | null> {
+export async function getWalletSession() {
   const cookieStore = await cookies();
   const rawSession = cookieStore.get(WALLET_SESSION_COOKIE)?.value;
   if (!rawSession) return null;
 
   const payload = decodeSignedPayload<WalletSessionPayload>(rawSession);
-  if (!payload || payload.expiresAt < Date.now()) {
-    cookieStore.delete(WALLET_SESSION_COOKIE);
-    return null;
-  }
+  if (
+    !payload || typeof payload.address !== 'string' ||
+    !/^0x[0-9a-fA-F]{40}$/.test(payload.address) ||
+    !Number.isInteger(payload.memberId) ||
+    !Number.isFinite(payload.expiresAt) || payload.expiresAt <= Date.now()
+  ) return null;
 
   const member = await getMemberByWallet(payload.address);
-  if (!member || !member.is_active || member.id !== payload.memberId) {
-    cookieStore.delete(WALLET_SESSION_COOKIE);
-    return null;
-  }
+  if (!member || !member.is_active || member.id !== payload.memberId) return null;
 
-  return member;
+  return { member, expiresAt: payload.expiresAt };
+}
+
+export async function getWalletSessionMember(): Promise<MemberProfile | null> {
+  return (await getWalletSession())?.member ?? null;
 }
 
 export async function clearWalletSession() {

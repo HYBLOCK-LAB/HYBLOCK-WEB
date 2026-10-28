@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { logoutWalletSession } from '@/lib/auth/wallet-session-client';
+import { getBrowserSupabase } from '@/lib/auth/supabase-browser';
 import { ChevronDown, LogOut, UserRound, Wallet, Languages } from 'lucide-react';
 import { useDisconnect } from 'wagmi';
 import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
@@ -21,11 +24,38 @@ function isActive(activePath: string, href: string) {
 }
 
 export default function SiteChrome({ activePath, children }: SiteChromeProps) {
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
   const { openWalletAccountModal, openWalletConnectModal } = useWalletConnectModal();
   const { disconnect } = useDisconnect();
   const address = useWalletSessionStore((state) => state.address);
   const isConnected = useWalletSessionStore((state) => state.isConnected);
+  const session = useWalletSessionStore((state) => state.session);
+  const loggedIn = Boolean(session && (!address || session.address.toLowerCase() === address.toLowerCase()));
+  const sessionAddress = session?.address ?? '';
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    setLogoutError(null);
+    try {
+      const supabase = getBrowserSupabase();
+      if (supabase) {
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        if (error) throw error;
+      }
+      await logoutWalletSession();
+      useWalletSessionStore.getState().setAuthSession(null);
+      disconnect();
+      router.replace('/login');
+      router.refresh();
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : '로그아웃에 실패했습니다.');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
   const { language, toggleLanguage } = useLanguageStore();
   const isAdmin = activePath.startsWith('/admin');
   const headerNavItems = isAdmin ? adminNavItems : navItems;
@@ -88,7 +118,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
                 </Link>
               ))}
 
-              {isConnected && address ? (
+              {loggedIn ? (
                 <Link
                   href="/attendance"
                   className={`text-[16px] font-extrabold transition-colors ${
@@ -120,15 +150,15 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
               {language === 'ko' ? 'KOR' : 'ENG'}
             </button>
 
-            {isConnected && address ? (
+            {loggedIn ? (
               <>
                 <button onClick={handleHeaderWalletClick} className="flex items-center gap-2.5 rounded-full bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-200 transition-colors">
-                  <Wallet className="h-4 w-4 text-[#0e4a84]" /> {(address || '').slice(0, 6)}...{(address || '').slice(-4)}
+                  <Wallet className="h-4 w-4 text-[#0e4a84]" /> {sessionAddress.slice(0, 6)}...{sessionAddress.slice(-4)}
                 </button>
                 <Link href="/mypage" className="rounded-full p-2.5 text-slate-600 hover:bg-slate-100 transition-colors">
                   <UserRound className="h-5.5 w-5.5" />
                 </Link>
-                <button onClick={() => disconnect()} className="rounded-full p-2.5 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition-colors">
+                <button onClick={() => void handleLogout()} disabled={loggingOut} aria-label="로그아웃" className="rounded-full p-2.5 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition-colors">
                   <LogOut className="h-5.5 w-5.5" />
                 </button>
               </>
@@ -141,6 +171,7 @@ export default function SiteChrome({ activePath, children }: SiteChromeProps) {
         </div>
       </header>
 
+      {logoutError ? <p role="alert" className="px-6 py-3 text-center text-sm text-red-600">{logoutError}</p> : null}
       {children}
       <footer className="border-t border-slate-100 bg-slate-50/50 py-10">
         <div className="mx-auto max-w-7xl px-8">

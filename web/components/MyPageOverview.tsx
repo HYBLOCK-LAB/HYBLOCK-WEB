@@ -15,7 +15,6 @@ import {
   Award,
 } from 'lucide-react';
 import { getBrowserSupabase, isBrowserSupabaseConfigured } from '@/lib/auth/supabase-browser';
-import { useWalletConnectModal } from '@/lib/auth/use-wallet-connect-modal';
 import { useWalletSessionStore } from '@/lib/auth/wallet-session-store';
 
 type MemberProfile = {
@@ -49,10 +48,9 @@ const AFFILIATION_LABELS: Record<string, string> = {
 };
 
 export default function MyPageOverview() {
-  const { openWalletConnectModal } = useWalletConnectModal();
-  const address = useWalletSessionStore((state) => state.address);
+  const address = useWalletSessionStore((state) => state.session?.address ?? null);
+  const connectedAddress = useWalletSessionStore((state) => state.address);
   const chainName = useWalletSessionStore((state) => state.chainName);
-  const isConnected = useWalletSessionStore((state) => state.isConnected);
   const [member, setMember] = useState<MemberProfile | null>(null);
   const [loadingMember, setLoadingMember] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
@@ -151,13 +149,14 @@ export default function MyPageOverview() {
       setMintError(null);
 
       const memberWallet = member?.wallet_address?.toLowerCase() ?? null;
-      const activeWallet = (address || '').toLowerCase();
+      const activeWallet = (connectedAddress ?? address ?? '').toLowerCase();
       if (memberWallet && memberWallet !== activeWallet) {
         throw new Error('현재 마이페이지 회원 정보의 지갑과 연결된 지갑이 다릅니다. 다시 로그인하거나 지갑을 다시 연결하세요.');
       }
 
       const response = await fetch('/api/certificates/mint-sbt', {
         method: 'POST',
+        headers: { 'X-Wallet-Address': activeWallet },
       });
 
       const result = (await response.json().catch(() => ({}))) as {
@@ -214,14 +213,14 @@ export default function MyPageOverview() {
                   <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">
                     Wallet Session
                   </p>
-                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">지갑 연결 상태</h2>
+                  <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em] text-monolith-on-surface">로그인 상태</h2>
                 </div>
                 <span className="rounded-full bg-monolith-secondary-container px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-monolith-primary-container">
-                  {isConnected && address ? 'Connected' : 'Disconnected'}
+                  {address ? 'Logged in' : 'Logged out'}
                 </span>
               </div>
 
-              {isConnected && address ? (
+              {address ? (
                 <div className="mt-6 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                   <InfoTile
@@ -273,16 +272,15 @@ export default function MyPageOverview() {
               ) : (
                 <div className="mt-6 rounded-2xl border border-dashed border-monolith-outline-variant/35 bg-monolith-surface-low p-6">
                   <p className="text-sm leading-7 text-monolith-on-surface-muted">
-                    지갑이 연결되어 있지 않습니다. 연결 후 회원 정보를 자동으로 조회합니다.
+                    로그인 세션이 없습니다. 지갑으로 로그인하면 회원 정보를 확인할 수 있습니다.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => void openWalletConnectModal()}
+                  <Link
+                    href="/login?redirect=%2Fmypage"
                     className="interactive-soft mt-4 inline-flex items-center gap-2 rounded-xl bg-monolith-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-monolith-primary-container"
                   >
                     <Wallet className="h-4 w-4" />
-                    지갑 연결하기
-                  </button>
+                    지갑으로 로그인
+                  </Link>
                 </div>
               )}
             </section>

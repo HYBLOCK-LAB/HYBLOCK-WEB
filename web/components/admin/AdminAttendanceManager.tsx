@@ -4,17 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, QrCode, SquareArrowOutUpRight, X } from 'lucide-react';
 import { encodeEvent } from '@/lib/utils';
 import AdminSessionAttendanceQr from '@/components/admin/AdminSessionAttendanceQr';
+import AttendanceParticipantsEditor, { type ParticipantStatus } from '@/components/admin/AttendanceParticipantsEditor';
+import { DEFAULT_LATE_AFTER_MINUTES, isValidLateAfterMinutes } from '@/lib/attendance-policy';
 
 type AttendanceRow = Record<string, string>;
-type ParticipantStatus = 'present' | 'late' | 'absent' | 'nonParticipation';
-type EventParticipant = {
-  memberId: number;
-  name: string;
-  status: ParticipantStatus;
-};
-
 type EventPayload = {
   events: string[];
+  lateAfterMinutes?: Record<string, number>;
   attendanceData: AttendanceRow[];
   activeEvent: { name: string; activatedAt: string; checkInCode?: string | null; sessionType?: string; targetAffiliation?: string | null } | null;
   activeEvents: Array<{ name: string; activatedAt: string; checkInCode?: string | null; sessionType?: string; targetAffiliation?: string | null }>;
@@ -42,25 +38,25 @@ export default function AdminAttendanceManager() {
   const [baseUrl, setBaseUrl] = useState('');
   const [qrModalEvent, setQrModalEvent] = useState<string | null>(null);
   const [statModalEvent, setStatModalEvent] = useState<string | null>(null);
-  const [participants, setParticipants] = useState<EventParticipant[]>([]);
-  const [participantsLoading, setParticipantsLoading] = useState(false);
-  const [participantProcessingId, setParticipantProcessingId] = useState<number | null>(null);
+  const [participantFilter, setParticipantFilter] = useState<ParticipantStatus | 'all'>('all');
+  const [activationEvent, setActivationEvent] = useState<string | null>(null);
+  const [lateMinutes, setLateMinutes] = useState(String(DEFAULT_LATE_AFTER_MINUTES));
+  const [activationError, setActivationError] = useState<string | null>(null);
+
+  const openParticipants = (eventName: string, filter: ParticipantStatus | 'all' = 'all') => {
+    setParticipantFilter(filter);
+    setStatModalEvent(eventName);
+  };
+  const openActivation = (eventName: string) => {
+    setLateMinutes(String(data?.lateAfterMinutes?.[eventName] ?? DEFAULT_LATE_AFTER_MINUTES));
+    setActivationError(null);
+    setActivationEvent(eventName);
+  };
 
   useEffect(() => {
     setBaseUrl(window.location.origin);
     void fetchData();
   }, []);
-
-  useEffect(() => {
-    if (!statModalEvent) {
-      setParticipants([]);
-      setParticipantsLoading(false);
-      setParticipantProcessingId(null);
-      return;
-    }
-
-    void fetchParticipants(statModalEvent);
-  }, [statModalEvent]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,28 +78,6 @@ export default function AdminAttendanceManager() {
     }
   };
 
-  const fetchParticipants = async (eventName: string) => {
-    setParticipantsLoading(true);
-
-    try {
-      const response = await fetch(`/api/events?includeParticipants=true&eventName=${encodeURIComponent(eventName)}`, {
-        cache: 'no-store',
-      });
-      const result = (await response.json()) as { participants?: EventParticipant[]; error?: string };
-
-      if (!response.ok) {
-        throw new Error(result.error ?? '참여자 데이터를 불러오지 못했습니다.');
-      }
-
-      setParticipants(result.participants ?? []);
-    } catch {
-      setError('참여자 데이터를 불러오지 못했습니다.');
-      setParticipants([]);
-    } finally {
-      setParticipantsLoading(false);
-    }
-  };
-
   const formatTargetAffiliation = (targetAffiliation?: string | null) => {
     if (targetAffiliation === 'development') return 'Development';
     if (targetAffiliation === 'business') return 'Business';
@@ -111,21 +85,26 @@ export default function AdminAttendanceManager() {
   };
 
   const handleSetActive = async (eventName: string) => {
+    const minutes = lateMinutes.trim() === '' ? NaN : Number(lateMinutes);
+    if (!isValidLateAfterMinutes(minutes)) {
+      setActivationError('지각 기준은 0~180 사이의 정수(분)로 입력해주세요.');
+      return;
+    }
+    setActivationError(null);
     setProcessingEvent(eventName);
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventName, setActive: true }),
+        body: JSON.stringify({ eventName, setActive: true, lateAfterMinutes: minutes }),
       });
 
-      if (!response.ok) {
-        throw new Error('세션 활성화 실패');
-      }
-
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? '세션 활성화에 실패했습니다.');
+      setActivationEvent(null);
       await fetchData();
-    } catch {
-      setError('세션 활성화에 실패했습니다.');
+    } catch (error) {
+      setActivationError(error instanceof Error ? error.message : '세션 활성화에 실패했습니다.');
     } finally {
       setProcessingEvent(null);
     }
@@ -157,6 +136,10 @@ export default function AdminAttendanceManager() {
   };
 
   const handleStatusChange = async (eventName: string, status: SessionStatus) => {
+    if (status === 'in_progress') {
+      openActivation(eventName);
+      return;
+    }
     setProcessingEvent(`status:${eventName}`);
     setError(null);
 
@@ -219,40 +202,6 @@ export default function AdminAttendanceManager() {
     );
   };
 
-  const handleParticipantStatusChange = async (eventName: string, memberId: number, status: ParticipantStatus) => {
-    setParticipantProcessingId(memberId);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/events', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventName, memberId, attendanceStatus: status }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error ?? '참여 상태 변경에 실패했습니다.');
-      }
-
-      setParticipants((current) =>
-        current.map((participant) => (participant.memberId === memberId ? { ...participant, status } : participant)),
-      );
-      await Promise.all([fetchData(), fetchParticipants(eventName)]);
-    } catch {
-      setError('참여 상태 변경에 실패했습니다.');
-    } finally {
-      setParticipantProcessingId(null);
-    }
-  };
-
-  const getParticipantStatusLabel = (status: ParticipantStatus) => {
-    if (status === 'present') return '출석';
-    if (status === 'late') return '지각';
-    if (status === 'absent') return '결석';
-    return '미참여';
-  };
-
   if (loading && !data) {
     return <p className="text-sm text-monolith-on-surface-muted">출석 관리 데이터를 불러오는 중입니다.</p>;
   }
@@ -301,6 +250,8 @@ export default function AdminAttendanceManager() {
                   참가자는 QR 아이콘의 출석 QR을 휴대폰으로 스캔해 직접 출석합니다. 지갑을 연결하지 않은 회원은
                   참여 현황에서 수동으로 보정하세요.
                 </p>
+                <p className="mt-2 text-sm font-semibold text-monolith-primary-container">시작 후 {data.lateAfterMinutes?.[activeEvent.name] ?? DEFAULT_LATE_AFTER_MINUTES}분 초과 시 지각</p>
+                <button type="button" onClick={() => openParticipants(activeEvent.name)} className="mt-3 w-full rounded-xl border border-monolith-primary-container/30 bg-white px-4 py-3 text-sm font-semibold text-monolith-primary-container">출석 수정</button>
                 <div className="mt-4 flex gap-3">
                   <button
                     type="button"
@@ -366,6 +317,8 @@ export default function AdminAttendanceManager() {
           return (
             <div
               key={event}
+              role="group"
+              aria-label={`${event} 세션`}
               className="rounded-2xl bg-monolith-surface-low p-5 shadow-[0_14px_30px_rgba(0,51,97,0.05)] transition hover:bg-monolith-surface"
             >
               <div className="flex items-start justify-between gap-3">
@@ -386,10 +339,10 @@ export default function AdminAttendanceManager() {
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
-                <MiniStat label="미참여" value={stats.nonParticipation} tone="neutral" onClick={() => setStatModalEvent(event)} />
-                <MiniStat label="출석" value={stats.attendance} tone="primary" onClick={() => setStatModalEvent(event)} />
-                <MiniStat label="지각" value={stats.late} tone="warning" onClick={() => setStatModalEvent(event)} />
-                <MiniStat label="결석" value={stats.absence} tone="danger" onClick={() => setStatModalEvent(event)} />
+                <MiniStat label="미참여" value={stats.nonParticipation} tone="neutral" onClick={() => openParticipants(event, 'nonParticipation')} />
+                <MiniStat label="출석" value={stats.attendance} tone="primary" onClick={() => openParticipants(event, 'present')} />
+                <MiniStat label="지각" value={stats.late} tone="warning" onClick={() => openParticipants(event, 'late')} />
+                <MiniStat label="결석" value={stats.absence} tone="danger" onClick={() => openParticipants(event, 'absent')} />
               </div>
 
               <div className="mt-5 space-y-3">
@@ -423,7 +376,7 @@ export default function AdminAttendanceManager() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => handleSetActive(event)}
+                    onClick={() => openActivation(event)}
                     disabled={isProcessing}
                     className="interactive-soft flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#1b66b3,#0e4a84)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(14,74,132,0.22)] transition-all hover:brightness-105 disabled:opacity-60"
                   >
@@ -431,6 +384,7 @@ export default function AdminAttendanceManager() {
                   </button>
                 )}
 
+                <button type="button" onClick={() => openParticipants(event)} className="w-full rounded-xl border border-monolith-primary-container/30 bg-white px-4 py-3 text-sm font-semibold text-monolith-primary-container">출석 수정</button>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -463,68 +417,26 @@ export default function AdminAttendanceManager() {
       </div>
 
       {statModalEvent ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00172d]/40 px-4 py-8 backdrop-blur-[2px]">
-          <div className="w-full max-w-5xl rounded-[2rem] border border-monolith-outline-variant/20 bg-white p-6 shadow-[0_24px_80px_rgba(0,24,46,0.22)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-monolith-primary-container">참여 현황</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-monolith-on-surface">{statModalEvent}</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setStatModalEvent(null)}
-                className="interactive-soft inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-monolith-outline-variant/25 bg-monolith-surface-low text-monolith-on-surface-muted transition hover:border-monolith-outline-variant/40 hover:text-monolith-on-surface"
-                aria-label="닫기"
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
-            </div>
+        <AttendanceParticipantsEditor key={statModalEvent} eventName={statModalEvent} initialStatus={participantFilter}
+          onClose={() => setStatModalEvent(null)} onChanged={() => { void fetchData(); }} />
+      ) : null}
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-monolith-outline-variant/20 bg-monolith-surface-low">
-              <div className="grid grid-cols-[1.1fr_0.8fr] gap-4 border-b border-monolith-outline-variant/20 bg-monolith-surface-lowest px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-monolith-on-surface-muted">
-                <span>참여자</span>
-                <span>상태 변경</span>
-              </div>
-              <div className="max-h-[28rem] overflow-y-auto">
-                {participantsLoading ? (
-                  <div className="px-4 py-6 text-sm text-monolith-on-surface-muted">참여자 목록을 불러오는 중입니다.</div>
-                ) : participants.length === 0 ? (
-                  <div className="px-4 py-6 text-sm text-monolith-on-surface-muted">표시할 참여자가 없습니다.</div>
-                ) : (
-                  participants.map((participant) => (
-                    <div
-                      key={participant.memberId}
-                      className="grid grid-cols-[1.1fr_0.8fr] items-center gap-4 border-b border-monolith-outline-variant/15 bg-white px-4 py-3 last:border-b-0"
-                    >
-                      <div>
-                        <p className="font-semibold text-monolith-on-surface">{participant.name}</p>
-                        <p className="mt-1 text-xs text-monolith-on-surface-muted">
-                          현재 상태: {getParticipantStatusLabel(participant.status)}
-                        </p>
-                      </div>
-                      <select
-                        value={participant.status}
-                        onChange={(changeEvent) =>
-                          void handleParticipantStatusChange(
-                            statModalEvent,
-                            participant.memberId,
-                            changeEvent.target.value as ParticipantStatus,
-                          )
-                        }
-                        disabled={participantProcessingId === participant.memberId}
-                        className="w-full rounded-xl border border-monolith-outline-variant/25 bg-monolith-surface-lowest px-4 py-3 text-sm font-semibold text-monolith-on-surface outline-none transition focus:border-monolith-primary-container disabled:opacity-60"
-                      >
-                        <option value="nonParticipation">미참여</option>
-                        <option value="present">출석</option>
-                        <option value="late">지각</option>
-                        <option value="absent">결석</option>
-                      </select>
-                    </div>
-                  ))
-                )}
-              </div>
+      {activationEvent ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-8">
+          <form role="dialog" aria-modal="true" aria-labelledby="activation-title" onSubmit={(event) => { event.preventDefault(); void handleSetActive(activationEvent); }}
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <h2 id="activation-title" className="text-2xl font-black text-monolith-on-surface">{activationEvent} 활성화</h2>
+              <button type="button" aria-label="활성화 설정 닫기" disabled={processingEvent === activationEvent} onClick={() => setActivationEvent(null)} className="rounded-lg p-2"><X className="h-5 w-5" /></button>
             </div>
-          </div>
+            <label className="mt-6 block text-sm font-semibold text-monolith-on-surface">지각 기준 (시작 후 분)
+              <input autoFocus type="number" min="0" max="180" step="1" required value={lateMinutes} onChange={(event) => setLateMinutes(event.target.value)} disabled={processingEvent === activationEvent}
+                className="mt-2 w-full rounded-xl border border-monolith-outline-variant/30 px-4 py-3" />
+            </label>
+            <p className="mt-3 text-sm leading-6 text-monolith-on-surface-muted">활성화 시점부터 {lateMinutes || '0'}분까지 출석, 이후 지각으로 처리합니다. 0분이면 활성화 직후부터 지각입니다. 기존 출석 기록은 바뀌지 않습니다.</p>
+            {activationError ? <p role="alert" className="mt-4 text-sm text-monolith-error">{activationError}</p> : null}
+            <button type="submit" disabled={processingEvent === activationEvent} className="mt-6 w-full rounded-xl bg-monolith-primary-container px-4 py-3 font-semibold text-white disabled:opacity-50">{processingEvent === activationEvent ? '활성화 중…' : '설정하고 활성화'}</button>
+          </form>
         </div>
       ) : null}
 

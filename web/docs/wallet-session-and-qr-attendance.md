@@ -84,7 +84,7 @@ Google session은 관리자/SBT 민팅에 사용하지 않는다.
 - `session_end_time`: 기본 20분 뒤
 - `updated_at`: 활성화 시각
 
-`ACTIVE_SESSION_DURATION_MINUTES`로 20분 기본값을 바꿀 수 있다. 출석 상태는 시작 후 10분을 기준으로 `present`/`late`를 나눈다.
+`ACTIVE_SESSION_DURATION_MINUTES`로 20분 기본값을 바꿀 수 있다. 출석 상태는 세션별 `late_after_minutes`(기본 10분)를 기준으로 `present`/`late`를 나눈다. 관리자는 활성화 설정에서 0~180 사이의 정수(분)를 지정한다. 경계 시각까지 `present`, 초과하면 `late`다. 0분은 활성화 직후부터 지각이다. QR 유효시간은 별도이며 기존 `ACTIVE_SESSION_DURATION_MINUTES` 설정을 따른다.
 
 동시 활성화 규칙:
 
@@ -167,7 +167,7 @@ attendance:qr:{random token}
 
 체크인 시:
 
-- 시작 후 10분 이내: `present`
+- 시작 후 설정한 `late_after_minutes` 이내: `present`
 - 이후 session end 전: `late`
 - 같은 member/session 기록 존재: 기존 결과 반환
 
@@ -200,3 +200,15 @@ attendance:qr:{random token}
 - `app/api/check-in/route.ts`
 - `components/PersonalAttendanceQrCard.tsx`
 - `components/admin/AdminAttendanceScanner.tsx`
+
+## 관리자 수동 출석 수정과 지각 기준 설정
+
+- 세션 카드 또는 활성 세션의 **출석 수정** 버튼에서 활성 회원 목록을 연다.
+- 이름·기수·파트·현재 상태로 필터링하고, 회원별 출석/지각/결석/미참여 버튼으로 즉시 저장한다.
+- 검색 결과 전체 선택 또는 개별 선택 후 일괄 상태를 적용할 수 있다(최대 500명). 필터를 바꿔도 선택은 유지된다.
+- 단일/일괄 변경은 관리자 인증 후 하나의 upsert/delete로 처리한다. 기존 출석 시각은 유지하고, 결석은 시각을 NULL로, 미참여는 레코드 삭제로 저장한다. 실패하면 상태와 선택을 유지해 재시도할 수 있다.
+- 세션 활성화 버튼 및 세션 상태의 진행중 선택 모두 지각 기준 설정을 거친다. 설정은 이후 체크인에 반영하며 기존 기록을 재계산하지 않는다.
+
+배포 전에 `database/migrations/014_add_late_after_minutes_to_attendance_session.sql`을 적용한다. 기존 행은 기본 10분으로 채워진다. 미적용 DB도 기존 조회·체크인은 10분으로 동작하지만 새 지각 기준을 저장하는 활성화 요청은 014 적용 안내와 함께 거절된다.
+
+검증: `npm run test:attendance`, `npm run build`, `npm run test:attendance:ui`. UI 테스트는 로컬 전용 회원 서버와 API 모킹을 사용하고 운영 DB에 접근하지 않는다.

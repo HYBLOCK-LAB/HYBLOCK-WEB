@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApiAccess } from '@/lib/admin-auth';
+import { isValidLateAfterMinutes, DEFAULT_LATE_AFTER_MINUTES } from '@/lib/attendance-policy';
 import {
   getEvents,
   getAttendanceData,
@@ -13,7 +14,8 @@ import {
   deactivateEvent,
   updateEventStatus,
   getEventParticipants,
-  updateParticipantAttendanceStatus,
+  updateParticipantsAttendanceStatus,
+  getEventLateAfterMinutes,
 } from '@/lib/supabase-attendance';
 
 export const dynamic = 'force-dynamic';
@@ -58,7 +60,8 @@ export async function GET(request: Request) {
       console.error('Events GET getEventStatuses error:', error);
       return {};
     });
-    return NextResponse.json({ events, attendanceData, activeEvent, activeEvents, categories, contents, statuses });
+    const lateAfterMinutes = await getEventLateAfterMinutes();
+    return NextResponse.json({ events, attendanceData, activeEvent, activeEvents, categories, contents, statuses, lateAfterMinutes });
   } catch (error) {
     console.error('Events GET error:', error);
     return NextResponse.json({ error: '출석 데이터를 불러오지 못했습니다.' }, { status: 500 });
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
 
   try {
-    const { eventName, setActive, deactivate, category, targetAffiliation } = await request.json();
+    const { eventName, setActive, deactivate, category, targetAffiliation, lateAfterMinutes = DEFAULT_LATE_AFTER_MINUTES } = await request.json();
     
     if (deactivate) {
       await deactivateEvent(typeof eventName === 'string' ? eventName : undefined);
@@ -78,7 +81,10 @@ export async function POST(request: Request) {
     }
 
     if (setActive) {
-      const checkInCode = await setActiveEvent(eventName);
+      if (typeof eventName !== 'string' || !eventName.trim() || !isValidLateAfterMinutes(lateAfterMinutes)) {
+        return NextResponse.json({ error: '세션 이름과 0~180 사이의 지각 기준(분)을 입력해주세요.' }, { status: 400 });
+      }
+      const checkInCode = await setActiveEvent(eventName, lateAfterMinutes);
       return NextResponse.json({ success: true, checkInCode });
     }
 
@@ -105,14 +111,16 @@ export async function PATCH(request: Request) {
   if (auth.response) return auth.response;
 
   try {
-    const { eventName, status, memberId, attendanceStatus } = await request.json();
+    const { eventName, status, memberId, memberIds, attendanceStatus, lateAfterMinutes = DEFAULT_LATE_AFTER_MINUTES } = await request.json();
 
-    if (eventName && typeof memberId === 'number' && attendanceStatus) {
-      if (!['present', 'late', 'absent', 'nonParticipation'].includes(attendanceStatus)) {
-        return NextResponse.json({ error: '유효하지 않은 참여 상태입니다.' }, { status: 400 });
+    if (memberId !== undefined || memberIds !== undefined || attendanceStatus !== undefined) {
+      const ids = memberIds !== undefined ? memberIds : [memberId];
+      if (typeof eventName !== 'string' || !eventName.trim() || !Array.isArray(ids) || !ids.length ||
+        ids.length > 500 || ids.some((id: unknown) => typeof id !== 'number' || !Number.isInteger(id) || id <= 0) ||
+        !['present', 'late', 'absent', 'nonParticipation'].includes(attendanceStatus)) {
+        return NextResponse.json({ error: '세션, 변경할 회원(1~500명), 유효한 출석 상태가 필요합니다.' }, { status: 400 });
       }
-
-      await updateParticipantAttendanceStatus({ eventName, memberId, status: attendanceStatus });
+      await updateParticipantsAttendanceStatus({ eventName, memberIds: ids, status: attendanceStatus });
       return NextResponse.json({ success: true });
     }
 
@@ -124,10 +132,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: '유효하지 않은 세션 상태입니다.' }, { status: 400 });
     }
 
-    await updateEventStatus(eventName, status);
+    if (status === 'in_progress' && !isValidLateAfterMinutes(lateAfterMinutes)) {
+      return NextResponse.json({ error: '지각 기준은 0~180 사이의 정수(분)로 입력해주세요.' }, { status: 400 });
+    }
+    await updateEventStatus(eventName, status, status === 'in_progress' ? lateAfterMinutes : undefined);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Events PATCH error:', error);
-    return NextResponse.json({ error: '세션 상태를 변경하지 못했습니다.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : '세션 상태를 변경하지 못했습니다.' }, { status: 500 });
   }
 }

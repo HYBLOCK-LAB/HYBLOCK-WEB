@@ -7,6 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+    "test:attendance": "node --test tests/attendance-admin.test.cjs",
+    "test:attendance:ui": "playwright test --config playwright.attendance.config.ts",
     "test:auth": "node --test tests/auth-session.test.cjs",
     "test:design": "playwright test tests/design-system.spec.ts"
   },

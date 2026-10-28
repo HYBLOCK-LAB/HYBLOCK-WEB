@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { getSupabase } from '@/lib/supabase';
+import { calculateAttendanceStatus, DEFAULT_LATE_AFTER_MINUTES, isValidLateAfterMinutes } from '@/lib/attendance-policy';
 
 type SessionRow = {
   session_id: string;
@@ -9,6 +10,7 @@ type SessionRow = {
   title: string;
   content: string | null;
   check_in_code: string | null;
+  late_after_minutes?: number;
   session_start_time: string;
   session_end_time: string | null;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
@@ -56,6 +58,8 @@ export type AdminParticipantAttendanceStatus = 'present' | 'late' | 'absent' | '
 export type AdminEventParticipant = {
   memberId: number;
   name: string;
+  cohort: number | null;
+  affiliation: 'development' | 'business' | null;
   status: AdminParticipantAttendanceStatus;
 };
 
@@ -311,9 +315,34 @@ export function isEventVisibleToAffiliation(
   return Boolean(affiliation && event.targetAffiliation === affiliation);
 }
 
-function calculateAttendanceStatus(sessionStartTime: string, attendedAt: Date) {
-  const lateBoundary = new Date(new Date(sessionStartTime).getTime() + 10 * 60 * 1000);
-  return attendedAt <= lateBoundary ? 'present' : 'late';
+function isMissingLateAfterMinutesColumnError(error: unknown) {
+  const candidate = error as { code?: string; message?: string } | null;
+  return Boolean(candidate && ['42703', 'PGRST204'].includes(candidate.code ?? '') &&
+    candidate.message?.includes('late_after_minutes'));
+}
+
+// Query the optional column separately so older databases can still read sessions.
+// Activating with a new policy requires migration 014; never silently drop a setting.
+export async function getEventLateAfterMinutes() {
+  const { data, error } = await getSupabase().from('attendance_session')
+    .select('session_id, title, late_after_minutes').order('created_at', { ascending: true })
+    .returns<Array<{ session_id: string; title: string; late_after_minutes: number }>>();
+  if (error) {
+    if (isMissingLateAfterMinutesColumnError(error)) return {} as Record<string, number>;
+    throw error;
+  }
+  return Object.fromEntries((data ?? []).map((row) => [row.title, row.late_after_minutes]));
+}
+
+async function getSessionLateAfterMinutes(sessionId: string) {
+  const { data, error } = await getSupabase().from('attendance_session')
+    .select('late_after_minutes').eq('session_id', sessionId)
+    .maybeSingle<{ late_after_minutes: number }>();
+  if (error) {
+    if (isMissingLateAfterMinutesColumnError(error)) return DEFAULT_LATE_AFTER_MINUTES;
+    throw error;
+  }
+  return data?.late_after_minutes ?? DEFAULT_LATE_AFTER_MINUTES;
 }
 
 function generateCheckInCode(length = 6) {
@@ -485,7 +514,10 @@ export async function getActiveEvents(): Promise<ActiveAttendanceEvent[]> {
   }
 }
 
-export async function setActiveEvent(eventName: string) {
+export async function setActiveEvent(eventName: string, lateAfterMinutes?: number) {
+  if (lateAfterMinutes !== undefined && !isValidLateAfterMinutes(lateAfterMinutes)) {
+    throw new Error('지각 기준은 0~180 사이의 정수(분)로 입력해주세요.');
+  }
   const session = await getSessionByEventName(eventName);
   if (!session) {
     throw new Error(`Event not found: ${eventName}`);
@@ -516,6 +548,12 @@ export async function setActiveEvent(eventName: string) {
     session_end_time: nextEndTime,
     updated_at: now,
     check_in_code: checkInCode,
+    ...(lateAfterMinutes !== undefined ? { late_after_minutes: lateAfterMinutes } : {}),
+  }).catch((error) => {
+    if (isMissingLateAfterMinutesColumnError(error)) {
+      throw new Error('지각 기준 설정을 저장하려면 DB 마이그레이션 014를 먼저 적용해주세요.');
+    }
+    throw error;
   });
 
   return checkInCode;
@@ -606,9 +644,9 @@ export async function getActiveEventByCheckInCode(code: string): Promise<ActiveA
   return matches.length === 1 ? matches[0] : null;
 }
 
-export async function updateEventStatus(eventName: string, nextStatus: SessionRow['status']) {
+export async function updateEventStatus(eventName: string, nextStatus: SessionRow['status'], lateAfterMinutes?: number) {
   if (nextStatus === 'in_progress') {
-    await setActiveEvent(eventName);
+    await setActiveEvent(eventName, lateAfterMinutes);
     return;
   }
 
@@ -794,7 +832,8 @@ export async function checkInByMemberId(memberId: number, event: string, memberN
     }
 
     const attendedAt = new Date();
-    const status = calculateAttendanceStatus(session.session_start_time, attendedAt);
+    const lateAfterMinutes = await getSessionLateAfterMinutes(session.session_id);
+    const status = calculateAttendanceStatus(session.session_start_time, attendedAt, lateAfterMinutes);
 
     const { error: insertError } = await supabase.from('attendance_record').insert({
       session_id: session.session_id,
@@ -894,10 +933,10 @@ export async function getEventParticipants(eventName: string) {
 
   const { data: members, error: membersError } = await supabase
     .from('member')
-    .select('id, name')
+    .select('id, name, cohort, affiliation')
     .eq('is_active', true)
     .order('name', { ascending: true })
-    .returns<Array<{ id: number; name: string }>>();
+    .returns<Array<{ id: number; name: string; cohort: number | null; affiliation: 'development' | 'business' | null }>>();
 
   if (membersError) throw membersError;
 
@@ -914,6 +953,8 @@ export async function getEventParticipants(eventName: string) {
   return (members ?? []).map<AdminEventParticipant>((member) => ({
     memberId: member.id,
     name: member.name,
+    cohort: member.cohort,
+    affiliation: member.affiliation,
     status: (statusByMemberId.get(member.id) ?? 'nonParticipation') as AdminParticipantAttendanceStatus,
   }));
 }
@@ -923,61 +964,50 @@ export async function updateParticipantAttendanceStatus(params: {
   memberId: number;
   status: AdminParticipantAttendanceStatus;
 }) {
+  return updateParticipantsAttendanceStatus({ ...params, memberIds: [params.memberId] });
+}
+
+export async function updateParticipantsAttendanceStatus(params: {
+  eventName: string;
+  memberIds: number[];
+  status: AdminParticipantAttendanceStatus;
+}) {
+  const memberIds = [...new Set(params.memberIds)];
+  if (!memberIds.length || memberIds.length > 500 || memberIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+    throw new Error('변경할 회원을 1~500명 선택해주세요.');
+  }
+  if (!['present', 'late', 'absent', 'nonParticipation'].includes(params.status)) {
+    throw new Error('유효하지 않은 출석 상태입니다.');
+  }
   const supabase = getSupabase();
   const session = await getSessionByEventName(params.eventName);
+  if (!session) throw new Error(`Event not found: ${params.eventName}`);
 
-  if (!session) {
-    throw new Error(`Event not found: ${params.eventName}`);
-  }
-
-  const { data: member, error: memberError } = await supabase
-    .from('member')
-    .select('id')
-    .eq('id', params.memberId)
-    .eq('is_active', true)
-    .maybeSingle<{ id: number }>();
-
+  const { data: members, error: memberError } = await supabase.from('member')
+    .select('id').in('id', memberIds).eq('is_active', true).returns<Array<{ id: number }>>();
   if (memberError) throw memberError;
-  if (!member) {
-    throw new Error(`Member not found for event: ${params.memberId}`);
-  }
+  if (members?.length !== memberIds.length) throw new Error('변경 대상에 활성 회원이 아닌 회원이 있습니다. 목록을 새로고침해주세요.');
 
   if (params.status === 'nonParticipation') {
-    const { error } = await supabase
-      .from('attendance_record')
-      .delete()
-      .eq('session_id', session.session_id)
-      .eq('member_id', params.memberId);
-
+    const { error } = await supabase.from('attendance_record').delete()
+      .eq('session_id', session.session_id).in('member_id', memberIds);
     if (error) throw error;
     return;
   }
 
-  const { data: existingAttendance, error: existingAttendanceError } = await supabase
-    .from('attendance_record')
-    .select('attendance_id, attended_at')
-    .eq('session_id', session.session_id)
-    .eq('member_id', params.memberId)
-    .maybeSingle<{ attendance_id: string; attended_at: string | null }>();
-
-  if (existingAttendanceError) throw existingAttendanceError;
-
-  const attendedAt =
-    params.status === 'absent'
-      ? null
-      : existingAttendance?.attended_at ?? new Date().toISOString();
-
-  const payload = {
+  const { data: existing, error: lookupError } = await supabase.from('attendance_record')
+    .select('member_id, attended_at').eq('session_id', session.session_id).in('member_id', memberIds)
+    .returns<Array<{ member_id: number; attended_at: string | null }>>();
+  if (lookupError) throw lookupError;
+  const attendedAtByMember = new Map((existing ?? []).map((row) => [row.member_id, row.attended_at]));
+  const now = new Date().toISOString();
+  // One upsert/delete applies the whole selection atomically. Preserve existing check-in times.
+  const { error } = await supabase.from('attendance_record').upsert(memberIds.map((memberId) => ({
     session_id: session.session_id,
-    member_id: params.memberId,
-    attended_at: attendedAt,
+    member_id: memberId,
     status: params.status,
-  };
-
-  const { error } = await supabase.from('attendance_record').upsert(payload, {
-    onConflict: 'session_id,member_id',
-  });
-
+    attended_at: params.status === 'absent' ? null : attendedAtByMember.get(memberId) ?? now,
+  })), { onConflict: 'session_id,member_id' });
   if (error) throw error;
 }
 

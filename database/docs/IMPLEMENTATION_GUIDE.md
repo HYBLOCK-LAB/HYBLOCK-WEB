@@ -66,7 +66,7 @@
 
 - 기본 출석 창: 20분
 - code: 6자리
-- 지각 경계: session start + 10분
+- 지각 경계: session start + `late_after_minutes`분(기본 10, 0~180 정수; 마이그레이션 014 필요)
 - 만료/완료: 상태 completed, code 제거, 미기록 대상 회원 absent 생성
 
 심화 세션의 대상 회원은 `member.affiliation`으로 필터링한다. 기본/기타/외부/해커톤은 전체 활성 회원을 대상으로 한다.

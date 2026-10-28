@@ -75,7 +75,7 @@ notice  (독립)
 
 - `advanced`는 애플리케이션에서 target affiliation을 필수로 요구한다.
 - 활성화 시 6자리 code와 기본 20분 종료 시각을 설정한다.
-- `session_start_time`은 출석의 10분 지각 기준에도 사용한다.
+- `session_start_time`과 `late_after_minutes`로 지각 경계를 계산한다. `late_after_minutes`는 기본 10, 정수 0~180이며 마이그레이션 014로 추가한다. 경계까지 출석, 초과 시 지각이다.
 - 만료를 감지하면 애플리케이션이 세션을 완료하고 결석 레코드를 채운다.
 
 ## 6. `attendance_record`
